@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "Syvl",
+  "short_name": "Syvl",
+  "start_url": ".",
+  "display": "standalone",
+  "description": "A readable Syvlorg.",
+  "icons": [
+    { "src": "https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
