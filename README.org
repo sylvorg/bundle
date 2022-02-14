@@ -67,21 +67,19 @@ More ~mathjax~ options can be found [[https://orgmode.org/manual/Math-formatting
 ** HTML Headers
 :PROPERTIES:
 :header-args:html+: :noweb-ref html-head
-:header-args:hy+: :results raw replace drawer
 :END:
 
 More ~html~ options can be found on the orgmode website [[https://orgmode.org/manual/HTML-specific-export-settings.html][here]] and [[https://orgmode.org/manual/Publishing-options.html#:~:text=HTML%20specific%20properties][here]].
 
 Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/master/AlBasmala.org#:~:text=HTML%2DPreamble%0A%20%20%3AEND%3A-,%23%2BBEGIN_SRC%20emacs%2Dlisp%20%3Aexports%20results%20%3Aresults%20raw%20replace%20drawer,-(s%2Djoin%20%22%5Cn][here]]:
 
-#+begin_src hy
-(.join "\n" (gfor line (.split #[[
-<<html-head>>]] "\n") (+ "#+html_head: " line)))
+#+begin_src hy :results raw replace drawer
+(.join "\n" (gfor line (.split #[html-head[
+<<html-head>>]html-head] "\n") (+ "#+html_head: " line)))
 #+end_src
 
 #+RESULTS:
 :results:
-#+html_head: <link rel="stylesheet" type="text/css" href="https://raw.githack.com/sylvorg/settings/main/src/styles/primary/syvl.css" />
 #+html_head: <link rel="icon" href="https://gitcdn.link/cdn/sylvorg/settings/main/src/icons/favicons/shiny-alolan-sandshrew.ico" sizes="any" />
 #+html_head: <link rel="icon" href="https://gitcdn.link/cdn/sylvorg/settings/main/src/icons/favicons/shiny-alolan-sandshrew.svg" />
 #+html_head: <link rel="manifest" href="https://raw.githack.com/sylvorg/settings/main/manifest.json" />
@@ -94,22 +92,9 @@ Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/maste
 #+html_head: <a href="">About This Website</a>
 #+html_head: <a href="">About Syvlorg</a>
 #+html_head: <a href="https://resume.syvl.org">Résumé</a>
+#+html_head: <a href="https://index.syvl.org">Index</a>
 #+html_head: </div>
 :end:
-
-*** Syvl Stylesheet
-
-For development:
-
-#+begin_src html
-<link rel="stylesheet" type="text/css" href="https://raw.githack.com/sylvorg/settings/main/src/styles/primary/syvl.css" />
-#+end_src
-
-For production:
-
-#+begin_src html :noweb-ref no
-<link rel="stylesheet" type="text/css" href="https://rawcdn.githack.com/sylvorg/settings/3c81c400a2711f368f562b4fe16985895ceeb61d/src/styles/primary/syvl.css?min=1" />
-#+end_src
 
 *** Favicons
 
@@ -209,6 +194,12 @@ Highlightjs for production:
 
 #+begin_src html
 <a href="https://resume.syvl.org">Résumé</a>
+#+end_src
+
+**** Index
+
+#+begin_src html
+<a href="https://index.syvl.org">Index</a>
 #+end_src
 
 **** End of Header
@@ -491,6 +482,290 @@ Adapted from the following:
 #+begin_src text :tangle (meq/tangle-path) :exports none
 <<syvl.css>>
 #+end_src
+
+#+begin_src hy :results raw replace drawer
+(+ "#+html_head: <style>\n" (.join "\n" (gfor line (.split #[syvl.css[
+<<syvl.css>>]syvl.css] "\n") (+ "#+html_head: " line))) "\n#+html_head: </style>")
+#+end_src
+
+#+RESULTS:
+:results:
+#+html_head: <style>
+#+html_head: /* @import url('https://fonts.googleapis.com/css?family=Source+Code+Pro:200,300,400'); */
+#+html_head: 
+#+html_head: :root {
+#+html_head:     --font-size-1: 2rem;
+#+html_head:     --font-size-2: 1.5rem;
+#+html_head:     --font-size-3: 1.25rem;
+#+html_head:     --font-size-4: 1rem;
+#+html_head:     --font-size-small: 0.5rem;
+#+html_head:     --font-size-xsmall: 0.25rem;
+#+html_head:     --margins: 5rem;
+#+html_head:     --padding: 1rem;
+#+html_head:     --header-padding: 0.25rem;
+#+html_head:     --background-color: #222222;
+#+html_head:     --dracula-orange: #ffb86c;
+#+html_head:     --exo-ui-red: #ff5156;
+#+html_head:     --joker-purple: #be80ff;
+#+html_head:     --acid-green: #DFFF00;
+#+html_head: }
+#+html_head: 
+#+html_head: .header {
+#+html_head:     text-align: center;
+#+html_head:     background: var(--background-color);
+#+html_head:     font-size: var(--font-size-3);
+#+html_head:     border-bottom: 1px solid var(--dracula-orange);
+#+html_head:     padding-bottom: var(--padding);
+#+html_head: }
+#+html_head: 
+#+html_head: /* More informatio [[https://developer.mozilla.org/en-US/docs/Web/CSS/:not][here]]: */
+#+html_head: .header>a:not(:last-child)::after {
+#+html_head:     content: " |";
+#+html_head: }
+#+html_head: 
+#+html_head: .header > a:link {
+#+html_head:     color: var(--joker-purple);
+#+html_head:     display: inline;
+#+html_head:     text-decoration: none;
+#+html_head: }
+#+html_head: 
+#+html_head: html,
+#+html_head: body {
+#+html_head:     background-color: var(--background-color);
+#+html_head:     font-family: "Courier New", monospace;
+#+html_head:     font-weight: 100;
+#+html_head:     margin-left: var(--margins);
+#+html_head:     margin-right: var(--margins);
+#+html_head:     color: var(--joker-purple);
+#+html_head: }
+#+html_head: 
+#+html_head: ::selection {
+#+html_head:     background-color: var(--dracula-orange);
+#+html_head:     color: var(--background-color);
+#+html_head: }
+#+html_head: 
+#+html_head: h1 {
+#+html_head:     font-size: var(--font-size-1);
+#+html_head: }
+#+html_head: 
+#+html_head: h2 {
+#+html_head:     font-size: var(--font-size-2);
+#+html_head: }
+#+html_head: 
+#+html_head: h1>.subtitle,
+#+html_head: h3,
+#+html_head: h4,
+#+html_head: h5 {
+#+html_head:     font-size: var(--font-size-3);
+#+html_head: }
+#+html_head: 
+#+html_head: h1,
+#+html_head: h2,
+#+html_head: h3,
+#+html_head: h4,
+#+html_head: h5,
+#+html_head: h6 {
+#+html_head:     font-weight: 300;
+#+html_head:     letter-spacing: -0.03em;
+#+html_head:     color: var(--dracula-orange);
+#+html_head: }
+#+html_head: 
+#+html_head: h2,
+#+html_head: h3,
+#+html_head: h4,
+#+html_head: h5,
+#+html_head: h6 {
+#+html_head:     border-bottom: 1px solid var(--joker-purple);
+#+html_head:     width: fit-content;
+#+html_head:     padding-bottom: var(--header-padding);
+#+html_head: }
+#+html_head: 
+#+html_head: #table-of-contents {
+#+html_head:     padding-bottom: var(--padding);
+#+html_head:     border-bottom: 1px solid var(--dracula-orange);
+#+html_head: }
+#+html_head: 
+#+html_head: #table-of-contents ul,
+#+html_head: #table-of-contents li {
+#+html_head:     list-style-type: none;
+#+html_head:     margin-top: var(--header-padding);
+#+html_head:     margin-bottom: var(--header-padding);
+#+html_head: }
+#+html_head: 
+#+html_head: #table-of-contents .tag {
+#+html_head:     float: right;
+#+html_head: }
+#+html_head: 
+#+html_head: #table-of-contents a:link {
+#+html_head:     text-decoration: none;
+#+html_head:     color: var(--joker-purple);
+#+html_head: }
+#+html_head: 
+#+html_head: #table-of-contents a:hover {
+#+html_head:     color: var(--exo-ui-red);
+#+html_head: }
+#+html_head: 
+#+html_head: img {
+#+html_head:     max-width: 100%;
+#+html_head: }
+#+html_head: 
+#+html_head: blockquote {
+#+html_head:     border-left: 0.2rem solid var(--dracula-orange);
+#+html_head:     padding-left: 1rem;
+#+html_head:     font-style: italic;
+#+html_head: }
+#+html_head: 
+#+html_head: /* Adapted from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
+#+html_head: blockquote>p {
+#+html_head:     color: var(--exo-ui-red);
+#+html_head: }
+#+html_head: 
+#+html_head: p,
+#+html_head: pre,
+#+html_head: ol,
+#+html_head: ul,
+#+html_head: table,
+#+html_head: code {
+#+html_head:     color: var(--dracula-orange);
+#+html_head: }
+#+html_head: 
+#+html_head: .done,
+#+html_head: .priority,
+#+html_head: .tag,
+#+html_head: .todo,
+#+html_head: code {
+#+html_head:     color: var(--background-color);
+#+html_head:     position: relative;
+#+html_head:     bottom: .1rem;
+#+html_head:     font-size: 80%;
+#+html_head: }
+#+html_head: 
+#+html_head: .done,
+#+html_head: .priority,
+#+html_head: .todo,
+#+html_head: code {
+#+html_head:     font-weight: 400;
+#+html_head:     background-clip: padding-box;
+#+html_head:     font-family: "Courier New", monospace;
+#+html_head:     font-weight: bold;
+#+html_head:     line-height: 1
+#+html_head: }
+#+html_head: 
+#+html_head: .done,
+#+html_head: .priority,
+#+html_head: .tag>span,
+#+html_head: .todo,
+#+html_head: code {
+#+html_head:     border-radius: 3px;
+#+html_head:     padding-top: .1rem;
+#+html_head:     padding-left: .3rem;
+#+html_head:     padding-right: .3rem;
+#+html_head:     line-height: 1;
+#+html_head: }
+#+html_head: 
+#+html_head: .priority,
+#+html_head: .tag>span,
+#+html_head: .todo,
+#+html_head: code {
+#+html_head:     background-image: linear-gradient(160deg, var(--dracula-orange), var(--exo-ui-red));
+#+html_head: }
+#+html_head: 
+#+html_head: .on>code,
+#+html_head: .done {
+#+html_head:     background-image: linear-gradient(160deg, var(--dracula-orange), var(--joker-purple));
+#+html_head: }
+#+html_head: 
+#+html_head: .tag {
+#+html_head:     top: .1rem;
+#+html_head:     display: block;
+#+html_head:     float: right;
+#+html_head:     font-weight: 550;
+#+html_head: }
+#+html_head: 
+#+html_head: .tag>span {
+#+html_head:     text-transform: uppercase;
+#+html_head: }
+#+html_head: 
+#+html_head: table,
+#+html_head: #table-of-contents {
+#+html_head:     margin-bottom: var(--padding);
+#+html_head: }
+#+html_head: 
+#+html_head: table {
+#+html_head:     text-align: center;
+#+html_head: }
+#+html_head: 
+#+html_head: 
+#+html_head: /* Even Table Row */
+#+html_head: 
+#+html_head: tr:nth-child(even) {
+#+html_head:     background-color: #2f1e2e;
+#+html_head:     color: var(--exo-ui-red);
+#+html_head: }
+#+html_head: 
+#+html_head: .org-org-meta-line,
+#+html_head: .org-keyword {
+#+html_head:     color: var(--dracula-orange);
+#+html_head: }
+#+html_head: 
+#+html_head: a:link,
+#+html_head: a:hover,
+#+html_head: a:visited,
+#+html_head: a:visited:hover {
+#+html_head:     text-decoration: none;
+#+html_head: }
+#+html_head: 
+#+html_head: a:link {
+#+html_head:     color: var(--acid-green);
+#+html_head: }
+#+html_head: 
+#+html_head: a:visited {
+#+html_head:     color: var(--joker-purple);
+#+html_head: }
+#+html_head: 
+#+html_head: /* Adapted from [[https://stackoverflow.com/users/3246606/harry-the-mad-lurker][Harry The Mad Lurker's]] answer [[https://stackoverflow.com/a/21977877/10827766][here]]: */
+#+html_head: a:hover,
+#+html_head: a:visited:hover {
+#+html_head:     color: var(--exo-ui-red);
+#+html_head: }
+#+html_head: 
+#+html_head: /* Adapted from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
+#+html_head: #postamble :not(:last-child)::after {
+#+html_head:     content: " |";
+#+html_head: }
+#+html_head: 
+#+html_head: #postamble>p {
+#+html_head:     display: inline;
+#+html_head: }
+#+html_head: 
+#+html_head: #postamble {
+#+html_head:     text-align: center;
+#+html_head:     width: 100%;
+#+html_head:     font-size: var(--font-size-4)
+#+html_head: }
+#+html_head: 
+#+html_head: .status {
+#+html_head:     padding: var(--padding);
+#+html_head:     border-top: 1px solid var(--dracula-orange);
+#+html_head:     text-align: center;
+#+html_head: }
+#+html_head: 
+#+html_head: .outline-text-2,
+#+html_head: .outline-text-3,
+#+html_head: .outline-text-4 {
+#+html_head:     max-width: 100%;
+#+html_head:     overflow-x: auto;
+#+html_head: }
+#+html_head: 
+#+html_head: .underline {
+#+html_head:     text-decoration: var(--exo-ui-red) wavy underline;
+#+html_head: }
+#+html_head: 
+#+html_head: del {
+#+html_head:     text-decoration: var(--joker-purple) wavy line-through;
+#+html_head: }
+#+html_head: </style>
+:end:
 
 #+begin_src css
 /* @import url('https://fonts.googleapis.com/css?family=Source+Code+Pro:200,300,400'); */
