@@ -28,7 +28,7 @@
 (require 'cl-lib)
 (require 'ox)
 (require 'ob-tangle)
-(load-file (concat "/home/shadowrylander/.emacs.d/settings/" "org-tangle-functions.el"))
+(load-file (concat "/home/shadowrylander/sylvorg.github.io/settings/" "org-tangle-functions.el"))
 
 (defun usage ()
   (with-temp-buffer

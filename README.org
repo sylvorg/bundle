@@ -2,7 +2,7 @@
 
 * General Properties and Settings
 :PROPERTIES:
-:header-args:text+: :results raw replace drawer :exports both
+:header-args:text+: :results raw replace drawer
 :ID:       c821137f-41fe-46e8-aeb6-bb288400d272
 :CUSTOM_ID:       c821137f-41fe-46e8-aeb6-bb288400d272
 :END:
@@ -11,13 +11,13 @@ If setting this up again, use ~C-c C-c~ on the results of the ~emacs-lisp~ code 
 
 #+name: eedc8905-e04c-40d9-97c1-88b840473eaf
 #+begin_src text
-#+property: header-args -n -r -l '[{(<%s>)}]' :tangle-mode (identity #o444) :noweb yes :mkdirp yes
+#+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes
 #+property: header-args:emacs-lisp+ :comments both
 #+end_src
 
 #+RESULTS: eedc8905-e04c-40d9-97c1-88b840473eaf
 :results:
-#+property: header-args -n -r -l '[{(<%s>)}]' :tangle-mode (identity #o444) :noweb yes :mkdirp yes
+#+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes
 #+property: header-args:emacs-lisp+ :comments both
 :end:
 
@@ -35,7 +35,7 @@ Adapted from [[https://stackoverflow.com/users/776405/whil][Whil's]] answer [[ht
 
 * HTML Export Options
 :PROPERTIES:
-:header-args:text+: :results raw replace drawer :exports both
+:header-args:text+: :results raw replace drawer
 :ID:       0ee9b692-e89d-46f4-9f34-bffa599bf068
 :CUSTOM_ID:       0ee9b692-e89d-46f4-9f34-bffa599bf068
 :END:
@@ -69,7 +69,7 @@ More ~mathjax~ options can be found [[https://orgmode.org/manual/Math-formatting
 ** HTML Headers
 :PROPERTIES:
 :header-args:html+: :noweb-ref html-head
-:header-args:hy+: :results raw replace drawer :exports both
+:header-args:hy+: :results raw replace drawer
 :END:
 
 More ~html~ options can be found on the orgmode website [[https://orgmode.org/manual/HTML-specific-export-settings.html][here]] and [[https://orgmode.org/manual/Publishing-options.html#:~:text=HTML%20specific%20properties][here]].
@@ -83,18 +83,18 @@ Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/maste
 
 #+RESULTS:
 :results:
-#+html_head: <link rel='stylesheet' type='text/css' href='https://raw.githack.com/shadowrylander/settings/main/src/styles/primary/syvl.css' />
-#+html_head: <link rel='icon' href='https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew.ico' sizes='any' />
-#+html_head: <link rel='icon' href='https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew.svg' />
-#+html_head: <link rel='manifest' href='https://raw.githack.com/shadowrylander/settings/main/manifest.json' />
-#+html_head: <link rel='stylesheet' type='text/css' href='https://raw.githack.com/shadowrylander/settings/main/src/styles/highlight/paraiso-dark.min.css' />
-#+html_head: <script src='https://raw.githack.com/shadowrylander/settings/main/src/scripts/highlight/highlight.min.js'></script>
+#+html_head: <link rel="stylesheet" type="text/css" href="https://raw.githack.com/shadowrylander/settings/main/src/styles/primary/syvl.css" />
+#+html_head: <link rel="icon" href="https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew.ico" sizes="any" />
+#+html_head: <link rel="icon" href="https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew.svg" />
+#+html_head: <link rel="manifest" href="https://raw.githack.com/shadowrylander/settings/main/manifest.json" />
+#+html_head: <link rel="stylesheet" type="text/css" href="https://raw.githack.com/shadowrylander/settings/main/src/styles/highlight/paraiso-dark.min.css" />
+#+html_head: <script src="https://raw.githack.com/shadowrylander/settings/main/src/scripts/highlight/highlight.min.js"></script>
 #+html_head: <script>hljs.highlightAll();</script>
-#+html_head: <div class='header'>
+#+html_head: <div class="header">
 #+html_head: <h1>We Are Syvlorg.</h1>
-#+html_head: <a href=''>About Me</a>
-#+html_head: <a href=''>About This Website</a>
-#+html_head: <a href=''>Résumé</a>
+#+html_head: <a href="">About Me</a>
+#+html_head: <a href="">About This Website</a>
+#+html_head: <a href="">Résumé</a>
 #+html_head: </div>
 :end:
 
@@ -103,20 +103,20 @@ Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/maste
 For development:
 
 #+begin_src html
-<link rel='stylesheet' type='text/css' href='https://raw.githack.com/shadowrylander/settings/main/src/styles/primary/syvl.css' />
+<link rel="stylesheet" type="text/css" href="https://raw.githack.com/shadowrylander/settings/main/src/styles/primary/syvl.css" />
 #+end_src
 
 For production:
 
 #+begin_src html :noweb-ref no
-<link rel='stylesheet' type='text/css' href='https://rawcdn.githack.com/shadowrylander/settings/3c81c400a2711f368f562b4fe16985895ceeb61d/src/styles/primary/syvl.css?min=1' />
+<link rel="stylesheet" type="text/css" href="https://rawcdn.githack.com/shadowrylander/settings/3c81c400a2711f368f562b4fe16985895ceeb61d/src/styles/primary/syvl.css?min=1" />
 #+end_src
 
 *** Favicons
 
 #+begin_src html
-<link rel='icon' href='https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew.ico' sizes='any' />
-<link rel='icon' href='https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew.svg' />
+<link rel="icon" href="https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew.ico" sizes="any" />
+<link rel="icon" href="https://gitcdn.link/cdn/shadowrylander/settings/main/src/icons/favicons/shiny-alolan-sandshrew.svg" />
 #+end_src
 
 *** Manifest
@@ -124,13 +124,13 @@ For production:
 For development:
 
 #+begin_src html
-<link rel='manifest' href='https://raw.githack.com/shadowrylander/settings/main/manifest.json' />
+<link rel="manifest" href="https://raw.githack.com/shadowrylander/settings/main/manifest.json" />
 #+end_src
 
 For production:
 
 #+begin_src html :noweb-ref no
-<link rel='manifest' href='https://rawcdn.githack.com/shadowrylander/settings/349aab51623410546fa06655ffb2b047be37cd12/manifest.json?min=1' />
+<link rel="manifest" href="https://rawcdn.githack.com/shadowrylander/settings/349aab51623410546fa06655ffb2b047be37cd12/manifest.json?min=1" />
 #+end_src
 
 *** Highlightjs
@@ -144,18 +144,18 @@ Favorites include:
 
 Unminify using [[https://unminify.com/][this]].
 
-~Note:~ If just ~rel='stylesheet'~ and the ~href~ don't work, add ~type='text/css'~ as well.
+~Note:~ If just ~rel="stylesheet"~ and the ~href~ don't work, add ~type="text/css"~ as well.
 
 Highlightjs theme for development:
 
 #+begin_src html
-<link rel='stylesheet' type='text/css' href='https://raw.githack.com/shadowrylander/settings/main/src/styles/highlight/paraiso-dark.min.css' />
+<link rel="stylesheet" type="text/css" href="https://raw.githack.com/shadowrylander/settings/main/src/styles/highlight/paraiso-dark.min.css" />
 #+end_src
 
 Highlightjs theme for production:
 
 #+begin_src html :noweb-ref no
-<link rel='stylesheet' type='text/css' href='https://gitcdn.link/cdn/shadowrylander/settings/main/src/styles/highlight/paraiso-dark.min.css' />
+<link rel="stylesheet" type="text/css" href="https://gitcdn.link/cdn/shadowrylander/settings/main/src/styles/highlight/paraiso-dark.min.css" />
 #+end_src
 
 Custom bundle of languages, built using the instructions from [[https://github.com/highlightjs/highlight.js/issues/3033#issuecomment-943846001][here]]:
@@ -167,13 +167,13 @@ node tools/build.js -t browser bash css diff dockerfile hy ini json lisp makefil
 Highlightjs for development:
 
 #+begin_src html
-<script src='https://raw.githack.com/shadowrylander/settings/main/src/scripts/highlight/highlight.min.js'></script>
+<script src="https://raw.githack.com/shadowrylander/settings/main/src/scripts/highlight/highlight.min.js"></script>
 #+end_src
 
 Highlightjs for production:
 
 #+begin_src html :noweb-ref no
-<script src='https://gitcdn.link/cdn/shadowrylander/settings/main/src/scripts/highlight/highlight.min.js'></script>
+<script src="https://gitcdn.link/cdn/shadowrylander/settings/main/src/scripts/highlight/highlight.min.js"></script>
 #+end_src
 
 #+begin_src html
@@ -183,7 +183,7 @@ Highlightjs for production:
 *** Header
 
 #+begin_src html
-<div class='header'>
+<div class="header">
 <h1>We Are Syvlorg.</h1>
 #+end_src
 
@@ -191,19 +191,19 @@ Highlightjs for production:
 ***** Me
 
 #+begin_src html
-<a href=''>About Me</a>
+<a href="">About Me</a>
 #+end_src
 
 ***** This Website
 
 #+begin_src html
-<a href=''>About This Website</a>
+<a href="">About This Website</a>
 #+end_src
 
 **** Résumé
 
 #+begin_src html
-<a href=''>Résumé</a>
+<a href="">Résumé</a>
 #+end_src
 
 **** End of Header
