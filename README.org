@@ -514,6 +514,11 @@ Adapted from the following:
     padding-bottom: var(--padding);
 }
 
+/* More informatio [[https://developer.mozilla.org/en-US/docs/Web/CSS/:not][here]]: */
+.header>a:not(:last-child)::after {
+    content: " |";
+}
+
 .header > a:link {
     color: var(--joker-purple);
     display: inline;
@@ -606,7 +611,7 @@ blockquote {
     font-style: italic;
 }
 
-/* Adaped from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]]: */
+/* Adaped from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
 blockquote>p {
     color: var(--exo-ui-red);
 }
@@ -717,8 +722,8 @@ a:hover {
     color: var(--exo-ui-red);
 }
 
-.author::after,
-.date::after {
+/* Adaped from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
+#postamble :not(:last-child)::after {
     content: " |";
 }
 
