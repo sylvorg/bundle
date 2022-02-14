@@ -69,7 +69,6 @@ More ~mathjax~ options can be found [[https://orgmode.org/manual/Math-formatting
 ** HTML Headers
 :PROPERTIES:
 :header-args:html+: :noweb-ref html-head
-:header-args:emacs-lisp+: :results raw replace drawer :exports both
 :header-args:hy+: :results raw replace drawer :exports both
 :END:
 
@@ -849,7 +848,7 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
 (require 'cl-lib)
 (require 'ox)
 (require 'ox-html)
-(load-file "./org-export-functions.el")
+(load-file (concat (file-name-directory (or load-file-name buffer-file-name)) "org-export-functions.el"))
 
 (setq debug-on-error t)
 
@@ -941,15 +940,20 @@ Adapted from [[https://github.com/bzg/org-mode/blob/main/lisp/ox-html.el#L3471][
 ~Note:~ ~org-tangle-functions.el~ is required due to [[https://github.com/bzg/org-mode/blob/d2f4d4b457a9fe7a7dbcfbd2d71c723ffa8c2726/lisp/ob-core.el#L625][this]].
 
 #+begin_src emacs-lisp
-(load-file "./org-tangle-functions.el")
+(setq org-export-functions-directory (file-name-directory (or load-file-name buffer-file-name))
+      windows (member system-type '(windows-nt ms-dos)))
+(defun meq/oefd (&rest args) (apply #'concat org-export-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
+(load-file (meq/oefd "org-tangle-functions.el"))
 #+end_src
 
 Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]]:
 
 #+begin_src emacs-lisp
 (require 'org-id)
-(setq org-id-locations-file ".org-id-locations"
-      org-id-files '("README.org")
+(setq org-id-locations-file (meq/oefd ".org-id-locations")
+      org-id-files (list load-file-name
+                         buffer-file-name
+                         (meq/oefd "README.org"))
       org-id-link-to-org-use-id t)
 (org-id-update-id-locations)
 #+end_src
@@ -1052,14 +1056,18 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
 
 #+name: 20220211200359152893769
 #+begin_src emacs-lisp :eval never-export
-(setq doom-tangle (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/hlissner/doom-emacs/master/bin/org-tangle 2> /dev/null"))
+(setq doom-tangle (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/hlissner/doom-emacs/master/bin/org-tangle 2> /dev/null")
+      org-tangle-directory (file-name-directory (or load-file-name buffer-file-name)))
 (if (string= doom-tangle "")
-    (with-temp-buffer (insert-file-contents "./org-tangle.sh")
-                      (buffer-string))
+    (thread-first org-tangle-directory
+                  (concat "org-tangle.sh")
+                  (insert-file-contents)
+                  (with-temp-buffer (buffer-string)))
     (thread-last doom-tangle
-                 (replace-regexp-in-string "(require 'ob-tangle)" "(require 'ob-tangle)\n(load-file \"./org-tangle-functions.el\")")
-                 (replace-regexp-in-string "(dolist (file srcs)" "(dolist (file srcs)\n\t\t(message (format \"\\\\n\\\\nNow tangling %s:\\\\n\" file))")
-                 (replace-regexp-in-string "(org-export-expand-include-keyword)" ";; (org-export-expand-include-keyword)")))
+        (replace-regexp-in-string "(require 'ob-tangle)"
+                                  (format "(require 'ob-tangle)\n(load-file (concat \"%s\" \"org-tangle-functions.el\"))" org-tangle-directory))
+        (replace-regexp-in-string "(dolist (file srcs)" "(dolist (file srcs)\n\t\t(message (format \"\\\\n\\\\nNow tangling %s:\\\\n\" file))")
+        (replace-regexp-in-string "(org-export-expand-include-keyword)" ";; (org-export-expand-include-keyword)")))
 #+end_src
 
 #+begin_src shell :tangle (meq/tangle-path)

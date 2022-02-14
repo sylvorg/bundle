@@ -25,7 +25,7 @@
 (require 'cl-lib)
 (require 'ox)
 (require 'ox-html)
-(load-file "./org-export-functions.el")
+(load-file (concat (file-name-directory (or load-file-name buffer-file-name)) "org-export-functions.el"))
 
 (setq debug-on-error t)
 

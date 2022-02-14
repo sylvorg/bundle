@@ -1,7 +1,12 @@
-(load-file "./org-tangle-functions.el")
+(setq org-export-functions-directory (file-name-directory (or load-file-name buffer-file-name))
+      windows (member system-type '(windows-nt ms-dos)))
+(defun meq/oefd (&rest args) (apply #'concat org-export-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
+(load-file (meq/oefd "org-tangle-functions.el"))
 (require 'org-id)
-(setq org-id-locations-file ".org-id-locations"
-      org-id-files '("README.org")
+(setq org-id-locations-file (meq/oefd ".org-id-locations")
+      org-id-files (list load-file-name
+                         buffer-file-name
+                         (meq/oefd "README.org"))
       org-id-link-to-org-use-id t)
 (org-id-update-id-locations)
 (defun meq/org-html-src-block (src-block _contents info)
@@ -13,6 +18,7 @@ contextual information."
     (let* ((lang (org-element-property :language src-block))
            (lang (cond ((member lang '("emacs-lisp")) "lisp")
                        ((member lang '("shell" "zsh" "bash")) "sh")
+                       ((member lang '("text")) "plaintext")
                        (t lang)))
            (code (org-html-format-code src-block info))
            (label (let ((lbl (org-html--reference src-block info t)))
