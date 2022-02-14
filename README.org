@@ -94,7 +94,8 @@ Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/maste
 #+html_head: <h1>We Are Syvlorg.</h1>
 #+html_head: <a href="">About Me</a>
 #+html_head: <a href="">About This Website</a>
-#+html_head: <a href="">Résumé</a>
+#+html_head: <a href="">About Syvlorg</a>
+#+html_head: <a href="https://resume.syvl.org">Résumé</a>
 #+html_head: </div>
 :end:
 
@@ -200,10 +201,16 @@ Highlightjs for production:
 <a href="">About This Website</a>
 #+end_src
 
+***** Syvlorg
+
+#+begin_src html
+<a href="">About Syvlorg</a>
+#+end_src
+
 **** Résumé
 
 #+begin_src html
-<a href="">Résumé</a>
+<a href="https://resume.syvl.org">Résumé</a>
 #+end_src
 
 **** End of Header
