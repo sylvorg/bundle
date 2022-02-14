@@ -1,5 +1,3 @@
-#+title: Settings
-
 * General Properties and Settings
 :PROPERTIES:
 :header-args:text+: :results raw replace drawer
