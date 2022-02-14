@@ -691,16 +691,10 @@ Adapted from the following:
 #+html_head:     margin-bottom: var(--padding);
 #+html_head: }
 #+html_head: 
-#+html_head: table {
-#+html_head:     text-align: center;
-#+html_head: }
-#+html_head: 
-#+html_head: 
 #+html_head: /* Even Table Row */
 #+html_head: 
 #+html_head: tr:nth-child(even) {
 #+html_head:     background-color: #2f1e2e;
-#+html_head:     color: var(--exo-ui-red);
 #+html_head: }
 #+html_head: 
 #+html_head: .org-org-meta-line,
@@ -968,16 +962,10 @@ table,
     margin-bottom: var(--padding);
 }
 
-table {
-    text-align: center;
-}
-
-
 /* Even Table Row */
 
 tr:nth-child(even) {
     background-color: #2f1e2e;
-    color: var(--exo-ui-red);
 }
 
 .org-org-meta-line,
