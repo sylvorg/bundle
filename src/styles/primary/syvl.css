@@ -14,6 +14,7 @@
     --dracula-orange: #ffb86c;
     --exo-ui-red: #ff5156;
     --joker-purple: #be80ff;
+    --acid-green: #DFFF00;
 }
 
 .header {
@@ -121,7 +122,7 @@ blockquote {
     font-style: italic;
 }
 
-/* Adaped from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
+/* Adapted from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
 blockquote>p {
     color: var(--exo-ui-red);
 }
@@ -215,24 +216,27 @@ tr:nth-child(even) {
 }
 
 a:link,
-a:hover {
-    text-decoration: var(--joker-purple) dotted underline;
+a:hover,
+a:visited,
+a:visited:hover {
+    text-decoration: none;
 }
 
 a:link {
-    color: var(--dracula-orange);
+    color: var(--acid-green);
 }
 
 a:visited {
     color: var(--joker-purple);
-    text-decoration: var(--dracula-orange) dotted underline;
 }
 
-a:hover {
+/* Adapted from [[https://stackoverflow.com/users/3246606/harry-the-mad-lurker][Harry The Mad Lurker's]] answer [[https://stackoverflow.com/a/21977877/10827766][here]]: */
+a:hover,
+a:visited:hover {
     color: var(--exo-ui-red);
 }
 
-/* Adaped from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
+/* Adapted from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
 #postamble :not(:last-child)::after {
     content: " |";
 }
