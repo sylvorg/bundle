@@ -1346,7 +1346,7 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
 #+name: 20220211200359152893769
 #+begin_src emacs-lisp :eval never-export
 (setq doom-tangle (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/hlissner/doom-emacs/master/bin/org-tangle 2> /dev/null")
-      org-tangle-directory (file-name-directory (or load-file-name buffer-file-name)))
+      org-tangle-directory-function "(file-name-directory (or load-file-name buffer-file-name))")
 (if (string= doom-tangle "")
     (thread-first org-tangle-directory
                   (concat "org-tangle.sh")
@@ -1354,7 +1354,13 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
                   (with-temp-buffer (buffer-string)))
     (thread-last doom-tangle
         (replace-regexp-in-string "(require 'ob-tangle)"
-                                  (format "(require 'ob-tangle)\n(load-file (concat \"%s\" \"org-tangle-functions.el\"))" org-tangle-directory))
+                                  (format (concat "(require 'ob-tangle)"
+                                                  "\n"
+                                                  "(load-file (concat %s \"org-tangle-functions.el\"))"
+                                                  "\n"
+                                                  "(setq org-id-locations-file (concat %s \".org-id-locations\"))")
+                                          org-tangle-directory-function
+                                          org-tangle-directory-function))
         (replace-regexp-in-string "(dolist (file srcs)" "(dolist (file srcs)\n\t\t(message (format \"\\\\n\\\\nNow tangling %s:\\\\n\" file))")
         (replace-regexp-in-string "(org-export-expand-include-keyword)" ";; (org-export-expand-include-keyword)")))
 #+end_src
