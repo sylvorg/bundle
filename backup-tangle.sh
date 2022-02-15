@@ -28,7 +28,8 @@
 (require 'cl-lib)
 (require 'ox)
 (require 'ob-tangle)
-(load-file "./org-tangle-functions.el")
+(load-file (concat (file-name-directory (or load-file-name buffer-file-name)) "org-tangle-functions.el"))
+(setq org-id-locations-file (concat (file-name-directory (or load-file-name buffer-file-name)) ".org-id-locations"))
 
 (defun usage ()
   (with-temp-buffer
