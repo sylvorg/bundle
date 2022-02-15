@@ -1,6 +1,6 @@
 * General Properties and Settings
 :PROPERTIES:
-:header-args:text+: :results raw replace drawer
+:header-args:text+: :results raw replace drawer :exports results
 :ID:       c821137f-41fe-46e8-aeb6-bb288400d272
 :CUSTOM_ID:       c821137f-41fe-46e8-aeb6-bb288400d272
 :END:
@@ -33,7 +33,7 @@ Adapted from [[https://stackoverflow.com/users/776405/whil][Whil's]] answer [[ht
 
 * HTML Export Options
 :PROPERTIES:
-:header-args:text+: :results raw replace drawer
+:header-args:text+: :results raw replace drawer :exports results
 :ID:       0ee9b692-e89d-46f4-9f34-bffa599bf068
 :CUSTOM_ID:       0ee9b692-e89d-46f4-9f34-bffa599bf068
 :END:
@@ -69,11 +69,16 @@ More ~mathjax~ options can be found [[https://orgmode.org/manual/Math-formatting
 :header-args:html+: :noweb-ref html-head
 :END:
 
-More ~html~ options can be found on the orgmode website [[https://orgmode.org/manual/HTML-specific-export-settings.html][here]] and [[https://orgmode.org/manual/Publishing-options.html#:~:text=HTML%20specific%20properties][here]].
+More ~html~ options can be found on the orgmode website:
+- https://orgmode.org/manual/HTML-specific-export-settings.html
+- https://orgmode.org/manual/Publishing-options.html#:~:text=HTML%20specific%20properties
+- https://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#org2656e9f
+- https://orgmode.org/guide/HTML-Export.html
+- https://orgmode.org/manual/Quoting-HTML-tags.html
 
 Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/master/AlBasmala.org#:~:text=HTML%2DPreamble%0A%20%20%3AEND%3A-,%23%2BBEGIN_SRC%20emacs%2Dlisp%20%3Aexports%20results%20%3Aresults%20raw%20replace%20drawer,-(s%2Djoin%20%22%5Cn][here]]:
 
-#+begin_src hy :results raw replace drawer
+#+begin_src hy :results raw replace drawer :exports results
 (.join "\n" (gfor line (.split #[html-head[
 <<html-head>>]html-head] "\n") (+ "#+html_head: " line)))
 #+end_src
@@ -483,7 +488,7 @@ Adapted from the following:
 <<syvl.css>>
 #+end_src
 
-#+begin_src hy :results raw replace drawer
+#+begin_src hy :results raw replace drawer :exports results
 (+ "#+html_head: <style>\n" (.join "\n" (gfor line (.split #[syvl.css[
 <<syvl.css>>]syvl.css] "\n") (+ "#+html_head: " line))) "\n#+html_head: </style>")
 #+end_src
