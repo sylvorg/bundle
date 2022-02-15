@@ -8,6 +8,7 @@
     --font-size-small: 0.5rem;
     --font-size-xsmall: 0.25rem;
     --margins: 5rem;
+    --smaller-margins: 2.5rem;
     --padding: 1rem;
     --header-padding: 0.25rem;
     --background-color: #222222;
@@ -41,9 +42,25 @@ body {
     background-color: var(--background-color);
     font-family: "Courier New", monospace;
     font-weight: 100;
-    margin-left: var(--margins);
-    margin-right: var(--margins);
     color: var(--joker-purple);
+}
+
+@media only screen and (min-width: 750px) /* Large screens */
+{
+    html,
+    body {
+        margin-left: var(--margins);
+        margin-right: var(--margins);
+    }
+}
+
+@media only screen and (max-width: 750px) /* Small screens */
+{
+    html,
+    body {
+        margin-left: var(--smaller-margins);
+        margin-right: var(--smaller-margins);
+    }
 }
 
 ::selection {
@@ -198,16 +215,10 @@ table,
     margin-bottom: var(--padding);
 }
 
-table {
-    text-align: center;
-}
-
-
 /* Even Table Row */
 
 tr:nth-child(even) {
     background-color: #2f1e2e;
-    color: var(--exo-ui-red);
 }
 
 .org-org-meta-line,

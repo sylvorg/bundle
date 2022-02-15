@@ -501,6 +501,7 @@ Adapted from the following:
 #+html_head:     --font-size-small: 0.5rem;
 #+html_head:     --font-size-xsmall: 0.25rem;
 #+html_head:     --margins: 5rem;
+#+html_head:     --smaller-margins: 2.5rem;
 #+html_head:     --padding: 1rem;
 #+html_head:     --header-padding: 0.25rem;
 #+html_head:     --background-color: #222222;
@@ -534,9 +535,25 @@ Adapted from the following:
 #+html_head:     background-color: var(--background-color);
 #+html_head:     font-family: "Courier New", monospace;
 #+html_head:     font-weight: 100;
-#+html_head:     margin-left: var(--margins);
-#+html_head:     margin-right: var(--margins);
 #+html_head:     color: var(--joker-purple);
+#+html_head: }
+#+html_head: 
+#+html_head: @media only screen and (min-width: 750px) /* Large screens */
+#+html_head: {
+#+html_head:     html,
+#+html_head:     body {
+#+html_head:         margin-left: var(--margins);
+#+html_head:         margin-right: var(--margins);
+#+html_head:     }
+#+html_head: }
+#+html_head: 
+#+html_head: @media only screen and (max-width: 750px) /* Small screens */
+#+html_head: {
+#+html_head:     html,
+#+html_head:     body {
+#+html_head:         margin-left: var(--smaller-margins);
+#+html_head:         margin-right: var(--smaller-margins);
+#+html_head:     }
 #+html_head: }
 #+html_head: 
 #+html_head: ::selection {
@@ -772,6 +789,7 @@ Adapted from the following:
     --font-size-small: 0.5rem;
     --font-size-xsmall: 0.25rem;
     --margins: 5rem;
+    --smaller-margins: 2.5rem;
     --padding: 1rem;
     --header-padding: 0.25rem;
     --background-color: #222222;
@@ -805,9 +823,25 @@ body {
     background-color: var(--background-color);
     font-family: "Courier New", monospace;
     font-weight: 100;
-    margin-left: var(--margins);
-    margin-right: var(--margins);
     color: var(--joker-purple);
+}
+
+@media only screen and (min-width: 750px) /* Large screens */
+{
+    html,
+    body {
+        margin-left: var(--margins);
+        margin-right: var(--margins);
+    }
+}
+
+@media only screen and (max-width: 750px) /* Small screens */
+{
+    html,
+    body {
+        margin-left: var(--smaller-margins);
+        margin-right: var(--smaller-margins);
+    }
 }
 
 ::selection {
