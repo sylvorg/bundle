@@ -3,12 +3,13 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2022-02-15 Tue 08:47 -->
+<!-- 2022-02-18 Fri 19:37 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>&lrm;</title>
 <meta name="generator" content="Org mode" />
 <meta name="author" content="Jeet Ray" />
+<link rel="stylesheet" type="text/css" href="https://raw.githack.com/shadowrylander/settings/main/src/styles/primary/syvl.css" />
 <link rel="icon" href="https://gitcdn.link/cdn/sylvorg/settings/main/src/icons/favicons/shiny-alolan-sandshrew.ico" sizes="any" />
 <link rel="icon" href="https://gitcdn.link/cdn/sylvorg/settings/main/src/icons/favicons/shiny-alolan-sandshrew.svg" />
 <link rel="manifest" href="https://raw.githack.com/sylvorg/settings/main/manifest.json" />
@@ -23,292 +24,6 @@
 <a href="https://resume.syvl.org">Résumé</a>
 <a href="https://index.syvl.org">Index</a>
 </div>
-<style>
-/* @import url('https://fonts.googleapis.com/css?family=Source+Code+Pro:200,300,400'); */
-
-:root {
---font-size-1: 2rem;
---font-size-2: 1.5rem;
---font-size-3: 1.25rem;
---font-size-4: 1rem;
---font-size-small: 0.5rem;
---font-size-xsmall: 0.25rem;
---margins: 5rem;
---smaller-margins: 2.5rem;
---padding: 1rem;
---header-padding: 0.25rem;
---background-color: #222222;
---dracula-orange: #ffb86c;
---exo-ui-red: #ff5156;
---joker-purple: #be80ff;
---acid-green: #DFFF00;
-}
-
-.header {
-text-align: center;
-background: var(--background-color);
-font-size: var(--font-size-3);
-border-bottom: 1px solid var(--dracula-orange);
-padding-bottom: var(--padding);
-}
-
-/* More informatio [[https://developer.mozilla.org/en-US/docs/Web/CSS/:not][here]]: */
-.header>a:not(:last-child)::after {
-content: " |";
-}
-
-.header > a:link {
-color: var(--joker-purple);
-display: inline;
-text-decoration: none;
-}
-
-html,
-body {
-background-color: var(--background-color);
-font-family: "Courier New", monospace;
-font-weight: 100;
-color: var(--joker-purple);
-}
-
-@media only screen and (min-width: 750px) /* Large screens */
-{
-html,
-body {
-margin-left: var(--margins);
-margin-right: var(--margins);
-}
-}
-
-@media only screen and (max-width: 750px) /* Small screens */
-{
-html,
-body {
-margin-left: var(--smaller-margins);
-margin-right: var(--smaller-margins);
-}
-}
-
-::selection {
-background-color: var(--dracula-orange);
-color: var(--background-color);
-}
-
-h1 {
-font-size: var(--font-size-1);
-}
-
-h2 {
-font-size: var(--font-size-2);
-}
-
-h1>.subtitle,
-h3,
-h4,
-h5 {
-font-size: var(--font-size-3);
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-font-weight: 300;
-letter-spacing: -0.03em;
-color: var(--dracula-orange);
-}
-
-h2,
-h3,
-h4,
-h5,
-h6 {
-border-bottom: 1px solid var(--joker-purple);
-width: fit-content;
-padding-bottom: var(--header-padding);
-}
-
-#table-of-contents {
-padding-bottom: var(--padding);
-border-bottom: 1px solid var(--dracula-orange);
-}
-
-#table-of-contents ul,
-#table-of-contents li {
-list-style-type: none;
-margin-top: var(--header-padding);
-margin-bottom: var(--header-padding);
-}
-
-#table-of-contents .tag {
-float: right;
-}
-
-#table-of-contents a:link {
-text-decoration: none;
-color: var(--joker-purple);
-}
-
-#table-of-contents a:hover {
-color: var(--exo-ui-red);
-}
-
-img {
-max-width: 100%;
-}
-
-blockquote {
-border-left: 0.2rem solid var(--dracula-orange);
-padding-left: 1rem;
-font-style: italic;
-}
-
-/* Adapted from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
-blockquote>p {
-color: var(--exo-ui-red);
-}
-
-p,
-pre,
-ol,
-ul,
-table,
-code {
-color: var(--dracula-orange);
-}
-
-.done,
-.priority,
-.tag,
-.todo,
-code {
-color: var(--background-color);
-position: relative;
-bottom: .1rem;
-font-size: 80%;
-}
-
-.done,
-.priority,
-.todo,
-code {
-font-weight: 400;
-background-clip: padding-box;
-font-family: "Courier New", monospace;
-font-weight: bold;
-line-height: 1
-}
-
-.done,
-.priority,
-.tag>span,
-.todo,
-code {
-border-radius: 3px;
-padding-top: .1rem;
-padding-left: .3rem;
-padding-right: .3rem;
-line-height: 1;
-}
-
-.priority,
-.tag>span,
-.todo,
-code {
-background-image: linear-gradient(160deg, var(--dracula-orange), var(--exo-ui-red));
-}
-
-.on>code,
-.done {
-background-image: linear-gradient(160deg, var(--dracula-orange), var(--joker-purple));
-}
-
-.tag {
-top: .1rem;
-display: block;
-float: right;
-font-weight: 550;
-}
-
-.tag>span {
-text-transform: uppercase;
-}
-
-table,
-#table-of-contents {
-margin-bottom: var(--padding);
-}
-
-/* Even Table Row */
-
-tr:nth-child(even) {
-background-color: #2f1e2e;
-}
-
-.org-org-meta-line,
-.org-keyword {
-color: var(--dracula-orange);
-}
-
-a:link,
-a:hover,
-a:visited,
-a:visited:hover {
-text-decoration: none;
-}
-
-a:link {
-color: var(--acid-green);
-}
-
-a:visited {
-color: var(--joker-purple);
-}
-
-/* Adapted from [[https://stackoverflow.com/users/3246606/harry-the-mad-lurker][Harry The Mad Lurker's]] answer [[https://stackoverflow.com/a/21977877/10827766][here]]: */
-a:hover,
-a:visited:hover {
-color: var(--exo-ui-red);
-}
-
-/* Adapted from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
-#postamble :not(:last-child)::after {
-content: " |";
-}
-
-#postamble>p {
-display: inline;
-}
-
-#postamble {
-text-align: center;
-width: 100%;
-font-size: var(--font-size-4)
-}
-
-.status {
-padding: var(--padding);
-border-top: 1px solid var(--dracula-orange);
-text-align: center;
-}
-
-.outline-text-2,
-.outline-text-3,
-.outline-text-4 {
-max-width: 100%;
-overflow-x: auto;
-}
-
-.underline {
-text-decoration: var(--exo-ui-red) wavy underline;
-}
-
-del {
-text-decoration: var(--joker-purple) wavy line-through;
-}
-</style>
 <script type="text/javascript">
 // @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
 <!--/*--><![CDATA[/*><!--*/
@@ -341,40 +56,41 @@ text-decoration: var(--joker-purple) wavy line-through;
 <li><a href="#c821137f-41fe-46e8-aeb6-bb288400d272">General Properties and Settings</a></li>
 <li><a href="#0ee9b692-e89d-46f4-9f34-bffa599bf068">HTML Export Options</a>
 <ul>
-<li><a href="#org541920c">Mathjax</a></li>
-<li><a href="#org34b9ec7">HTML Headers</a>
+<li><a href="#org42bac4a">Mathjax</a></li>
+<li><a href="#orga461294">HTML Headers</a>
 <ul>
-<li><a href="#org5d0b3e3">Favicons</a></li>
-<li><a href="#org61e7c36">Manifest</a></li>
-<li><a href="#orga8ff945">Highlightjs</a></li>
-<li><a href="#org89bb94f">Header</a></li>
+<li><a href="#orgcde4592">Syvl Stylesheet</a></li>
+<li><a href="#orgc3fba2b">Favicons</a></li>
+<li><a href="#org28aaec8">Manifest</a></li>
+<li><a href="#org37b0aa7">Highlightjs</a></li>
+<li><a href="#org979b6b6">Header</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#orgbbc9e1c">shell.nix</a></li>
-<li><a href="#org39266d4">manifest.json</a></li>
-<li><a href="#orgeb371f3">src</a>
+<li><a href="#org6266dad">shell.nix</a></li>
+<li><a href="#org321cbe5">manifest.json</a></li>
+<li><a href="#orgbc03534">src</a>
 <ul>
-<li><a href="#org0c22197">icons</a>
+<li><a href="#org9884724">icons</a>
 <ul>
-<li><a href="#org31aaccd">favicons</a></li>
+<li><a href="#org58105d0">favicons</a></li>
 </ul>
 </li>
-<li><a href="#org2c97105">styles</a>
+<li><a href="#org28d7385">styles</a>
 <ul>
-<li><a href="#org1a1fabc">primary</a></li>
-<li><a href="#orgb5a5e08">highlight</a></li>
+<li><a href="#org145ff94">primary</a></li>
+<li><a href="#orga74e550">highlight</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#orgaee7527">org-export.sh</a></li>
-<li><a href="#orgee268b7">org-export-functions.el</a></li>
-<li><a href="#org5ebed0f">org-tangle.sh</a></li>
-<li><a href="#org13e52a5">org-tangle-functions.el</a></li>
-<li><a href="#org12fa853">makefile</a></li>
-<li><a href="#org177fa9c">Addendum</a></li>
+<li><a href="#org0de55c1">org-export.sh</a></li>
+<li><a href="#org663d697">org-export-functions.el</a></li>
+<li><a href="#orgd645901">org-tangle.sh</a></li>
+<li><a href="#org0d208b8">org-tangle-functions.el</a></li>
+<li><a href="#org9e36717">makefile</a></li>
+<li><a href="#org5ba2311">Addendum</a></li>
 </ul>
 </div>
 </div>
@@ -400,18 +116,18 @@ More options can be found <a href="https://orgmode.org/manual/Export-Settings.ht
 </p>
 </div>
 
-<div id="outline-container-org541920c" class="outline-3">
-<h3 id="org541920c">Mathjax</h3>
-<div class="outline-text-3" id="text-org541920c">
+<div id="outline-container-org42bac4a" class="outline-3">
+<h3 id="org42bac4a">Mathjax</h3>
+<div class="outline-text-3" id="text-org42bac4a">
 <p>
 More <code>mathjax</code> options can be found <a href="https://orgmode.org/manual/Math-formatting-in-HTML-export.html">on the orgmode website</a> and <a href="http://doc.endlessparentheses.com/Var/org-html-mathjax-options.html">doc.endlessparentheses.com</a>:
 </p>
 </div>
 </div>
 
-<div id="outline-container-org34b9ec7" class="outline-3">
-<h3 id="org34b9ec7">HTML Headers</h3>
-<div class="outline-text-3" id="text-org34b9ec7">
+<div id="outline-container-orga461294" class="outline-3">
+<h3 id="orga461294">HTML Headers</h3>
+<div class="outline-text-3" id="text-orga461294">
 <p>
 More <code>html</code> options can be found on the orgmode website:
 </p>
@@ -428,9 +144,32 @@ Adapted from <a href="https://raw.githubusercontent.com/alhassy/alhassy.github.i
 </p>
 </div>
 
-<div id="outline-container-org5d0b3e3" class="outline-4">
-<h4 id="org5d0b3e3">Favicons</h4>
-<div class="outline-text-4" id="text-org5d0b3e3">
+<div id="outline-container-orgcde4592" class="outline-4">
+<h4 id="orgcde4592">Syvl Stylesheet</h4>
+<div class="outline-text-4" id="text-orgcde4592">
+<p>
+For development:
+</p>
+
+<div class="org-src-container">
+<pre><code class="language-html match-braces rainbow-braces">&lt;link rel="stylesheet" type="text/css" href="https://raw.githack.com/shadowrylander/settings/main/src/styles/primary/syvl.css" /&gt;
+</code></pre>
+</div>
+
+<p>
+For production:
+</p>
+
+<div class="org-src-container">
+<pre><code class="language-html match-braces rainbow-braces">&lt;link rel="stylesheet" type="text/css" href="https://rawcdn.githack.com/shadowrylander/settings/28f93432ef378d9abf0e0475c9a1699e02b8f5e0/src/styles/primary/syvl.css?min=1" /&gt;
+</code></pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgc3fba2b" class="outline-4">
+<h4 id="orgc3fba2b">Favicons</h4>
+<div class="outline-text-4" id="text-orgc3fba2b">
 <div class="org-src-container">
 <pre><code class="language-html match-braces rainbow-braces">&lt;link rel="icon" href="https://gitcdn.link/cdn/sylvorg/settings/main/src/icons/favicons/shiny-alolan-sandshrew.ico" sizes="any" /&gt;
 &lt;link rel="icon" href="https://gitcdn.link/cdn/sylvorg/settings/main/src/icons/favicons/shiny-alolan-sandshrew.svg" /&gt;
@@ -439,9 +178,9 @@ Adapted from <a href="https://raw.githubusercontent.com/alhassy/alhassy.github.i
 </div>
 </div>
 
-<div id="outline-container-org61e7c36" class="outline-4">
-<h4 id="org61e7c36">Manifest</h4>
-<div class="outline-text-4" id="text-org61e7c36">
+<div id="outline-container-org28aaec8" class="outline-4">
+<h4 id="org28aaec8">Manifest</h4>
+<div class="outline-text-4" id="text-org28aaec8">
 <p>
 For development:
 </p>
@@ -462,9 +201,9 @@ For production:
 </div>
 </div>
 
-<div id="outline-container-orga8ff945" class="outline-4">
-<h4 id="orga8ff945">Highlightjs</h4>
-<div class="outline-text-4" id="text-orga8ff945">
+<div id="outline-container-org37b0aa7" class="outline-4">
+<h4 id="org37b0aa7">Highlightjs</h4>
+<div class="outline-text-4" id="text-org37b0aa7">
 <p>
 Check out more styles here: <a href="https://highlightjs.org/static/demo/">https://highlightjs.org/static/demo/</a>
 Favorites include:
@@ -536,9 +275,9 @@ Highlightjs for production:
 </div>
 </div>
 
-<div id="outline-container-org89bb94f" class="outline-4">
-<h4 id="org89bb94f">Header</h4>
-<div class="outline-text-4" id="text-org89bb94f">
+<div id="outline-container-org979b6b6" class="outline-4">
+<h4 id="org979b6b6">Header</h4>
+<div class="outline-text-4" id="text-org979b6b6">
 <div class="org-src-container">
 <pre><code class="language-html match-braces rainbow-braces">&lt;div class="header"&gt;
 &lt;h1&gt;We Are Syvlorg.&lt;/h1&gt;
@@ -547,10 +286,10 @@ Highlightjs for production:
 </div>
 
 <ul class="org-ul">
-<li><a id="org43c4f1b"></a>About<br />
+<li><a id="org8141601"></a>About<br />
 <ul class="org-ul">
-<li><a id="org0700acb"></a>Me<br />
-<div class="outline-text-6" id="text-org0700acb">
+<li><a id="org8d4afa3"></a>Me<br />
+<div class="outline-text-6" id="text-org8d4afa3">
 <div class="org-src-container">
 <pre><code class="language-html match-braces rainbow-braces">&lt;a href=""&gt;About Me&lt;/a&gt;
 </code></pre>
@@ -558,8 +297,8 @@ Highlightjs for production:
 </div>
 </li>
 
-<li><a id="org461abce"></a>This Website<br />
-<div class="outline-text-6" id="text-org461abce">
+<li><a id="org2c7cde5"></a>This Website<br />
+<div class="outline-text-6" id="text-org2c7cde5">
 <div class="org-src-container">
 <pre><code class="language-html match-braces rainbow-braces">&lt;a href=""&gt;About This Website&lt;/a&gt;
 </code></pre>
@@ -567,8 +306,8 @@ Highlightjs for production:
 </div>
 </li>
 
-<li><a id="orge6a5f7a"></a>Syvlorg<br />
-<div class="outline-text-6" id="text-orge6a5f7a">
+<li><a id="org7d99d29"></a>Syvlorg<br />
+<div class="outline-text-6" id="text-org7d99d29">
 <div class="org-src-container">
 <pre><code class="language-html match-braces rainbow-braces">&lt;a href=""&gt;About Syvlorg&lt;/a&gt;
 </code></pre>
@@ -578,8 +317,8 @@ Highlightjs for production:
 </ul>
 </li>
 
-<li><a id="org9423d9d"></a>Résumé<br />
-<div class="outline-text-5" id="text-org9423d9d">
+<li><a id="org0d061ba"></a>Résumé<br />
+<div class="outline-text-5" id="text-org0d061ba">
 <div class="org-src-container">
 <pre><code class="language-html match-braces rainbow-braces">&lt;a href="https://resume.syvl.org"&gt;Résumé&lt;/a&gt;
 </code></pre>
@@ -587,8 +326,8 @@ Highlightjs for production:
 </div>
 </li>
 
-<li><a id="org746c8d2"></a>Index<br />
-<div class="outline-text-5" id="text-org746c8d2">
+<li><a id="org75736a8"></a>Index<br />
+<div class="outline-text-5" id="text-org75736a8">
 <div class="org-src-container">
 <pre><code class="language-html match-braces rainbow-braces">&lt;a href="https://index.syvl.org"&gt;Index&lt;/a&gt;
 </code></pre>
@@ -596,8 +335,8 @@ Highlightjs for production:
 </div>
 </li>
 
-<li><a id="orgd32273b"></a>End of Header<br />
-<div class="outline-text-5" id="text-orgd32273b">
+<li><a id="orgef6868e"></a>End of Header<br />
+<div class="outline-text-5" id="text-orgef6868e">
 <div class="org-src-container">
 <pre><code class="language-html match-braces rainbow-braces">&lt;/div&gt;
 </code></pre>
@@ -609,9 +348,9 @@ Highlightjs for production:
 </div>
 </div>
 
-<div id="outline-container-orgbbc9e1c" class="outline-2">
-<h2 id="orgbbc9e1c">shell.nix</h2>
-<div class="outline-text-2" id="text-orgbbc9e1c">
+<div id="outline-container-org6266dad" class="outline-2">
+<h2 id="org6266dad">shell.nix</h2>
+<div class="outline-text-2" id="text-org6266dad">
 <div class="org-src-container">
 <pre><code class="language-nix match-braces rainbow-braces">let
     name = "20220208045252543083715";
@@ -639,9 +378,9 @@ in (pkgs.mkShell rec {
 </div>
 </div>
 
-<div id="outline-container-org39266d4" class="outline-2">
-<h2 id="org39266d4">manifest.json</h2>
-<div class="outline-text-2" id="text-org39266d4">
+<div id="outline-container-org321cbe5" class="outline-2">
+<h2 id="org321cbe5">manifest.json</h2>
+<div class="outline-text-2" id="text-org321cbe5">
 <p>
 Adapted from <a href="https://developer.mozilla.org/en-US/docs/Web/Manifest">here</a> and <a href="https://css-tricks.com/svg-favicons-and-all-the-fun-things-we-can-do-with-them/">here</a>:
 </p>
@@ -664,22 +403,22 @@ Adapted from <a href="https://developer.mozilla.org/en-US/docs/Web/Manifest">her
 </div>
 </div>
 
-<div id="outline-container-orgeb371f3" class="outline-2">
-<h2 id="orgeb371f3">src</h2>
-<div class="outline-text-2" id="text-orgeb371f3">
+<div id="outline-container-orgbc03534" class="outline-2">
+<h2 id="orgbc03534">src</h2>
+<div class="outline-text-2" id="text-orgbc03534">
 </div>
-<div id="outline-container-org0c22197" class="outline-3">
-<h3 id="org0c22197">icons</h3>
-<div class="outline-text-3" id="text-org0c22197">
+<div id="outline-container-org9884724" class="outline-3">
+<h3 id="org9884724">icons</h3>
+<div class="outline-text-3" id="text-org9884724">
 </div>
-<div id="outline-container-org31aaccd" class="outline-4">
-<h4 id="org31aaccd">favicons</h4>
-<div class="outline-text-4" id="text-org31aaccd">
+<div id="outline-container-org58105d0" class="outline-4">
+<h4 id="org58105d0">favicons</h4>
+<div class="outline-text-4" id="text-org58105d0">
 </div>
 
 <ul class="org-ul">
-<li><a id="org85c87e7"></a>shiny-alolan-sandshrew.svg<br />
-<div class="outline-text-5" id="text-org85c87e7">
+<li><a id="orgee37aae"></a>shiny-alolan-sandshrew.svg<br />
+<div class="outline-text-5" id="text-orgee37aae">
 <div class="org-src-container">
 <pre><code class="language-xml match-braces rainbow-braces">&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 68 56" shape-rendering="crispEdges"&gt;
 &lt;metadata&gt;Made with Pixels to Svg https://codepen.io/shshaw/pen/XbxvNj&lt;/metadata&gt;
@@ -699,8 +438,8 @@ Adapted from <a href="https://developer.mozilla.org/en-US/docs/Web/Manifest">her
 </div>
 </li>
 
-<li><a id="org772720f"></a>shiny-galarian-zigzagoon.svg<br />
-<div class="outline-text-5" id="text-org772720f">
+<li><a id="org7d65c84"></a>shiny-galarian-zigzagoon.svg<br />
+<div class="outline-text-5" id="text-org7d65c84">
 <div class="org-src-container">
 <pre><code class="language-xml match-braces rainbow-braces">&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 68 56" shape-rendering="crispEdges"&gt;
 &lt;metadata&gt;Made with Pixels to Svg https://codepen.io/shshaw/pen/XbxvNj&lt;/metadata&gt;
@@ -751,8 +490,8 @@ Adapted from <a href="https://developer.mozilla.org/en-US/docs/Web/Manifest">her
 </div>
 </li>
 
-<li><a id="org51911c3"></a>shiny-galarian-linoone.svg<br />
-<div class="outline-text-5" id="text-org51911c3">
+<li><a id="orgaf6f479"></a>shiny-galarian-linoone.svg<br />
+<div class="outline-text-5" id="text-orgaf6f479">
 <div class="org-src-container">
 <pre><code class="language-xml match-braces rainbow-braces">&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 68 56" shape-rendering="crispEdges"&gt;
 &lt;metadata&gt;Made with Pixels to Svg https://codepen.io/shshaw/pen/XbxvNj&lt;/metadata&gt;
@@ -811,8 +550,8 @@ Adapted from <a href="https://developer.mozilla.org/en-US/docs/Web/Manifest">her
 </div>
 </li>
 
-<li><a id="org5e9ee5e"></a>shiny-obstagoon.svg<br />
-<div class="outline-text-5" id="text-org5e9ee5e">
+<li><a id="orga941117"></a>shiny-obstagoon.svg<br />
+<div class="outline-text-5" id="text-orga941117">
 <div class="org-src-container">
 <pre><code class="language-xml match-braces rainbow-braces">&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 68 56" shape-rendering="crispEdges"&gt;
 &lt;metadata&gt;Made with Pixels to Svg https://codepen.io/shshaw/pen/XbxvNj&lt;/metadata&gt;
@@ -899,17 +638,17 @@ Adapted from <a href="https://developer.mozilla.org/en-US/docs/Web/Manifest">her
 </div>
 </div>
 
-<div id="outline-container-org2c97105" class="outline-3">
-<h3 id="org2c97105">styles</h3>
-<div class="outline-text-3" id="text-org2c97105">
+<div id="outline-container-org28d7385" class="outline-3">
+<h3 id="org28d7385">styles</h3>
+<div class="outline-text-3" id="text-org28d7385">
 </div>
-<div id="outline-container-org1a1fabc" class="outline-4">
-<h4 id="org1a1fabc">primary</h4>
-<div class="outline-text-4" id="text-org1a1fabc">
+<div id="outline-container-org145ff94" class="outline-4">
+<h4 id="org145ff94">primary</h4>
+<div class="outline-text-4" id="text-org145ff94">
 </div>
 <ul class="org-ul">
-<li><a id="org8a41374"></a>syvl.css<br />
-<div class="outline-text-5" id="text-org8a41374">
+<li><a id="org629e608"></a>syvl.css<br />
+<div class="outline-text-5" id="text-org629e608">
 <p>
 Adapted from the following:
 </p>
@@ -922,7 +661,6 @@ Adapted from the following:
 <p>
 <code>Note:</code> More settings can be found <a href="https://orgmode.org/manual/CSS-support.html">here</a>.
 </p>
-
 
 <div class="org-src-container">
 <pre><code class="language-css match-braces rainbow-braces">/* @import url('https://fonts.googleapis.com/css?family=Source+Code+Pro:200,300,400'); */
@@ -1216,9 +954,9 @@ del {
 </ul>
 </div>
 
-<div id="outline-container-orgb5a5e08" class="outline-4">
-<h4 id="orgb5a5e08">highlight</h4>
-<div class="outline-text-4" id="text-orgb5a5e08">
+<div id="outline-container-orga74e550" class="outline-4">
+<h4 id="orga74e550">highlight</h4>
+<div class="outline-text-4" id="text-orga74e550">
 <p>
 Alpha levels for hex colors can be set using the guide <a href="https://www.digitalocean.com/community/tutorials/css-hex-code-colors-alpha-values">here</a>;
 alpha hex codes can be found on <a href="https://stackoverflow.com/users/1048340/jared-rummler">Jared Rummler's</a> answer <a href="https://stackoverflow.com/a/25170174">here</a>.
@@ -1275,7 +1013,7 @@ Peach gradient colorscheme can be found <a href="https://every-single-one-of-the
 </table>
 
 <div class="org-src-container">
-<pre><code class="language-lisp match-braces rainbow-braces" id="org6a053b6">(setq mini-theme (shell-command-to-string (concat "curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/"
+<pre><code class="language-lisp match-braces rainbow-braces" id="orgb61eec2">(setq mini-theme (shell-command-to-string (concat "curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/"
 				 (if (string= base "") "" (concat base "/"))
 				 theme
 				 ".min.css 2&gt; /dev/null"))
@@ -1295,8 +1033,8 @@ Peach gradient colorscheme can be found <a href="https://every-single-one-of-the
 </div>
 
 <ul class="org-ul">
-<li><a id="org30a48ae"></a>gradient-dark.min.css<br />
-<div class="outline-text-5" id="text-org30a48ae">
+<li><a id="orgb4cea8c"></a>gradient-dark.min.css<br />
+<div class="outline-text-5" id="text-orgb4cea8c">
 <div class="org-src-container">
 <pre><code class="language-css match-braces rainbow-braces">nil
 </code></pre>
@@ -1304,8 +1042,8 @@ Peach gradient colorscheme can be found <a href="https://every-single-one-of-the
 </div>
 </li>
 
-<li><a id="orgb37d61e"></a>gruvbox-dark-hard.min.css<br />
-<div class="outline-text-5" id="text-orgb37d61e">
+<li><a id="org8ace8aa"></a>gruvbox-dark-hard.min.css<br />
+<div class="outline-text-5" id="text-org8ace8aa">
 <div class="org-src-container">
 <pre><code class="language-css match-braces rainbow-braces">nil
 </code></pre>
@@ -1313,8 +1051,8 @@ Peach gradient colorscheme can be found <a href="https://every-single-one-of-the
 </div>
 </li>
 
-<li><a id="orgffcb9d5"></a>kimbie-dark.min.css<br />
-<div class="outline-text-5" id="text-orgffcb9d5">
+<li><a id="org23f7fc5"></a>kimbie-dark.min.css<br />
+<div class="outline-text-5" id="text-org23f7fc5">
 <div class="org-src-container">
 <pre><code class="language-css match-braces rainbow-braces">nil
 </code></pre>
@@ -1322,8 +1060,8 @@ Peach gradient colorscheme can be found <a href="https://every-single-one-of-the
 </div>
 </li>
 
-<li><a id="orgc11be85"></a>paraiso-dark.min.css<br />
-<div class="outline-text-5" id="text-orgc11be85">
+<li><a id="org4fbab72"></a>paraiso-dark.min.css<br />
+<div class="outline-text-5" id="text-org4fbab72">
 <div class="org-src-container">
 <pre><code class="language-css match-braces rainbow-braces">nil
 </code></pre>
@@ -1335,9 +1073,9 @@ Peach gradient colorscheme can be found <a href="https://every-single-one-of-the
 </div>
 </div>
 
-<div id="outline-container-orgaee7527" class="outline-2">
-<h2 id="orgaee7527">org-export.sh</h2>
-<div class="outline-text-2" id="text-orgaee7527">
+<div id="outline-container-org0de55c1" class="outline-2">
+<h2 id="org0de55c1">org-export.sh</h2>
+<div class="outline-text-2" id="text-org0de55c1">
 <p>
 Adapted from <a href="https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle">here</a>:
 </p>
@@ -1450,9 +1188,9 @@ Adapted from <a href="https://github.com/hlissner/doom-emacs/blob/master/bin/org
 </div>
 </div>
 
-<div id="outline-container-orgee268b7" class="outline-2">
-<h2 id="orgee268b7">org-export-functions.el</h2>
-<div class="outline-text-2" id="text-orgee268b7">
+<div id="outline-container-org663d697" class="outline-2">
+<h2 id="org663d697">org-export-functions.el</h2>
+<div class="outline-text-2" id="text-org663d697">
 <p>
 Adapted from <a href="https://github.com/bzg/org-mode/blob/main/lisp/ox-html.el#L3471">here</a>, and inspired by <a href="https://stackoverflow.com/users/569280/ebpa">ebpa's</a> answer <a href="https://stackoverflow.com/a/37404938">here</a>:
 </p>
@@ -1586,15 +1324,15 @@ See `org-html-format-headline-function' for details."
 </div>
 </div>
 
-<div id="outline-container-org5ebed0f" class="outline-2">
-<h2 id="org5ebed0f">org-tangle.sh</h2>
-<div class="outline-text-2" id="text-org5ebed0f">
+<div id="outline-container-orgd645901" class="outline-2">
+<h2 id="orgd645901">org-tangle.sh</h2>
+<div class="outline-text-2" id="text-orgd645901">
 <p>
 Adapted from <a href="https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-problem-in-elisp#post2">here</a>:
 </p>
 
 <div class="org-src-container">
-<pre><code class="language-lisp match-braces rainbow-braces" id="org267b58c">(setq doom-tangle (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/hlissner/doom-emacs/master/bin/org-tangle 2&gt; /dev/null")
+<pre><code class="language-lisp match-braces rainbow-braces" id="org5b46c80">(setq doom-tangle (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/hlissner/doom-emacs/master/bin/org-tangle 2&gt; /dev/null")
       org-tangle-directory-function "(file-name-directory (or load-file-name buffer-file-name))")
 (if (string= doom-tangle "")
     (thread-first org-tangle-directory
@@ -1622,9 +1360,9 @@ Adapted from <a href="https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backsla
 </div>
 </div>
 
-<div id="outline-container-org13e52a5" class="outline-2">
-<h2 id="org13e52a5">org-tangle-functions.el</h2>
-<div class="outline-text-2" id="text-org13e52a5">
+<div id="outline-container-org0d208b8" class="outline-2">
+<h2 id="org0d208b8">org-tangle-functions.el</h2>
+<div class="outline-text-2" id="text-org0d208b8">
 <p>
 The tangle functions are adapted from <a href="https://emacs.stackexchange.com/a/29884/31428">this answer on the emacs Stack Exchange</a>, written by <a href="https://emacs.stackexchange.com/users/2710/andrew-swann">Andrew Swann</a>:
 </p>
@@ -1656,9 +1394,9 @@ The tangle functions are adapted from <a href="https://emacs.stackexchange.com/a
 </div>
 </div>
 
-<div id="outline-container-org12fa853" class="outline-2">
-<h2 id="org12fa853">makefile</h2>
-<div class="outline-text-2" id="text-org12fa853">
+<div id="outline-container-org9e36717" class="outline-2">
+<h2 id="org9e36717">makefile</h2>
+<div class="outline-text-2" id="text-org9e36717">
 <div class="org-src-container">
 <pre><code class="language-makefile match-braces rainbow-braces">.RECIPEPREFIX := |
 .DEFAULT_GOAL := super-push
@@ -1716,32 +1454,32 @@ super-push: tangle push
 </div>
 </div>
 
-<div id="outline-container-org177fa9c" class="outline-2">
-<h2 id="org177fa9c">Addendum</h2>
-<div class="outline-text-2" id="text-org177fa9c">
+<div id="outline-container-org5ba2311" class="outline-2">
+<h2 id="org5ba2311">Addendum</h2>
+<div class="outline-text-2" id="text-org5ba2311">
 <p>
 These are just a few blocks I use regularly in my <code>org</code> files, whether in <code>noweb</code>, naming, or otherwise:
 </p>
 
 <div class="org-src-container">
-<pre><code class="language-lisp match-braces rainbow-braces" id="orgcbd30d2">(system-name)
+<pre><code class="language-lisp match-braces rainbow-braces" id="orgb23c665">(system-name)
 </code></pre>
 </div>
 
 <div class="org-src-container">
-<pre><code class="language-lisp match-braces rainbow-braces" id="org40e7858">(shell-command-to-string "curl -fsSL ifconfig.me")
+<pre><code class="language-lisp match-braces rainbow-braces" id="orge6e080b">(shell-command-to-string "curl -fsSL ifconfig.me")
 </code></pre>
 </div>
 
 <div class="org-src-container">
-<pre><code class="language-lisp match-braces rainbow-braces" id="org78c0606">(md5 (concat (replace-regexp-in-string "/" "" (
+<pre><code class="language-lisp match-braces rainbow-braces" id="orge3e0b6a">(md5 (concat (replace-regexp-in-string "/" "" (
     org-format-outline-path (org-get-outline-path))) (
 	nth 4 (org-heading-components)) name))
 </code></pre>
 </div>
 
 <div class="org-src-container">
-<pre><code class="language-lisp match-braces rainbow-braces" id="orgdbad8fe">(format-time-string "%Y%m%d%H%M%S%N")
+<pre><code class="language-lisp match-braces rainbow-braces" id="org3f3ede3">(format-time-string "%Y%m%d%H%M%S%N")
 </code></pre>
 </div>
 </div>
@@ -1749,7 +1487,7 @@ These are just a few blocks I use regularly in my <code>org</code> files, whethe
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Jeet Ray</p>
-<p class="date">Created: 2022-02-15 Tue 08:47</p>
+<p class="date">Created: 2022-02-18 Fri 19:37</p>
 <p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>
