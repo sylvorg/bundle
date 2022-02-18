@@ -85,7 +85,7 @@ Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/maste
 
 #+RESULTS:
 :results:
-#+html_head: <link rel="stylesheet" type="text/css" href="https://raw.githack.com/shadowrylander/settings/main/src/styles/primary/syvl.css" />
+#+html_head: <link rel="stylesheet" type="text/css" href="https://rawcdn.githack.com/shadowrylander/settings/28f93432ef378d9abf0e0475c9a1699e02b8f5e0/src/styles/primary/syvl.css?min=1" />
 #+html_head: <link rel="icon" href="https://gitcdn.link/cdn/sylvorg/settings/main/src/icons/favicons/shiny-alolan-sandshrew.ico" sizes="any" />
 #+html_head: <link rel="icon" href="https://gitcdn.link/cdn/sylvorg/settings/main/src/icons/favicons/shiny-alolan-sandshrew.svg" />
 #+html_head: <link rel="manifest" href="https://raw.githack.com/sylvorg/settings/main/manifest.json" />
@@ -106,13 +106,13 @@ Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/maste
 
 For development:
 
-#+begin_src html
+#+begin_src html :noweb-ref no
 <link rel="stylesheet" type="text/css" href="https://raw.githack.com/shadowrylander/settings/main/src/styles/primary/syvl.css" />
 #+end_src
 
 For production:
 
-#+begin_src html :noweb-ref no
+#+begin_src html
 <link rel="stylesheet" type="text/css" href="https://rawcdn.githack.com/shadowrylander/settings/28f93432ef378d9abf0e0475c9a1699e02b8f5e0/src/styles/primary/syvl.css?min=1" />
 #+end_src
 
