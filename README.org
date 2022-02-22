@@ -532,7 +532,7 @@ Adapted from the following:
     padding-bottom: var(--padding);
 }
 
-/* More informatio [[https://developer.mozilla.org/en-US/docs/Web/CSS/:not][here]]: */
+/* More information [[https://developer.mozilla.org/en-US/docs/Web/CSS/:not][here]]: */
 .header>a:not(:last-child)::after {
     content: " |";
 }
@@ -700,6 +700,11 @@ code {
     background-image: linear-gradient(160deg, var(--dracula-orange), var(--exo-ui-red));
 }
 
+td > code {
+    background-image: linear-gradient(160deg, var(--dracula-orange), var(--joker-purple));
+}
+
+/* ~.on>code~ refers to a checkbox's checked state; ~.off>code~ refers to the opposite. */
 .on>code,
 .done {
     background-image: linear-gradient(160deg, var(--dracula-orange), var(--joker-purple));
