@@ -54,3 +54,4 @@
                                 (add-to-list 'lang-list arg t)))))))
         (insert-file-contents (pop argv))
         (mapc 'require-lang lang-list)
+(org-babel-execute-buffer)))
