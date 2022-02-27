@@ -1,12 +1,8 @@
 #!/usr/bin/env sh
-
-
-;; The former prints the output with a visible newline / carriage return, while the latter does not.
-
-
-;; [[file:README.org::*org-interpreter.sh][org-interpreter.sh:3]]
 ":"; exec emacs --quick --script "$0" -- "$@" # -*- mode: emacs-lisp; lexical-binding: t; -*-
 (pop argv)
+
+(require 'org-element)
 
 (defun require-lang (lang)
     (defvar bootstrap-version)
@@ -47,7 +43,6 @@
 (let ((org-confirm-babel-evaluate)
         (lang-list '()))
     (with-temp-buffer
-        (insert-file-contents (pop argv))
         (while argv
             (let ((arg (pop argv)))
                 (pcase arg
@@ -57,6 +52,5 @@
                             (while (and argv (not (string-prefix-p "-" arg)))
                                 (setq arg (pop argv))
                                 (add-to-list 'lang-list arg t)))))))
+        (insert-file-contents (pop argv))
         (mapc 'require-lang lang-list)
-        (require 'org-element)
-;; org-interpreter.sh:3 ends here
