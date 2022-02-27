@@ -1,9 +1,3 @@
-;; org-tangle-functions.el
-
-;; The tangle functions are adapted from [[https://emacs.stackexchange.com/a/29884/31428][this answer on the emacs Stack Exchange]], written by [[https://emacs.stackexchange.com/users/2710/andrew-swann][Andrew Swann]]:
-
-
-;; [[file:README.org::*org-tangle-functions.el][org-tangle-functions.el:1]]
 (eval-when-compile (require 'subr-x))
 
 (defun meq/get-header nil (interactive)
@@ -25,4 +19,3 @@
                 ((file-exists-p (concat "~/.emacs.d/" README)) (concat "~/.emacs.d/" README))
                 ((file-exists-p (concat "/" README)) (concat "/" README)))))
     (when file (org-babel-lob-ingest file)))
-;; org-tangle-functions.el:1 ends here

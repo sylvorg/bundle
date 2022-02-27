@@ -10,13 +10,13 @@ If setting this up again, use ~C-c C-c~ on the results of the ~emacs-lisp~ code 
 #+name: eedc8905-e04c-40d9-97c1-88b840473eaf
 #+begin_src text
 #+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes
-#+property: header-args:emacs-lisp+ :comments both
+# #+property: header-args:emacs-lisp+ :comments both
 #+end_src
 
 #+RESULTS: eedc8905-e04c-40d9-97c1-88b840473eaf
 :results:
 #+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes
-#+property: header-args:emacs-lisp+ :comments both
+# #+property: header-args:emacs-lisp+ :comments both
 :end:
 
 Adapted from [[https://stackoverflow.com/users/776405/whil][Whil's]] answer [[https://stackoverflow.com/a/65232183/10827766][here]]:
@@ -204,13 +204,13 @@ Highlightjs for development:
 
 #+begin_src nix :tangle (meq/tangle-path)
 let
-    name = "20220208045252543083715";
+    name = "14e3b35e-fb62-416d-95c8-36176656f06e";
     pkgs = import <nixpkgs> {};
     venv = "~/.local/nix-shells/${name}/venv";
     nvenv = "~/.local/nix-shells/${name}/nvenv";
-in (pkgs.mkShell rec {
+in pkgs.mkShell rec {
     inherit name;
-    buildInputs = with pkgs; [ python310 nodejs nodePackages.uglify-js python310 sd ];
+    buildInputs = with pkgs; [ python310 nodejs nodePackages.uglify-js sd ];
     nativeBuildInputs = buildInputs;
     shellHook = ''
         python3 -m venv ${venv}
@@ -223,7 +223,7 @@ in (pkgs.mkShell rec {
         npm install command uglifycss
         exec xonsh
     '';
-})
+}
 #+end_src
 
 * manifest.json
@@ -1119,6 +1119,96 @@ The tangle functions are adapted from [[https://emacs.stackexchange.com/a/29884/
                 ((file-exists-p (concat "~/.emacs.d/" README)) (concat "~/.emacs.d/" README))
                 ((file-exists-p (concat "/" README)) (concat "/" README)))))
     (when file (org-babel-lob-ingest file)))
+#+end_src
+
+* org-interpreter.sh
+:PROPERTIES:
+:header-args:emacs-lisp+: :noweb-ref 101ff611-520c-4c0b-ad0c-01937a1250e5
+:END:
+
+#+begin_src text :tangle (meq/tangle-path) :shebang "#!/usr/bin/env sh" :exports none
+<<101ff611-520c-4c0b-ad0c-01937a1250e5>>
+#+end_src
+
+Inspired by [[https://www.reddit.com/r/emacs/comments/t0yy91/comment/hycx6o2/?utm_source=share&utm_medium=web2x&context=3][this comment on reddit]].
+
+~Note:~ For ~hy / hylang~ blocks, for print statements to work, you need to use ~:results silent output~,
+as noted [[https://www.reddit.com/r/emacs/comments/t0yy91/comment/hyfkfhi/?utm_source=share&utm_medium=web2x&context=3][here]].
+The two print statements you need to know are:
+
+#+begin_src hy
+(print "Hello, world!")
+#+end_src
+
+And:
+
+#+begin_src hy
+(import sys)
+(.write sys.stdout "Hello, world!")
+#+end_src
+
+The former prints the output with a visible newline / carriage return, while the latter does not.
+
+#+begin_src emacs-lisp
+":"; exec emacs --quick --script "$0" -- "$@" # -*- mode: emacs-lisp; lexical-binding: t; -*-
+(pop argv)
+
+(require 'org-element)
+
+(defun require-lang (lang)
+    (defvar bootstrap-version)
+    (let ((bootstrap-file
+        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+        (with-current-buffer
+            (url-retrieve-synchronously
+            "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+            'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+    (straight-use-package 'use-package)
+    (setq straight-use-package-by-default t)
+    (pcase (downcase lang)
+        ((or "hy" "hylang") (use-package ob-hy :demand t :straight '(ob-hy :type git :host github :repo "allison-casey/ob-hy") :init (setq org-babel-hy-command "/usr/bin/env hy")))))
+
+(defun message-advice (func &rest args) (interactive)
+    (let* ((*message (apply #'format args)))
+        (unless (or (string-prefix-p "executing" *message)
+                    (string-prefix-p "Code block" *message))
+            (apply func args))))
+(advice-add #'message :around #'message-advice)
+
+(defun org-babel-eval-error-notify-advice (exit-code stderr)
+  "Open a buffer to display STDERR and a message with the value of EXIT-CODE."
+  (let ((buf (get-buffer-create org-babel-error-buffer-name)))
+    (with-current-buffer buf
+      (goto-char (point-max))
+      (save-excursion (insert stderr))
+      (message (buffer-string)))
+    (display-buffer buf))
+  (message "Babel evaluation exited with code %S" exit-code))
+(advice-add #'org-babel-eval-error-notify :override #'org-babel-eval-error-notify-advice)
+
+(let ((org-confirm-babel-evaluate)
+        (lang-list '()))
+    (with-temp-buffer
+        (while argv
+            (let ((arg (pop argv)))
+                (pcase arg
+                    ((or "-l" "--languages")
+                        (while (and (> (length argv) 1) (not (string-prefix-p "-" (car argv))))
+                            (add-to-list 'lang-list (pop argv) t)))
+                    (_ (setq file arg)))))
+        (insert-file-contents file)
+        (mapc 'require-lang lang-list)
+#+end_src
+
+Source [[https://github.com/bzg/org-mode/blob/main/lisp/ob-core.el#L1258][here]]:
+
+#+begin_src emacs-lisp
+        (org-babel-execute-buffer)))
 #+end_src
 
 * makefile
