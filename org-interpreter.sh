@@ -1,0 +1,62 @@
+#!/usr/bin/env sh
+
+
+;; The former prints the output with a visible newline / carriage return, while the latter does not.
+
+
+;; [[file:README.org::*org-interpreter.sh][org-interpreter.sh:3]]
+":"; exec emacs --quick --script "$0" -- "$@" # -*- mode: emacs-lisp; lexical-binding: t; -*-
+(pop argv)
+
+(defun require-lang (lang)
+    (defvar bootstrap-version)
+    (let ((bootstrap-file
+        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+        (with-current-buffer
+            (url-retrieve-synchronously
+            "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+            'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+    (straight-use-package 'use-package)
+    (setq straight-use-package-by-default t)
+    (pcase (downcase lang)
+        ((or "hy" "hylang") (use-package ob-hy :demand t :straight '(ob-hy :type git :host github :repo "allison-casey/ob-hy") :init (setq org-babel-hy-command "/usr/bin/env hy")))))
+
+(defun message-advice (func &rest args) (interactive)
+    (let* ((*message (apply #'format args)))
+        (unless (or (string-prefix-p "executing" *message)
+                    (string-prefix-p "Code block" *message))
+            (apply func args))))
+(advice-add #'message :around #'message-advice)
+
+(defun org-babel-eval-error-notify-advice (exit-code stderr)
+  "Open a buffer to display STDERR and a message with the value of EXIT-CODE."
+  (let ((buf (get-buffer-create org-babel-error-buffer-name)))
+    (with-current-buffer buf
+      (goto-char (point-max))
+      (save-excursion (insert stderr))
+      (message (buffer-string)))
+    (display-buffer buf))
+  (message "Babel evaluation exited with code %S" exit-code))
+(advice-add #'org-babel-eval-error-notify :override #'org-babel-eval-error-notify-advice)
+
+(let ((org-confirm-babel-evaluate)
+        (lang-list '()))
+    (with-temp-buffer
+        (insert-file-contents (pop argv))
+        (while argv
+            (let ((arg (pop argv)))
+                (pcase arg
+                    ((or "-l" "--languages")
+                        (progn (setq arg (pop argv))
+                            (add-to-list 'lang-list arg t)
+                            (while (and argv (not (string-prefix-p "-" arg)))
+                                (setq arg (pop argv))
+                                (add-to-list 'lang-list arg t)))))))
+        (mapc 'require-lang lang-list)
+        (require 'org-element)
+;; org-interpreter.sh:3 ends here
