@@ -1142,6 +1142,11 @@ ubuntu
 "argus" "bastiodon"
 #+end_src
 
+#+name: arm-installer
+#+begin_src text
+"yggdrasil"
+#+end_src
+
 # Adapted From: https://www.reddit.com/r/emacs/comments/4o9f0e/anyone_have_disabled_parts_of_their_config_being/d4apjey?utm_source=share&utm_medium=web2x&context=3
 
 #+name: hash-deprecated
