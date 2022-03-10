@@ -1142,7 +1142,7 @@ ubuntu
 "argus" "bastiodon"
 #+end_src
 
-#+name: arm-installer
+#+name: no-zfs
 #+begin_src text
 "yggdrasil"
 #+end_src
