@@ -3,7 +3,7 @@
 (defun meq/oefd (&rest args) (apply #'concat org-export-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
 (load-file (meq/oefd "org-tangle-functions.el"))
 (require 'org-id)
-(setq org-id-locations-file (meq/oefd ".org-id-locations")
+(setq ;; org-id-locations-file (meq/oefd ".org-id-locations")
       org-id-files (list load-file-name
                          buffer-file-name
                          (meq/oefd "README.org"))

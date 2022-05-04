@@ -799,7 +799,7 @@ Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[htt
 
 #+begin_src emacs-lisp
 (require 'org-id)
-(setq org-id-locations-file (meq/oefd ".org-id-locations")
+(setq ;; org-id-locations-file (meq/oefd ".org-id-locations")
       org-id-files (list load-file-name
                          buffer-file-name
                          (meq/oefd "README.org"))
@@ -918,7 +918,7 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
                                                   "\n"
                                                   "(load-file (concat %s \"org-tangle-functions.el\"))"
                                                   "\n"
-                                                  "(setq org-id-locations-file (concat %s \".org-id-locations\"))")
+                                                  ";; (setq org-id-locations-file (concat %s \".org-id-locations\"))")
                                           org-tangle-directory-function
                                           org-tangle-directory-function))
         (replace-regexp-in-string "(dolist (file srcs)" "(dolist (file srcs)\n\t\t(message (format \"\\\\n\\\\nNow tangling %s:\\\\n\" file))")
