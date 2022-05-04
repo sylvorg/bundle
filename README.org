@@ -795,11 +795,11 @@ Adapted from [[https://github.com/bzg/org-mode/blob/main/lisp/ox-html.el#L3471][
 (load-file (meq/oefd "org-tangle-functions.el"))
 #+end_src
 
-Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]]:
+Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]] (no longer used):
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :noweb-ref no
 (require 'org-id)
-(setq ;; org-id-locations-file (meq/oefd ".org-id-locations")
+(setq org-id-locations-file (meq/oefd ".org-id-locations")
       org-id-files (list load-file-name
                          buffer-file-name
                          (meq/oefd "README.org"))
