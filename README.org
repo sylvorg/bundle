@@ -795,9 +795,9 @@ Adapted from [[https://github.com/bzg/org-mode/blob/main/lisp/ox-html.el#L3471][
 (load-file (meq/oefd "org-tangle-functions.el"))
 #+end_src
 
-Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]]:
+Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]] (no longer used):
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :noweb-ref no
 (require 'org-id)
 (setq org-id-locations-file (meq/oefd ".org-id-locations")
       org-id-files (list load-file-name
@@ -918,7 +918,7 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
                                                   "\n"
                                                   "(load-file (concat %s \"org-tangle-functions.el\"))"
                                                   "\n"
-                                                  "(setq org-id-locations-file (concat %s \".org-id-locations\"))")
+                                                  ";; (setq org-id-locations-file (concat %s \".org-id-locations\"))")
                                           org-tangle-directory-function
                                           org-tangle-directory-function))
         (replace-regexp-in-string "(dolist (file srcs)" "(dolist (file srcs)\n\t\t(message (format \"\\\\n\\\\nNow tangling %s:\\\\n\" file))")

@@ -2,13 +2,6 @@
       windows (member system-type '(windows-nt ms-dos)))
 (defun meq/oefd (&rest args) (apply #'concat org-export-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
 (load-file (meq/oefd "org-tangle-functions.el"))
-(require 'org-id)
-(setq org-id-locations-file (meq/oefd ".org-id-locations")
-      org-id-files (list load-file-name
-                         buffer-file-name
-                         (meq/oefd "README.org"))
-      org-id-link-to-org-use-id t)
-(org-id-update-id-locations)
 (defun meq/org-html-src-block (src-block _contents info)
   "Transcode a SRC-BLOCK element from Org to HTML.
 CONTENTS holds the contents of the item.  INFO is a plist holding
