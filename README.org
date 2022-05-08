@@ -663,7 +663,8 @@ Peach gradient colorscheme can be found [[https://every-single-one-of-the-things
 <<20220207221553779604149(theme="paraiso-dark")>>
 #+end_src
 
-* org-export
+* bin
+** org-export
 :PROPERTIES:
 :header-args:emacs-lisp+: :comments none
 :END:
@@ -775,7 +776,7 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
   (kill-emacs 0))
 #+end_src
 
-* org-export-functions.el
+** org-export-functions.el
 :PROPERTIES:
 :header-args:emacs-lisp+: :noweb-ref org-export-functions.el
 :END:
@@ -896,7 +897,7 @@ See `org-html-format-headline-function' for details."
 (advice-add #'org-html-format-headline-default-function :override #'meq/org-html-format-headline-default-function)
 #+end_src
 
-* org-tangle
+** org-tangle
 :PROPERTIES:
 :header-args:emacs-lisp+: :comments none
 :END:
@@ -929,7 +930,7 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
 <<20220211200359152893769()>>
 #+end_src
 
-* org-tangle-functions.el
+** org-tangle-functions.el
 
 The tangle functions are adapted from [[https://emacs.stackexchange.com/a/29884/31428][this answer on the emacs Stack Exchange]], written by [[https://emacs.stackexchange.com/users/2710/andrew-swann][Andrew Swann]]:
 
@@ -957,7 +958,7 @@ The tangle functions are adapted from [[https://emacs.stackexchange.com/a/29884/
     (when file (org-babel-lob-ingest file)))
 #+end_src
 
-* org-interpreter
+** org-interpreter
 :PROPERTIES:
 :header-args:emacs-lisp+: :noweb-ref 101ff611-520c-4c0b-ad0c-01937a1250e5
 :END:
@@ -1061,13 +1062,13 @@ pre-init:
 |-fd . $(mkfileDir)/.. -HIt d -t e -x rm -rf
 
 tangle-setup:
-|cp $(mkfileDir)/org-tangle $(mkfileDir)/backup-tangle
-|chmod +x $(mkfileDir)/org-tangle $(mkfileDir)/backup-tangle
+|cp $(mkfileDir)/bin/org-tangle $(mkfileDir)/bin/backup-tangle
+|chmod +x $(mkfileDir)/bin/org-tangle $(mkfileDir)/bin/backup-tangle
 
 tangle: tangle-setup
 |yes yes | fd . $(mkfileDir)/.. \
     -HId 1 -e org \
-    -x $(mkfileDir)/backup-tangle
+    -x $(mkfileDir)/bin/backup-tangle
 
 pull: subinit
 |git -C $(mkfileDir)/.. pull
@@ -1087,7 +1088,7 @@ push: cammit
 push-me: tangle-setup
 |yes yes | fd . $(mkfileDir) \
     -HId 1 -e org \
-    -x $(mkfileDir)/backup-tangle.sh
+    -x $(mkfileDir)/bin/backup-tangle.sh
 |-fd . $(mkfileDir) -HIt d -t e -x rm -rf
 |git -C $(mkfileDir) add .
 |-git -C $(mkfileDir) commit --allow-empty-message -am ""
