@@ -9,16 +9,13 @@ pre-init:
 |-fd . $(mkfileDir)/.. -HIt d -t e -x rm -rf
 
 tangle-setup:
-|cp $(mkfileDir)/org-tangle.sh $(mkfileDir)/backup-tangle.sh
-|chmod +x $(mkfileDir)/org-tangle.sh $(mkfileDir)/backup-tangle.sh
+|cp $(mkfileDir)/org-tangle $(mkfileDir)/backup-tangle
+|chmod +x $(mkfileDir)/org-tangle $(mkfileDir)/backup-tangle
 
 tangle: tangle-setup
 |yes yes | fd . $(mkfileDir)/.. \
     -HId 1 -e org \
-    -x $(mkfileDir)/backup-tangle.sh
-|fd . $(mkfileDir) \
-    -HIe sh \
-    -x chmod +x
+    -x $(mkfileDir)/backup-tangle
 
 pull: subinit
 |git -C $(mkfileDir)/.. pull
@@ -39,9 +36,6 @@ push-me: tangle-setup
 |yes yes | fd . $(mkfileDir) \
     -HId 1 -e org \
     -x $(mkfileDir)/backup-tangle.sh
-|fd . $(mkfileDir) \
-    -HIe sh \
-    -x chmod +x
 |-fd . $(mkfileDir) -HIt d -t e -x rm -rf
 |git -C $(mkfileDir) add .
 |-git -C $(mkfileDir) commit --allow-empty-message -am ""
