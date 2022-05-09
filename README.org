@@ -1107,6 +1107,11 @@ These are just a few blocks I use regularly in my ~org~ files, whether in ~noweb
 shadowrylander
 #+end_src
 
+#+name: userhome
+#+begin_src text
+/home/<<username>>
+#+end_src
+
 #+name: reponame
 #+begin_src text
 aiern
