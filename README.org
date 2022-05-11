@@ -1057,18 +1057,20 @@ Source [[https://github.com/bzg/org-mode/blob/main/lisp/ob-core.el#L1258][here]]
 # Adapted From: https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
+chmodBin := chmod +x $(mkfileDir)/bin/*
 
 pre-init:
 |-fd . $(mkfileDir)/.. -HIt d -t e -x rm -rf
 
 tangle-setup:
 |cp $(mkfileDir)/bin/org-tangle $(mkfileDir)/bin/backup-tangle
-|chmod +x $(mkfileDir)/bin/org-tangle $(mkfileDir)/bin/backup-tangle
+|$(chmodBin)
 
 tangle: tangle-setup
 |yes yes | fd . $(mkfileDir)/.. \
     -HId 1 -e org \
     -x $(mkfileDir)/bin/backup-tangle
+|$(chmodBin)
 
 pull: subinit
 |git -C $(mkfileDir)/.. pull
