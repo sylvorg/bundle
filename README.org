@@ -1119,6 +1119,11 @@ shadowrylander
 aiern
 #+end_src
 
+#+name: userrepo
+#+begin_src text
+<<userhome>>/<<reponame>>
+#+end_src
+
 #+name: email
 #+begin_src text
 titaniumfiles@outlook.com
