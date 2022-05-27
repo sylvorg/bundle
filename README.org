@@ -1139,24 +1139,9 @@ titaniumfiles@outlook.com
 (shell-command-to-string "curl -fsSL ifconfig.me")
 #+end_src
 
-#+name: yadm-dir
-#+begin_src text
-.local/share/yadm
-#+end_src
-
 #+name: primary-distro
 #+begin_src text
-ubuntu
-#+end_src
-
-#+name: relays
-#+begin_src text
-"argus" "bastiodon"
-#+end_src
-
-#+name: no-zfs
-#+begin_src text
-"yggdrasil" "infinity"
+nixos
 #+end_src
 
 # Adapted From: https://www.reddit.com/r/emacs/comments/4o9f0e/anyone_have_disabled_parts_of_their_config_being/d4apjey?utm_source=share&utm_medium=web2x&context=3
