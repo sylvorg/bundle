@@ -9,7 +9,7 @@
 (defun meq/get-theme-from-header nil (interactive)
     (string-remove-suffix "-theme.el" (meq/get-header)))
 (defun meq/tangle-on-relay nil (interactive)
-    (if (member (system-name) '()) meq/tangle-path "no"))
+    (if (member (system-name) '("argus" "bastiodon")) meq/tangle-path "no"))
 
 ;; (setq org-id-locations-file (concat %s \".org-id-locations\"))
 (setq org-src-preserve-indentation t)
