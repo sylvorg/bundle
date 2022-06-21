@@ -1147,7 +1147,7 @@ nixos
 
 #+name: channel
 #+begin_src text
-nixos-22-05
+nixos-22-11
 #+end_src
 
 # Adapted From: https://www.reddit.com/r/emacs/comments/4o9f0e/anyone_have_disabled_parts_of_their_config_being/d4apjey?utm_source=share&utm_medium=web2x&context=3
