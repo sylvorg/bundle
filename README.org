@@ -1135,9 +1135,21 @@ titaniumfiles@outlook.com
 (system-name)
 #+end_src
 
+Adapted from [[https://unix.stackexchange.com/users/37512/timo-tijhof][Timo Tijhof's]] answer [[https://unix.stackexchange.com/a/81699/270053][here]]:
+
+#+begin_src shell
+dig @ns1.google.com TXT o-o.myaddr.l.google.com +short -4 | tr -d '"' 2> /dev/null || \
+dig @resolver3.opendns.com myip.opendns.com +short -4 2> /dev/null || \
+dig @resolver4.opendns.com myip.opendns.com +short -4 2> /dev/null || \
+dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short -4 2> /dev/null
+#+end_src
+
 #+name: extip
 #+begin_src emacs-lisp
-(shell-command-to-string "curl -fsSL ifconfig.me")
+(shell-command-to-string (concat "dig @ns1.google.com TXT o-o.myaddr.l.google.com +short -4 | tr -d '\"' 2> /dev/null || "
+                                 "dig @resolver3.opendns.com myip.opendns.com +short -4 2> /dev/null || "
+                                 "dig @resolver4.opendns.com myip.opendns.com +short -4 2> /dev/null || "
+                                 "dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short -4 2> /dev/null"))
 #+end_src
 
 #+name: primary-distro
