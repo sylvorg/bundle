@@ -200,32 +200,6 @@ Highlightjs for development:
 </div>
 #+end_src
 
-* shell.nix
-
-#+begin_src nix :tangle (meq/tangle-path)
-let
-    name = "14e3b35e-fb62-416d-95c8-36176656f06e";
-    pkgs = import <nixpkgs> {};
-    venv = "~/.local/nix-shells/${name}/venv";
-    nvenv = "~/.local/nix-shells/${name}/nvenv";
-in pkgs.mkShell rec {
-    inherit name;
-    buildInputs = with pkgs; [ python310 nodejs nodePackages.uglify-js sd ];
-    nativeBuildInputs = buildInputs;
-    shellHook = ''
-        python3 -m venv ${venv}
-        source ${venv}/bin/activate
-        pip install --upgrade pip || :
-        pip install nodeenv xonsh || :
-        nodeenv ${nvenv}
-        source ${nvenv}/bin/activate
-        npm audit fix --force
-        npm install command uglifycss
-        exec xonsh
-    '';
-}
-#+end_src
-
 * manifest.json
 
 Adapted from [[https://developer.mozilla.org/en-US/docs/Web/Manifest][here]] and [[https://css-tricks.com/svg-favicons-and-all-the-fun-things-we-can-do-with-them/][here]]:
@@ -1135,6 +1109,26 @@ titaniumfiles@outlook.com
 (system-name)
 #+end_src
 
+#+name: users
+#+begin_src json
+{
+    "primary": "<<username>>",
+    "secondary": "frost",
+    "nightingale": "curtis"
+}
+#+end_src
+
+* homes.json
+
+#+name: homes
+#+begin_src json
+{
+    "primary": "<<userhome>>",
+    "secondary": "/home/frost",
+    "nightingale": "/home/curtis"
+}
+#+end_src
+
 Adapted from [[https://unix.stackexchange.com/users/37512/timo-tijhof][Timo Tijhof's]] answer [[https://unix.stackexchange.com/a/81699/270053][here]]:
 
 #+begin_src shell
@@ -1152,14 +1146,71 @@ dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short -4 2> /dev/null
                                  "dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short -4 2> /dev/null"))
 #+end_src
 
+#+name: ssh-pubkey-id-rsa-bak
+#+begin_src text
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDlwBJ7E2qeqw9kMW19indbeLdnEKs/Yrhn9HE0c/gZDzvXYBPQYyf5xr9I9kYxWcHlqp7XEI0LVT4DCA/mgemQtM8ulc1mxwekKtk64uWRi5wLi1E17NWKJfXWRn8XZejwi0iJa0twwVE8m8G2AuFOCSa86sYD3x5X5W+7spAuNET7kl0DLueUHu1u31c7HE1ciV2tIn/f60/bbgEJm9MPcRVZkRxkp+bouaZ1cjWRYDhvyJS30DRhBYtIIort2XVAshQs2Y58oKeCDnjt0gxotfqqWlt4nTQzKtbSN2M6/M+clFQBdT1oUJqpTUJbVxK8+xSEOJcBubupTj0USpmftDf/3WMoMwq+hNEc9C0EN1BYtKk68QWhAz8NROvnx7h6y3UKejhQOg0ueNZggmeNJLbebEs46QmA92khO8zc2pfBRsEa5yP0IgdvWpruTZ1QwjqhGQqGnCw3Oli1PK+5zgT2vXy5yHl3f3duPq8h+LOc+lSBbi2jjkC0gwTQDDDNyzFZ+U9xF7fCmL3V8DCEeO/4HqVxmLJir2TVEDo/3Ug/Q22Yp7P2EZrI2pikZIyBJc5aZJO3d7nGoDB/1BJp9Qm82wvyEpjiOnxHsL4osUqrf401XbiwNqpFkVUoRZkwGraJnrlsYkdHS2Mrrny9sr+PtgZhTjqIuW8z6iVIfQ== titaniumfiles@outlook.com
+#+end_src
+
+#+name: ssh-pubkey-id-ed25519-bak
+#+begin_src text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO8NzKV52dRBAir8ARoFJX/xQDVCNup6xe1ddX1YVXSO sylvorg@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-jeet-ray-ecdsa
+#+begin_src text
+ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGsRy6rLDzmLNISdWahFLGDo+ZZLbndj6k8Q8MUQum/mPAzy8lsAQz/0XiicJz7LlM74tWGDYSJG1Ay2Iyc/ew4= jeet.ray@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-jeet-ray-ed25519
+#+begin_src text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICor+WXoAypnk5rkgTljAN6kk8olvKWqtnmGWVuQu8z9 jeet.ray@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-jeet-ray-rsa
+#+begin_src text
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCs4zqEt/Fkjw0LVQTwJXlovmnqqGWC4UOVPvoLDvo0JD6WeVBDi4cFPX2mpNJYmYJsBLDXeUq5XrQ1ST3BkfVdspsragnD7O92tTEf3/VHfIC1L165pnB08FXQrtIjyLL7Ry4dloUGBYKLnHOtnXlpefKMQzRYUacc7Tr1o2wv+XRoDW9h+qDqJz1O61N68JFLgJWD3/nUkm8siTg1OLvqO9ATp+UgP/Lb08E6HfqYOiD8H+1ZJjz78mo5oZatknvgy8uJJPqEX7/aRM61YA9TG+tw/sf6wlrDtUQUik8Y4k1DLmkhE15wcgq/HF2Rqka/acA9GxA5smNGyjs6CS+H jeet.ray@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-shadowrylander-ecdsa
+#+begin_src text
+ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBNlVuY9reRuMloYvecJHHsOYkAPDyQwELOI3kfibslIKI5hY+o1jx5yVyAUomHynP6wulm5aziNc5kWdsRE9BE8= shadowrylander@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-shadowrylander-ed25519
+#+begin_src text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINZ2FCMbnetAnDZ63Wzct+O3MYhtO9+BedATbtiHI9BT shadowrylander@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-shadowrylander-rsa
+#+begin_src text
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP8ifT/3d6L2MzZPoTh0bUjQUXuPKfPP8Tp03E5En2x+iKhv+J/U0z0xk7IdPZ4qEO+ZWI5xWbwVkDdnRnJ/5HgA0/ZwmO5Zpj3llSr4dJMUVSSyO23fFIL2WqOpHyQDeexJWMxbU5SmIi+c855VwewCbGDcPnmDo0XgR/u4LRF2pwYGNGFtJ2/GICEIob/2w0ICwi7TMUEkDbUFcP5web81OzsNu80M60VaNl870uT1rwBeKuW7CXFtImYytZ0mOc5LC6d7ugkFS1zAbLOWjt3PJ8Op2MH9ncBj5jCsIlA/OqI72jKwEPOl8evYqWeEOzlVxA7/AkRj7haQqFE8r/ shadowrylander@syvl.org
+#+end_src
+
 #+name: primary-distro
 #+begin_src text
 nixos
 #+end_src
 
 #+name: channel
-#+begin_src text
-nixos-22-05
+#+begin_src emacs-lisp :var dotted='nil
+(format "nixos-22%s05" (if dotted "." "-"))
+#+end_src
+
+Adapted from [[https://github.com/divnix/digga/blob/main/examples/devos/flake.nix#L4][here]]:
+
+#+name: generate-nix-conf
+#+begin_src emacs-lisp :var delim="" comment="" quoted='nil flake='nil
+(format-spec "# extra-substituters = %qhttps://cache.nixos.org/ https://nix-community.cachix.org/%q%d
+trusted-substituters = %qhttps://cache.nixos.org/%q%d
+# extra-trusted-public-keys = %qcache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=%q%d
+trusted-public-keys = %qcache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=%q%d
+%ckeep-derivations = true%d
+%ckeep-outputs = true%d
+extra-experimental-features = %qnix-command flakes%q%d
+%cflake-registry = https://raw.githubusercontent.com/sylvorg/settings/main/flake-registry.json%d
+%callow-unsafe-native-code-during-evaluation = true%d
+%cmin-free = 262144000%d
+%cmax-free = 1073741824%d" `((?d . ,(if flake ";" delim)) (?c . ,(if flake "# " comment)) (?q . ,(if (or flake quoted) "\"" ""))))
 #+end_src
 
 # Adapted From: https://www.reddit.com/r/emacs/comments/4o9f0e/anyone_have_disabled_parts_of_their_config_being/d4apjey?utm_source=share&utm_medium=web2x&context=3
