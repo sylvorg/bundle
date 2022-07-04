@@ -992,6 +992,7 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
                                                   "\n"
                                                   "(load-file (concat %s \"org-tangle-functions.el\"))")
                                           org-tangle-directory-function))
+        (replace-regexp-in-string "(org-mode-hook org-confirm-babel-evaluate)" "(org-mode-hook org-confirm-babel-evaluate make-backup-files)")
         (replace-regexp-in-string "(dolist (file srcs)" "(dolist (file srcs)\n\t\t(message (format \"\\\\n\\\\nNow tangling %s:\\\\n\" file))")
         (replace-regexp-in-string "(org-export-expand-include-keyword)" ";; (org-export-expand-include-keyword)")))
 #+end_src

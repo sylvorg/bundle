@@ -326,11 +326,11 @@ Adapted from [[https://github.com/NixOS/nixpkgs/issues/14671#issuecomment-101637
 
 #+begin_src nix :tangle (meq/tangle-path)
 { lib, fetchFromGitHub, buildGoModule }: with lib; let
-    imports = flip concatMapStrings [
+    imports = concatMapStrings (pkg: "\t\t\t_ \"${pkg}\"\n") [
         "github.com/mholt/caddy-l4@latest"
         "github.com/abiosoft/caddy-yaml@latest"
         "github.com/caddy-dns/cloudflare@latest"
-    ] (pkg: "\t\t\t_ \"${pkg}\"\n");
+    ];
 	main = ''
 		package main
 
@@ -425,6 +425,69 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/pkgs/developmen
       license = licenses.gpl3Plus;
       maintainers = [ maintainers.johnazoidberg ];
       platforms = [ "aarch64-linux" "i686-linux" "x86_64-linux" ];
+    };
+}
+#+end_src
+
+** sysget.nix
+
+#+begin_src :tangle (meq/tangle-path)
+{ stdenv, fetchFromGitHub, lib, installShellFiles }: let
+    owner = "emilengler";
+in stdenv.mkDerivation rec {
+    pname = "sysget";
+    version = "2.3";
+
+    src = fetchFromGitHub {
+        inherit owner;
+        repo = pname;
+        rev = "v${version}";
+        sha256 = "0zax8qf4pzglx0rsnv57xvh9wrjh479ymr70ja2nvv22k16gfx1r";
+    };
+
+    buildInputs = [ installShellFiles ];
+    nativeBuildInputs = buildInputs;
+
+    installPhase = ''
+        mkdir -p $out/bin
+        cp sysget $out/bin/
+        installManPage contrib/man/sysget.8
+        installShellCompletion --bash contrib/sysget.bash-completion
+    '';
+
+    meta = {
+        description = "One package manager to rule them all";
+        homepage = "https://github.com/${owner}/${pname}";
+        license = lib.licenses.gpl3;
+    };
+}
+#+end_src
+
+** pacapt.nix
+
+#+begin_src nix :tangle (meq/tangle-path)
+{ stdenv, fetchFromGitHub }: let
+    owner = "icy";
+in stdenv.mkDerivation rec {
+    pname = "pacapt";
+    version = "3.0.7";
+
+    src = fetchFromGitHub {
+        inherit owner;
+        repo = pname;
+        rev = "v${version}";
+        sha256 = "07zjdhn21rnacv2i59h91q4ykbqvsab4pmgqv8c952fzi3m5gjk4";
+    };
+
+    installPhase = ''
+        mkdir --parents $out/bin
+        cp "$src/pacapt" $out/bin/
+        chmod 755 $out/bin/*
+    '';
+
+    meta = {
+        description = "An ArchLinux's pacman-like shell wrapper for many package managers. 56KB and run anywhere.";
+        homepage = "https://github.com/${owner}/${pname}";
     };
 }
 #+end_src
