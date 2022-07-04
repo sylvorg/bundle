@@ -1,10 +1,7 @@
-(mapc (lambda (file) (load-file (concat (file-name-directory (or load-file-name buffer-file-name)) (concat file ".el")))) '(
-    "uuidgen"
-    "a"
-    "dash"
-    "s"
-
-(mapc (lambda (file) (load-file (concat (file-name-directory (or load-file-name buffer-file-name)) (concat file ".el")))) '(
+(setq org-export-functions-directory (file-name-directory (or load-file-name buffer-file-name))
+      windows (member system-type '(windows-nt ms-dos)))
+(defun meq/oefd (&rest args) (apply #'concat org-export-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
+(mapc (lambda (file) (load-file (meq/oefd (concat file ".el")))) '(
     "uuidgen"
     "a"
     "dash"
@@ -57,37 +54,45 @@ arguments and pop open the results in a preview buffer."
 ;; (setq org-id-locations-file (concat %s \".org-id-locations\"))
 (setq org-src-preserve-indentation t)
 
-(defun get-README nil (interactive)
+(defun get-README (&optional return-link) (interactive)
     (let* ((README (f-expand (f-join "settings" "README.org")))
         (home-README (f-expand (f-join "~" README)))
-        (home-emacs-README (f-expand (f-join "~" ".emacs.d" README)))
         (user-README (f-expand (f-join "/home/shadowrylander/aiern" README)))
-        (user-emacs-README (f-expand (f-join "/home/shadowrylander/aiern" ".emacs.d" README)))
         (root-README (f-expand (f-join "/" README)))
         (env (getenv "SETTINGS_README"))
         (env-README (if env (f-expand (substitute-in-file-name env)) env))
         (file (cond
                 ((f-exists? README) README)
                 ((f-exists? home-README) home-README)
-                ((f-exists? home-emacs-README) home-emacs-README)
                 ((f-exists? user-README) user-README)
-                ((f-exists? user-emacs-README) user-emacs-README)
                 ((f-exists? root-README) root-README)
-                ((f-exists? env-README) env-README)
-                (t (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
+                ((if env (f-exists? env-README) env) env-README)
+                (t (if return-link
+                    "https://raw.githubusercontent.com/sylvorg/settings/main/README.org"
+                    (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
                         (if (string= curl-README "")
                             nil
                             (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
-                                (f-write curl-README 'utf-8 temp))))))))
+                                (f-write curl-README 'utf-8 temp)))))))))
     file))
 
 (let* ((file (get-README))) (when file (org-babel-lob-ingest file)))
 
 (defun org-hooks nil (interactive)
-    (goto-char 0)
-    (insert (format "#+setupfile: %s\n\n" (get-README t)))
-    (goto-char 0)
-    (org-ctrl-c-ctrl-c)
+    (let* (
+            (headlines (org-element-map
+                        (org-element-parse-buffer 'headline)
+                        'headline
+                        (lambda (headline) (downcase (org-element-property :title headline)))))
+            (keywords (org-element-map
+                        (org-element-parse-buffer 'element)
+                        'keyword
+                        (lambda (keyword) (cons (downcase (org-element-property :key keyword)) (org-element-property :value keyword))))))
+        (unless (or (member "nosetupfile" (a-keys keywords)) (member "no setupfile" headlines))
+            (goto-char 0)
+            (insert (format "#+setupfile: %s\n\n" (get-README t)))
+            (goto-char 0)
+            (org-ctrl-c-ctrl-c)))
     (org-export-expand-include-keyword))
 
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))

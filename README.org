@@ -1,3 +1,5 @@
+#+nosetupfile: yes
+
 * General Properties and Settings
 :PROPERTIES:
 :header-args:text+: :results raw replace drawer :exports results
@@ -752,34 +754,26 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
 
 ** org-export-functions.el
 :PROPERTIES:
-:header-args:emacs-lisp+: :noweb-ref org-export-functions.el
+:header-args:emacs-lisp+: :noweb-ref 11788ba8-f3e9-4122-8cb4-d4c18d4f031d
 :END:
 
 Adapted from [[https://github.com/bzg/org-mode/blob/main/lisp/ox-html.el#L3471][here]], and inspired by [[https://stackoverflow.com/users/569280/ebpa][ebpa's]] answer [[https://stackoverflow.com/a/37404938][here]]:
 
 #+begin_src text :tangle (meq/tangle-path) :exports none
-<<org-export-functions.el>>
+<<11788ba8-f3e9-4122-8cb4-d4c18d4f031d>>
+#+end_src
+
+#+name: 777bbfd5-1d72-49ff-89d6-b3e7e8fc7609
+#+begin_src emacs-lisp
+(setq org-export-functions-directory (file-name-directory (or load-file-name buffer-file-name))
+      windows (member system-type '(windows-nt ms-dos)))
+(defun meq/oefd (&rest args) (apply #'concat org-export-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
 #+end_src
 
 ~Note:~ ~org-tangle-functions.el~ is required due to [[https://github.com/bzg/org-mode/blob/d2f4d4b457a9fe7a7dbcfbd2d71c723ffa8c2726/lisp/ob-core.el#L625][this]].
 
 #+begin_src emacs-lisp
-(setq org-export-functions-directory (file-name-directory (or load-file-name buffer-file-name))
-      windows (member system-type '(windows-nt ms-dos)))
-(defun meq/oefd (&rest args) (apply #'concat org-export-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
 (load-file (meq/oefd "org-tangle-functions.el"))
-#+end_src
-
-Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]] (no longer used):
-
-#+begin_src emacs-lisp :noweb-ref no
-(require 'org-id)
-(setq org-id-locations-file (meq/oefd ".org-id-locations")
-      org-id-files (list load-file-name
-                         buffer-file-name
-                         (meq/oefd "README.org"))
-      org-id-link-to-org-use-id t)
-(org-id-update-id-locations)
 #+end_src
 
 ~Note:~ From [[https://narkive.com/69IaWEJV:2.1599.178][here]]:
@@ -1017,8 +1011,9 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
 
 The tangle functions are adapted from [[https://emacs.stackexchange.com/a/29884/31428][this answer on the emacs Stack Exchange]], written by [[https://emacs.stackexchange.com/users/2710/andrew-swann][Andrew Swann]]:
 
-#+begin_src emacs-lisp :tangle (meq/tangle-path)
-(mapc (lambda (file) (load-file (concat (file-name-directory (or load-file-name buffer-file-name)) (concat file ".el")))) '(
+#+begin_src emacs-lisp
+<<777bbfd5-1d72-49ff-89d6-b3e7e8fc7609>>
+(mapc (lambda (file) (load-file (meq/oefd (concat file ".el")))) '(
     "uuidgen"
     "a"
     "dash"
@@ -1033,6 +1028,18 @@ Must be last; [[https://github.com/rejeep/f.el][f.el]] requires [[https://github
 
 #+begin_src emacs-lisp
 ))
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]] (no longer used):
+
+#+begin_src emacs-lisp :noweb-ref no
+(require 'org-id)
+(setq org-id-locations-file (meq/oefd ".org-id-locations")
+      org-id-files (list load-file-name
+                         buffer-file-name
+                         (meq/oefd "README.org"))
+      org-id-link-to-org-use-id t)
+(org-id-update-id-locations)
 #+end_src
 
 Adapted from [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L825][here]] and [[https://lists.gnu.org/archive/html/emacs-orgmode/2018-12/msg00048.html][here]];
@@ -1091,37 +1098,58 @@ arguments and pop open the results in a preview buffer."
 ;; (setq org-id-locations-file (concat %s \".org-id-locations\"))
 (setq org-src-preserve-indentation t)
 
-(defun get-README nil (interactive)
+(defun get-README (&optional return-link) (interactive)
     (let* ((README (f-expand (f-join "settings" "README.org")))
         (home-README (f-expand (f-join "~" README)))
-        (home-emacs-README (f-expand (f-join "~" ".emacs.d" README)))
         (user-README (f-expand (f-join "<<userrepo>>" README)))
-        (user-emacs-README (f-expand (f-join "<<userrepo>>" ".emacs.d" README)))
         (root-README (f-expand (f-join "/" README)))
         (env (getenv "SETTINGS_README"))
         (env-README (if env (f-expand (substitute-in-file-name env)) env))
         (file (cond
                 ((f-exists? README) README)
                 ((f-exists? home-README) home-README)
-                ((f-exists? home-emacs-README) home-emacs-README)
                 ((f-exists? user-README) user-README)
-                ((f-exists? user-emacs-README) user-emacs-README)
                 ((f-exists? root-README) root-README)
-                ((f-exists? env-README) env-README)
-                (t (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
+                ((if env (f-exists? env-README) env) env-README)
+                (t (if return-link
+                    "https://raw.githubusercontent.com/sylvorg/settings/main/README.org"
+                    (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
                         (if (string= curl-README "")
                             nil
                             (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
-                                (f-write curl-README 'utf-8 temp))))))))
+                                (f-write curl-README 'utf-8 temp)))))))))
     file))
 
 (let* ((file (get-README))) (when file (org-babel-lob-ingest file)))
 
 (defun org-hooks nil (interactive)
-    (goto-char 0)
-    (insert (format "#+setupfile: %s\n\n" (get-README t)))
-    (goto-char 0)
-    (org-ctrl-c-ctrl-c)
+    (let* (
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/109169/netawater][netawater's]] answer [[https://stackoverflow.com/a/17310307/10827766][here]]:
+
+#+begin_src emacs-lisp
+            (headlines (org-element-map
+                        (org-element-parse-buffer 'headline)
+                        'headline
+                        (lambda (headline) (downcase (org-element-property :title headline)))))
+#+end_src
+
+Adapted from [[https://kitchingroup.cheme.cmu.edu/blog/2013/05/05/Getting-keyword-options-in-org-files/][here]]:
+
+#+begin_src emacs-lisp
+            (keywords (org-element-map
+                        (org-element-parse-buffer 'element)
+                        'keyword
+                        (lambda (keyword) (cons (downcase (org-element-property :key keyword)) (org-element-property :value keyword))))))
+#+end_src
+
+#+begin_src emacs-lisp
+        (unless (or (member "nosetupfile" (a-keys keywords)) (member "no setupfile" headlines))
+            (goto-char 0)
+            (insert (format "#+setupfile: %s\n\n" (get-README t)))
+            (goto-char 0)
+            (org-ctrl-c-ctrl-c)))
     (org-export-expand-include-keyword))
 
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
@@ -1311,8 +1339,6 @@ titaniumfiles@outlook.com
     "nightingale": "curtis"
 }
 #+end_src
-
-* homes.json
 
 #+name: homes
 #+begin_src json
