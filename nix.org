@@ -19,6 +19,12 @@ Taken from [[https://github.com/edolstra/flake-compat#usage][here]]:
 
 * shell.nix
 
+#+begin_src nix :tangle (meq/tangle-path)
+
+#+end_src
+
+* devShell.nix
+
 # TODO: Learn more about nix nodejs environments
 
 #+begin_src nix :tangle (meq/tangle-path)
@@ -477,50 +483,6 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/pkgs/developmen
 }
 #+end_src
 
-** poetry2setup.nix
-
-#+begin_src nix :tangle (meq/tangle-path)
-{ lib
-, Python
-, fetchFromGitHub
-, gawk
-}:
-
-Python.pkgs.buildPythonApplication rec {
-  pname = "poetry2setup";
-  version = "1.0.0";
-  format = "pyproject";
-
-  src = fetchFromGitHub {
-    owner = "abersheeran";
-    repo = pname;
-    rev = "6d3345f488fda4d0f6eed1bd3438ea6207e55e3a";
-    sha256 = "07z776ikj37whhx7pw1f3pwp25w04aw22vwipjjmvi8c642qxni4";
-  };
-
-  propagatedBuildInputs = with Python.pkgs; [ poetry-core ];
-
-  buildInputs = with Python.pkgs; [ poetry-core ];
-
-  installPhase = ''
-    mkdir --parents $out/bin
-    cp $src/${pname}.py $out/bin/${pname}
-    chmod +x $out/bin/${pname}
-    ${gawk}/bin/awk -i inplace 'BEGINFILE{print "#!/usr/bin/env python3"}{print}' $out/bin/${pname}
-  '';
-
-  postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-
-  makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${Python.pkgs.python.libPrefix}/site-packages" ];
-
-  meta = {
-    description = "Convert python-poetry(pyproject.toml) to setup.py.";
-    homepage = "https://github.com/abersheeran/${pname}";
-    license = lib.licenses.mit;
-  };
-}
-#+end_src
-
 * overlays.nix
 :PROPERTIES:
 :header-args:nix+: :noweb-ref 21a85d93-a102-4b6e-bd9b-23b4edc9aa62
@@ -563,7 +525,7 @@ in flatten [
 ** My Packages
 
 #+begin_src nix
-(final: prev: let dir = ./callPackages; in j.imports.set { call = final; inherit dir; })
+(final: prev: let dir = ./callPackages; in j.imports.set { call = final; inherit dir; ignores.dirs = true; })
 #+end_src
 
 *** Flakes
@@ -587,7 +549,9 @@ in flatten [
 
 ** Settings Overlays
 
-(attrValues (removeAttrs inputs.settings.overlays [ "default" ]))
+#+begin_src nix
+(attrValues (removeAttrs inputs.settings.overlays [ "default" "lib" ]))
+#+end_src
 
 ** Overlays in Overlays Directory
 
@@ -657,10 +621,10 @@ in mapAttrsToList (
 #+end_src
 
 * overlays
-** default.nix
+** nix-direnv.nix
 
 #+begin_src nix :tangle (meq/tangle-path)
-final: prev: { default = final.settings; }
+final: prev: { nix-direnv = prev.nix-direnv.override { enableFlakes = true; }; }
 #+end_src
 
 ** settings.nix
@@ -729,6 +693,19 @@ nix eval --impure --expr 'with builtins; let pkgs = import (fetchGit { url = "ht
 (final: prev: genAttrs <<947c9d7c-a6bc-4ddc-b2a5-38830b0521d2()>> (pkg: final.j.pkgs.${channel}.${pkg}))
 #+end_src
 
+** xonsh.nix
+
+#+begin_src nix :tangle (meq/tangle-path)
+final: prev: { xonsh = prev.xonsh.overridePythonAttrs (old: { propagatedBuildInputs = (with final.PythonPackages; [ 
+    bakery
+    xontrib-sh
+    xontrib-readable-traceback
+    xontrib-pipeliner
+    xonsh-autoxsh
+    xonsh-direnv
+]) ++ old.propagatedBuildInputs; }); }
+#+end_src
+
 * templates
 ** default.nix
 
@@ -752,22 +729,25 @@ Note: The ~#TODO~ is a part of the template!
     outputs = inputs@{ self, nixpkgs, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
 
         # TODO: Change this!
-        pkg = ;
+        pname = ;
 
         overlays = rec {
-            overlays = settings.overlays // { default = import ./overlay.nix; };
+            overlays = let opkg = import ./overlay.nix; in settings.overlays // { default = opkg; "${pname}" = opkg; };
             overlay = overlays.default;
             defaultOverlay = overlay;
         };
         make = system: rec {
             legacyPackages = import nixpkgs { inherit system; overlays = attrValues overlays.overlays; };
-            packages.default = flattenTree { "${pkg}" = legacyPackages.${pkg}; };
+            packages = flattenTree (j.filters.has.attrs (unique (flatten [
+                (subtractLists (attrNames nixpkgs.legacyPackages.${system}) (attrNames legacyPackages))
+                (attrNames overlays.overlays)
+            ])) legacyPackages);
             package = packages.default;
             defaultPackage = package;
-            apps.default = settings.make.app package;
+            apps = mapAttrs (n: v: settings.make.app v) packages;
             app = apps.default;
             defaultApp = app;
-            devShells.default = import ./shell.nix;
+            devShells.default = import ./devShell.nix system self;
             devShell = devShells.default;
             defaultdevShell = devShell;
         };
@@ -797,26 +777,39 @@ Note: The ~#TODO~ is a part of the template!
     outputs = inputs@{ self, nixpkgs, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
 
         # TODO: Change this!
-        pkg = ;
+        pname = ;
 
         overlays = rec {
-            overlays = settings.overlays // { default = import ./overlay.nix; };
+            overlays = let opkg = import ./overlay.nix pname; in settings.overlays // {
+                default = opkg;
+                "${pname}" = opkg;
+                oreo = oreo.overlay;
+            };
             overlay = overlays.default;
             defaultOverlay = overlay;
         };
         make = system: rec {
+            inherit (settings) base;
             legacyPackages = import nixpkgs { inherit system; overlays = attrValues overlays.overlays; };
-            packages.default = flattenTree { python = legacyPackages.Python.withPackages (ppkgs: [ ppkgs."${pkg}" ]); };
+            pkgs = legacyPackages;
+            packages = let
+                python = legacyPackages.Python.withPackages (ppkgs: [ ppkgs."${pname}" ]);
+            in { default = python; inherit python; };
             package = packages.default;
             defaultPackage = package;
-            apps.default = settings.make.app package;
+            apps = mapAttrs (n: v: settings.make.app v) packages;
             app = apps.default;
             defaultApp = app;
-            devShells.default = import ./shell.nix;
+            devShells.default = import ./devShell.nix system self;
             devShell = devShells.default;
             defaultdevShell = devShell;
         };
-    in (eachSystem allSystems make) // overlays;
+        outputs = j.foldToSet [
+            (eachSystem allSystems make)
+            overlays
+            { inherit make pname; }
+        ];
+    in outputs;
 }
 #+end_src
 
@@ -922,8 +915,7 @@ with builtins; { lib, extras ? {} }: with lib; let
             };
         };
     });
-    extension = makeExtensible newLib;
-in with lib; extension.extend (final: prev: extension.foldToSet (attrValues prev))
+in makeExtensible newLib
 #+end_src
 
 * flake.nix
@@ -961,22 +953,25 @@ in with lib; extension.extend (final: prev: extension.foldToSet (attrValues prev
         channel = "<<channel()>>";
         registry = fromJSON ./flake-registry.json;
         lib = settings.lib.extend (final: prev: {
-            j = import ./lib.nix { lib = final; extras = recursiveUpdate { inherit patch; } prev.j; };
+            j = recursiveUpdate prev.j (import ./lib.nix { lib = final; });
             inherit (inputs.home-manager.lib) hm;
         })
         overlays = rec {
-            overlays = j.foldToSet' [
+            overlays = j.foldToSet [
                 settings.overlays
                 {
                     lib = final: prev { inherit lib; };
-                    "${j.attrs.versions.python.two}" = genAttrs (j.imports.list { dir = ./callPackages/python2 })
-                                                                (file: final: prev: j.update.python.callPython.two final prev file);
-                    "${j.attrs.versions.python.three}" = genAttrs (j.imports.list { dir = ./callPackages/python3 })
-                                                                  (file: final: prev: j.update.python.callPython.three final prev file);
                 }
-                (j.imports.set { dir = ./overlays; recursive = true; })
-                (genAttrs (j.imports.list { dir = ./callPackages; })
-                          (file: final: prev: { "${j.imports.name { inherit file; }}" = final.callPackage file {}; }))
+                (j.imports.overlaySet {
+                    dir = ./callPackages/python2;
+                    func = final: prev: j.update.python.callPython.two file final prev;
+                })
+                (j.imports.overlaySet {
+                    dir = ./callPackages/python3;
+                    func = final: prev: j.update.python.callPython.three file final prev;
+                })
+                (j.imports.set { dir = ./overlays; recursive = true; ignores.dirs = true; })
+                (j.imports.overlaySet { dir = ./callPackages; call = 1; })
                 (mapAttrs' (n: v: nameValuePair (removePrefix "pyapp-" (removePrefix "pypkg-" n)) v.overlay)
                            (filterAttrs (n: v: ((hasPrefix "pypkg-" n) || (hasPrefix "pyapp-" n))) inputs))
             ];
@@ -1007,7 +1002,7 @@ in with lib; extension.extend (final: prev: extension.foldToSet (attrValues prev
                 pkgs = make.pkgs.all system;
             };
             specialArgs = system: individual-outputs // (rec {
-                inherit inputs lib;
+                inherit inputs lib self;
                 nixpkgset = {
                     base = make.nixpkgset.base system;
                     default = make.nixpkgset.default system;
@@ -1025,20 +1020,22 @@ in with lib; extension.extend (final: prev: extension.foldToSet (attrValues prev
                 };
                 overlays = make.overlays system;
             });
-            app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.pname or drv.name}"}"; };
             outputs = system: rec {
-                inherit system lib;
+                inherit system lib self;
                 specialArgs = make.nameless.specialArgs system;
                 inherit (specialArgs) nixpkgset nixpkgs pkgs;
                 legacyOverlays = specialArgs.overlays;
                 legacyPackages = pkgs.overlayed;
-                apps = mapAttrs (n: v: inputs.settings.lib.mkApp v) pkgs.overlayed;
+                apps = mapAttrs (n: v: settings.mkApp v) pkgs.overlayed;
                 app = apps.default;
                 defaultApp = app;
-                packages = flattenTree { inherit (legacyPackages) settings; };
-                package = packages.settings;
+                packages = flattenTree (j.filters.has.attrs (unique (flatten [
+                    (subtractLists (attrNames nixpkgs.legacyPackages.${system}) (attrNames legacyPackages))
+                    (attrNames overlays.overlays)
+                ])) legacyPackages);
+                package = packages.default;
                 defaultPackage = package;
-                devShells.default = import ./shell.nix;
+                devShells.default = import ./devShell.nix system self;
                 devShell = devShells.default;
                 defaultdevShell = devShell;
             };

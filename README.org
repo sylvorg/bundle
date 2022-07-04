@@ -9,13 +9,13 @@ If setting this up again, use ~C-c C-c~ on the results of the ~emacs-lisp~ code 
 
 #+name: eedc8905-e04c-40d9-97c1-88b840473eaf
 #+begin_src text
-#+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes
+#+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes :cache yes
 # #+property: header-args:emacs-lisp+ :comments both
 #+end_src
 
 #+RESULTS: eedc8905-e04c-40d9-97c1-88b840473eaf
 :results:
-#+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes
+#+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes :cache yes
 # #+property: header-args:emacs-lisp+ :comments both
 :end:
 
@@ -224,7 +224,7 @@ Adapted from [[https://developer.mozilla.org/en-US/docs/Web/Manifest][here]] and
 *** favicons
 
 #+name: 256b3d05-4ba0-406f-9e96-61747a598915
-#+begin_src emacs-lisp :var name="" gen="" shiny='t :eval never-export
+#+begin_src emacs-lisp :var name="" gen="" shiny='t :eval never-export :cache no
 (setq name-as-number (string-to-number name)
       icon (shell-command-to-string (concat "curl -fsSL https://raw.githubusercontent.com/<<username>>/svg-pokemon-sprites/main/icons/generation-"
                                             gen
@@ -595,7 +595,7 @@ Peach gradient colorscheme can be found [[https://every-single-one-of-the-things
 | Apricot      | #FBCCB2 |
 
 #+name: 20220207221553779604149
-#+begin_src emacs-lisp :var theme="" base="" :eval never-export
+#+begin_src emacs-lisp :var theme="" base="" :eval never-export :cache no
 (setq mini-theme (shell-command-to-string (concat "curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/"
                                  (if (string= base "") "" (concat base "/"))
                                  theme
@@ -871,6 +871,111 @@ See `org-html-format-headline-function' for details."
 (advice-add #'org-html-format-headline-default-function :override #'meq/org-html-format-headline-default-function)
 #+end_src
 
+** uuidgen.el
+:PROPERTIES:
+:header-args:emacs-lisp+: :comments none
+:END:
+
+#+name: 1bd4402b-45b5-4376-b0f0-4e3ba9af06be
+#+begin_src emacs-lisp :eval never-export :cache no
+(setq uuidel (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/kanru/uuidgen-el/master/uuidgen.el 2> /dev/null")
+      org-tangle-directory-function "(file-name-directory (or load-file-name buffer-file-name))")
+(if (string= uuidel "")
+    (thread-first org-tangle-directory
+                  (concat "uuidgen.el")
+                  (insert-file-contents)
+                  (with-temp-buffer (buffer-string)))
+    uuidel)
+#+end_src
+
+#+begin_src emacs-lisp :tangle (meq/tangle-path)
+<<1bd4402b-45b5-4376-b0f0-4e3ba9af06be()>>
+#+end_src
+
+** a.el
+:PROPERTIES:
+:header-args:emacs-lisp+: :comments none
+:END:
+
+#+name: b3cdb1c4-3efd-48cb-addd-1f92ecc62004
+#+begin_src emacs-lisp :eval never-export :cache no
+(setq ael (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/plexus/a.el/master/a.el 2> /dev/null")
+      org-tangle-directory-function "(file-name-directory (or load-file-name buffer-file-name))")
+(if (string= ael "")
+    (thread-first org-tangle-directory
+                  (concat "a.el")
+                  (insert-file-contents)
+                  (with-temp-buffer (buffer-string)))
+    ael)
+#+end_src
+
+#+begin_src emacs-lisp :tangle (meq/tangle-path)
+<<b3cdb1c4-3efd-48cb-addd-1f92ecc62004()>>
+#+end_src
+
+** dash.el
+:PROPERTIES:
+:header-args:emacs-lisp+: :comments none
+:END:
+
+#+name: d96d8be0-3f8f-4611-8892-48f62de2333f
+#+begin_src emacs-lisp :eval never-export
+(setq dashel (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/magnars/dash.el/master/dash.el 2> /dev/null")
+      org-tangle-directory-function "(file-name-directory (or load-file-name buffer-file-name))")
+(if (string= dashel "")
+    (thread-first org-tangle-directory
+                  (concat "dash.el")
+                  (insert-file-contents)
+                  (with-temp-buffer (buffer-string)))
+    dashel)
+#+end_src
+
+#+begin_src emacs-lisp :tangle (meq/tangle-path)
+<<d96d8be0-3f8f-4611-8892-48f62de2333f()>>
+#+end_src
+
+** s.el
+:PROPERTIES:
+:header-args:emacs-lisp+: :comments none
+:END:
+
+#+name: 5bc3d6cb-1cbf-45f9-a078-ba31dd16d4ce
+#+begin_src emacs-lisp :eval never-export :cache no
+(setq sel (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/magnars/s.el/master/s.el 2> /dev/null")
+      org-tangle-directory-function "(file-name-directory (or load-file-name buffer-file-name))")
+(if (string= sel "")
+    (thread-first org-tangle-directory
+                  (concat "s.el")
+                  (insert-file-contents)
+                  (with-temp-buffer (buffer-string)))
+    sel)
+#+end_src
+
+#+begin_src emacs-lisp :tangle (meq/tangle-path)
+<<5bc3d6cb-1cbf-45f9-a078-ba31dd16d4ce()>>
+#+end_src
+
+** f.el
+:PROPERTIES:
+:header-args:emacs-lisp+: :comments none
+:END:
+
+#+name: e94a72ac-5183-4d7c-bf48-2d0f93bace65
+#+begin_src emacs-lisp :eval never-export :cache no
+(setq fel (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/rejeep/f.el/master/f.el 2> /dev/null")
+      org-tangle-directory-function "(file-name-directory (or load-file-name buffer-file-name))")
+(if (string= fel "")
+    (thread-first org-tangle-directory
+                  (concat "f.el")
+                  (insert-file-contents)
+                  (with-temp-buffer (buffer-string)))
+    fel)
+#+end_src
+
+#+begin_src emacs-lisp :tangle (meq/tangle-path)
+<<e94a72ac-5183-4d7c-bf48-2d0f93bace65()>>
+#+end_src
+
 ** org-tangle
 :PROPERTIES:
 :header-args:emacs-lisp+: :comments none
@@ -879,7 +984,7 @@ See `org-html-format-headline-function' for details."
 Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-problem-in-elisp#post2][here]]:
 
 #+name: 20220211200359152893769
-#+begin_src emacs-lisp :eval never-export
+#+begin_src emacs-lisp :eval never-export :cache no
 (setq doom-tangle (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/hlissner/doom-emacs/master/bin/org-tangle 2> /dev/null")
       org-tangle-directory-function "(file-name-directory (or load-file-name buffer-file-name))")
 (if (string= doom-tangle "")
@@ -892,7 +997,6 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
                                   (format (concat "(require 'ob-tangle)"
                                                   "\n"
                                                   "(load-file (concat %s \"org-tangle-functions.el\"))")
-                                          org-tangle-directory-function
                                           org-tangle-directory-function))
         (replace-regexp-in-string "(dolist (file srcs)" "(dolist (file srcs)\n\t\t(message (format \"\\\\n\\\\nNow tangling %s:\\\\n\" file))")
         (replace-regexp-in-string "(org-export-expand-include-keyword)" ";; (org-export-expand-include-keyword)")))
@@ -903,34 +1007,124 @@ Adapted from [[https://gnu.emacs.help.narkive.com/xdeUFCnw/double-backslash-prob
 #+end_src
 
 ** org-tangle-functions.el
+:PROPERTIES:
+:header-args:emacs-lisp+: :noweb-ref c2b376ba-f828-4ab9-8379-234a382c279e
+:END:
+
+#+begin_src text :tangle (meq/tangle-path) :exports none
+<<c2b376ba-f828-4ab9-8379-234a382c279e>>
+#+end_src
 
 The tangle functions are adapted from [[https://emacs.stackexchange.com/a/29884/31428][this answer on the emacs Stack Exchange]], written by [[https://emacs.stackexchange.com/users/2710/andrew-swann][Andrew Swann]]:
 
 #+begin_src emacs-lisp :tangle (meq/tangle-path)
-(eval-when-compile (require 'subr-x))
+(mapc (lambda (file) (load-file (concat (file-name-directory (or load-file-name buffer-file-name)) (concat file ".el")))) '(
+    "uuidgen"
+    "a"
+    "dash"
+    "s"
+#+end_src
 
-(defun meq/get-header nil (interactive)
-    (nth 4 (org-heading-components)))
+Must be last; [[https://github.com/rejeep/f.el][f.el]] requires [[https://github.com/magnars/dash.el][dash.el]] and [[https://github.com/magnars/s.el][s.el]]
+
+#+begin_src emacs-lisp
+    "f"
+#+end_src
+
+#+begin_src emacs-lisp
+))
+#+end_src
+
+Adapted from [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L825][here]] and [[https://lists.gnu.org/archive/html/emacs-orgmode/2018-12/msg00048.html][here]];
+[[https://emacs.stackexchange.com/users/468/david-ongaro][David Ongaro's]] answer [[https://emacs.stackexchange.com/a/29132/31428][here]] is also useful, but doesn't expand ~noweb~ coderefs:
+
+#+begin_src emacs-lisp
+(defun meq/org-babel-expand-src-block (&optional _arg datum info params)
+  "Expand the current source code block.
+Expand according to the source code block's header
+arguments and pop open the results in a preview buffer."
+  (interactive)
+  (let* ((datum (or datum (let ((org-babel-current-src-block-location (org-element-property :begin  (org-element-context))))
+                            (org-with-point-at org-babel-current-src-block-location
+                            (org-babel-params-from-properties lang)))))
+         (info (or info (org-babel-get-src-block-info datum)))
+         (lang (nth 0 info))
+         (params (setf (nth 2 info)
+                    (sort (org-babel-merge-params (nth 2 info) params) (lambda (el1 el2) (string< (symbol-name (car el1)) (symbol-name (car el2)))))))
+         (body (setf (nth 1 info) (if (org-babel-noweb-p params :eval) (org-babel-expand-noweb-references info) (nth 1 info))))
+         (expand-cmd (intern (concat "org-babel-expand-body:" lang)))
+         (assignments-cmd (intern (concat "org-babel-variable-assignments:" lang)))
+         (expanded (if (fboundp expand-cmd)
+                    (funcall expand-cmd body params)
+                    (org-babel-expand-body:generic body params (and (fboundp assignments-cmd) (funcall assignments-cmd params))))))
+    (if (called-interactively-p 'any)
+        (org-edit-src-code expanded (concat "*Org-Babel Preview " (buffer-name) "[ " lang " ]*"))
+        expanded)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun meq/get-header nil (interactive) (nth 4 (org-heading-components)))
+(defun meq/get-theme-from-header nil (interactive) (s-chop-suffix "-theme.el" (meq/get-header)))
+
+(defun meq/tangle-multi (dont-check-car &rest paths) (interactive)
+    (let* ((body (meq/org-babel-expand-src-block)))
+        (mapc (lambda (path) (let* ((path (f-expand (substitute-in-file-name path)))
+                                    (exists (f-exists? path)))
+                                (if exists
+                                    (unless (string= body (s-trim (f-read path))) (f-write body 'utf-8 path))
+                                    (f-write body 'utf-8 path)))) (cdr paths))
+        (let* ((path (f-expand (substitute-in-file-name (car paths))))
+                (exists (f-exists? path)))
+            (if (or dont-check-car (not exists))
+                path
+                (if (string= body (s-trim (f-read path))) path "no")))))
 (defun meq/tangle-path nil (interactive)
-    (string-remove-prefix "/" (concat
-        (org-format-outline-path (org-get-outline-path)) "/"
-            (meq/get-header))))
-(defun meq/get-theme-from-header nil (interactive)
-    (string-remove-suffix "-theme.el" (meq/get-header)))
-(defun meq/tangle-on-relay nil (interactive)
-    (if (member (system-name) '(<<relays>>)) meq/tangle-path "no"))
+    (let* ((path (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) (meq/get-header))))
+            (exists (f-exists? path)))
+        (if exists
+            (if (string= (meq/org-babel-expand-src-block) (s-trim (f-read path))) "no" path)
+            path)))
+(defun meq/tangle-multipath (&rest paths) (interactive) (apply #'meq/tangle-multi t (add-to-list 'paths (meq/tangle-path))))
+#+end_src
 
+#+begin_src emacs-lisp
 ;; (setq org-id-locations-file (concat %s \".org-id-locations\"))
 (setq org-src-preserve-indentation t)
 
-(let* ((README "settings/README.org")
+(defun get-README nil (interactive)
+    (let* ((README (f-expand (f-join "settings" "README.org")))
+        (home-README (f-expand (f-join "~" README)))
+        (home-emacs-README (f-expand (f-join "~" ".emacs.d" README)))
+        (user-README (f-expand (f-join "<<userrepo>>" README)))
+        (user-emacs-README (f-expand (f-join "<<userrepo>>" ".emacs.d" README)))
+        (root-README (f-expand (f-join "/" README)))
+        (env (getenv "SETTINGS_README"))
+        (env-README (if env (f-expand (substitute-in-file-name env)) env))
         (file (cond
-                ((file-exists-p README) README)
-                ((file-exists-p (concat "home/.emacs.d/" README)) (concat "home/.emacs.d/" README))
-                ((file-exists-p (concat "~/" README)) (concat "~/" README))
-                ((file-exists-p (concat "~/.emacs.d/" README)) (concat "~/.emacs.d/" README))
-                ((file-exists-p (concat "/" README)) (concat "/" README)))))
-    (when file (org-babel-lob-ingest file)))
+                ((f-exists? README) README)
+                ((f-exists? home-README) home-README)
+                ((f-exists? home-emacs-README) home-emacs-README)
+                ((f-exists? user-README) user-README)
+                ((f-exists? user-emacs-README) user-emacs-README)
+                ((f-exists? root-README) root-README)
+                ((f-exists? env-README) env-README)
+                (t (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
+                        (if (string= curl-README "")
+                            nil
+                            (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
+                                (f-write curl-README 'utf-8 temp))))))))
+    file))
+
+(let* ((file (get-README))) (when file (org-babel-lob-ingest file)))
+
+(defun org-hooks nil (interactive)
+    (goto-char 0)
+    (insert (format "#+setupfile: %s\n\n" (get-README t)))
+    (goto-char 0)
+    (org-ctrl-c-ctrl-c)
+    (org-export-expand-include-keyword))
+
+(mapc (lambda (hook) (interactive) (add-hook hook 'org-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
 #+end_src
 
 ** org-interpreter
