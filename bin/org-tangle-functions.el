@@ -51,9 +51,6 @@ arguments and pop open the results in a preview buffer."
             (if (string= (meq/org-babel-expand-src-block) (s-trim (f-read path))) "no" path)
             path)))
 (defun meq/tangle-multipath (&rest paths) (interactive) (apply #'meq/tangle-multi t (add-to-list 'paths (meq/tangle-path))))
-;; (setq org-id-locations-file (concat %s \".org-id-locations\"))
-(setq org-src-preserve-indentation t)
-
 (defun get-README (&optional return-link) (interactive)
     (let* ((README (f-expand (f-join "settings" "README.org")))
         (home-README (f-expand (f-join "~" README)))
@@ -76,9 +73,7 @@ arguments and pop open the results in a preview buffer."
                                 (f-write curl-README 'utf-8 temp)))))))))
     file))
 
-(let* ((file (get-README))) (when file (org-babel-lob-ingest file)))
-
-(defun org-hooks nil (interactive)
+(defun org-babel-pre-tangle-hooks nil (interactive)
     (let* (
             (headlines (org-element-map
                         (org-element-parse-buffer 'headline)
@@ -93,6 +88,8 @@ arguments and pop open the results in a preview buffer."
             (insert (format "#+setupfile: %s\n\n" (get-README t)))
             (goto-char 0)
             (org-ctrl-c-ctrl-c)))
+    (setq org-src-preserve-indentation t)
+    (let* ((file (get-README))) (when file (org-babel-lob-ingest file)))
     (org-export-expand-include-keyword))
 
-(mapc (lambda (hook) (interactive) (add-hook hook 'org-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
+(mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-pre-tangle-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
