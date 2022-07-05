@@ -1,28 +1,3 @@
-#+setupfile: ./README.org
-
-* default.nix
-
-Taken from [[https://github.com/edolstra/flake-compat#usage][here]]:
-
-#+begin_src nix :tangle (meq/tangle-path)
-(import
-  (
-    let lock = builtins.fromJSON (builtins.readFile ./flake.lock); in
-    fetchTarball {
-      url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
-      sha256 = lock.nodes.flake-compat.locked.narHash;
-    }
-  )
-  { src = ./.; }
-).defaultNix
-#+end_src
-
-* shell.nix
-
-#+begin_src nix :tangle (meq/tangle-path)
-
-#+end_src
-
 * devShell.nix
 
 # TODO: Learn more about nix nodejs environments
@@ -42,281 +17,6 @@ in with (import ./.).legacyPackages.${currentSystem}.mkShell rec {
         npm install command uglifycss
     '';
 }
-#+end_src
-
-* package.nix
-
-#+begin_src nix :tangle (meq/tangle-path)
-{ stdenv }: stdenv.mkDerivation rec {
-    pname = "settings";
-    version = "1.0.0.0";
-    src = ./.;
-    phases = [ "installPhase" ];
-    installPhase = ''
-        mkdir --parents $out
-        cp -r $src/bin $out/bin
-        chmod +x $out/bin/*
-    '';
-    meta.mainprogram = "org-tangle";
-}
-#+end_src
-
-* overlay.nix
-
-#+begin_src nix :tangle (meq/tangle-path)
-final: prev: { settings = final.callPackage ./package.nix {}; }
-#+end_src
-
-* users.json
-
-#+name: 33b84622-7a1e-4a87-9c9f-fd10a3c13a8a
-#+begin_src json :tangle (meq/tangle-path)
-<<users>>
-#+end_src
-
-* homes.json
-
-#+name: d0d6dd01-0986-45be-9254-23c5483b54c0
-#+begin_src json :tangle (meq/tangle-path)
-<<homes>>
-#+end_src
-
-* patches
-** BACKPORT-Linux-5.8-compat-__vmalloc.patch
-
-#+begin_src diff :tangle (meq/tangle-path)
-From 6cc95288ccea12ad7b67b2b5b3997dfad8e5b5c9 Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?Michael=20Niew=C3=B6hner?=
- <c0d3z3r0@users.noreply.github.com>
-Date: Tue, 9 Jun 2020 01:32:02 +0200
-Subject: [PATCH] BACKPORT: Linux 5.8 compat: __vmalloc()
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-
-The `pgprot` argument has been removed from `__vmalloc` in Linux 5.8,
-being `PAGE_KERNEL` always now [1].
-
-Detect this during configure and define a wrapper for older kernels.
-
-[1] https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/commit/mm/vmalloc.c?h=next-20200605&id=88dca4ca5a93d2c09e5bbc6a62fbfc3af83c4fca
-
-Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
-Co-authored-by: Sebastian Gottschall <s.gottschall@dd-wrt.com>
-Co-authored-by: Michael Niewöhner <foss@mniewoehner.de>
-Signed-off-by: Sebastian Gottschall <s.gottschall@dd-wrt.com>
-Signed-off-by: Michael Niewöhner <foss@mniewoehner.de>
-Closes #10422
----
- config/kernel-kmem.m4       | 26 ++++++++++++++++++++++++++
- config/kernel.m4            |  2 ++
- include/spl/sys/kmem.h      |  9 +++++++++
- module/spl/spl-kmem-cache.c |  4 ++--
- module/spl/spl-kmem.c       |  9 ++++-----
- 5 files changed, 43 insertions(+), 7 deletions(-)
-
-diff --git a/config/kernel-kmem.m4 b/config/kernel-kmem.m4
-index cc055e530..f1c0d2412 100644
---- a/config/kernel-kmem.m4
-+++ b/config/kernel-kmem.m4
-@@ -56,3 +56,29 @@ AC_DEFUN([SPL_AC_DEBUG_KMEM_TRACKING], [
-    AC_MSG_CHECKING([whether detailed kmem tracking is enabled])
-    AC_MSG_RESULT([$enable_debug_kmem_tracking])
- ])
-+
-+dnl #
-+dnl # 5.8 API,
-+dnl # __vmalloc PAGE_KERNEL removal
-+dnl #
-+AC_DEFUN([ZFS_AC_KERNEL_SRC_VMALLOC_PAGE_KERNEL], [
-+   ZFS_LINUX_TEST_SRC([__vmalloc], [
-+       #include <linux/mm.h>
-+       #include <linux/vmalloc.h>
-+   ],[
-+       void *p __attribute__ ((unused));
-+
-+       p = __vmalloc(0, GFP_KERNEL, PAGE_KERNEL);
-+   ])
-+])
-+
-+AC_DEFUN([ZFS_AC_KERNEL_VMALLOC_PAGE_KERNEL], [
-+   AC_MSG_CHECKING([whether __vmalloc(ptr, flags, pageflags) is available])
-+   ZFS_LINUX_TEST_RESULT([__vmalloc], [
-+       AC_MSG_RESULT(yes)
-+       AC_DEFINE(HAVE_VMALLOC_PAGE_KERNEL, 1, [__vmalloc page flags exists])
-+   ],[
-+       AC_MSG_RESULT(no)
-+   ])
-+])
-+-
-diff --git a/config/kernel.m4 b/config/kernel.m4
-index b67fcef8c..23edfdcd8 100644
---- a/config/kernel.m4
-+++ b/config/kernel.m4
-@@ -45,6 +45,7 @@ AC_DEFUN([ZFS_AC_KERNEL_TEST_SRC], [
-    ZFS_AC_KERNEL_SRC_SCHED
-    ZFS_AC_KERNEL_SRC_USLEEP_RANGE
-    ZFS_AC_KERNEL_SRC_KMEM_CACHE
-+   ZFS_AC_KERNEL_SRC_VMALLOC_PAGE_KERNEL
-    ZFS_AC_KERNEL_SRC_WAIT
-    ZFS_AC_KERNEL_SRC_INODE_TIMES
-    ZFS_AC_KERNEL_SRC_INODE_LOCK
-@@ -163,6 +164,7 @@ AC_DEFUN([ZFS_AC_KERNEL_TEST_RESULT], [
-    ZFS_AC_KERNEL_SCHED
-    ZFS_AC_KERNEL_USLEEP_RANGE
-    ZFS_AC_KERNEL_KMEM_CACHE
-+   ZFS_AC_KERNEL_VMALLOC_PAGE_KERNEL
-    ZFS_AC_KERNEL_WAIT
-    ZFS_AC_KERNEL_INODE_TIMES
-    ZFS_AC_KERNEL_INODE_LOCK
-diff --git a/include/spl/sys/kmem.h b/include/spl/sys/kmem.h
-index 72d3a7765..ca15bfe7f 100644
---- a/include/spl/sys/kmem.h
-+++ b/include/spl/sys/kmem.h
-@@ -169,6 +169,15 @@ extern void *spl_kmem_alloc(size_t sz, int fl, const char *func, int line);
- extern void *spl_kmem_zalloc(size_t sz, int fl, const char *func, int line);
- extern void spl_kmem_free(const void *ptr, size_t sz);
- 
-+/*
-+ * 5.8 API change, pgprot_t argument removed.
-+ */
-+#ifdef HAVE_VMALLOC_PAGE_KERNEL
-+#define    spl_vmalloc(size, flags)    __vmalloc(size, flags, PAGE_KERNEL)
-+#else
-+#define    spl_vmalloc(size, flags)    __vmalloc(size, flags)
-+#endif
-+
- /*
-  * The following functions are only available for internal use.
-  */
-diff --git a/module/spl/spl-kmem-cache.c b/module/spl/spl-kmem-cache.c
-index d71b4b348..4866b2993 100644
---- a/module/spl/spl-kmem-cache.c
-+++ b/module/spl/spl-kmem-cache.c
-@@ -203,7 +203,7 @@ kv_alloc(spl_kmem_cache_t *skc, int size, int flags)
-        ASSERT(ISP2(size));
-        ptr = (void *)__get_free_pages(lflags, get_order(size));
-    } else {
--       ptr = __vmalloc(size, lflags | __GFP_HIGHMEM, PAGE_KERNEL);
-+       ptr = spl_vmalloc(size, lflags | __GFP_HIGHMEM);
-    }
- 
-    /* Resulting allocated memory will be page aligned */
-@@ -1242,7 +1242,7 @@ spl_cache_grow(spl_kmem_cache_t *skc, int flags, void **obj)
-     * allocation.
-     *
-     * However, this can't be applied to KVM_VMEM due to a bug that
--    * __vmalloc() doesn't honor gfp flags in page table allocation.
-+    * spl_vmalloc() doesn't honor gfp flags in page table allocation.
-     */
-    if (!(skc->skc_flags & KMC_VMEM)) {
-        rc = __spl_cache_grow(skc, flags | KM_NOSLEEP);
-diff --git a/module/spl/spl-kmem.c b/module/spl/spl-kmem.c
-index cee69ad43..ca1fc145f 100644
---- a/module/spl/spl-kmem.c
-+++ b/module/spl/spl-kmem.c
-@@ -172,16 +172,15 @@ spl_kmem_alloc_impl(size_t size, int flags, int node)
-         * kmem_zalloc() callers.
-         *
-         * For vmem_alloc() and vmem_zalloc() callers it is permissible
--        * to use __vmalloc().  However, in general use of __vmalloc()
--        * is strongly discouraged because a global lock must be
--        * acquired.  Contention on this lock can significantly
-+        * to use spl_vmalloc().  However, in general use of
-+        * spl_vmalloc() is strongly discouraged because a global lock
-+        * must be acquired.  Contention on this lock can significantly
-         * impact performance so frequently manipulating the virtual
-         * address space is strongly discouraged.
-         */
-        if ((size > spl_kmem_alloc_max) || use_vmem) {
-            if (flags & KM_VMEM) {
--               ptr = __vmalloc(size, lflags | __GFP_HIGHMEM,
--                   PAGE_KERNEL);
-+               ptr = spl_vmalloc(size, lflags | __GFP_HIGHMEM);
-            } else {
-                return (NULL);
-            }
--- 
-2.25.1
-#+end_src
-
-** export_kernel_fpu_functions_5_3.patch
-
-#+begin_src diff :tangle (meq/tangle-path)
-From 1e010beda2896bdf3082fb37a3e49f8ce20e04d8 Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?J=C3=B6rg=20Thalheim?= <joerg@thalheim.io>
-Date: Thu, 2 May 2019 05:28:08 +0100
-Subject: [PATCH] x86/fpu: Export kernel_fpu_{begin,end}() with
- EXPORT_SYMBOL_GPL
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-
-We need these symbols in zfs as the fpu implementation breaks userspace:
-
-https://github.com/zfsonlinux/zfs/issues/9346
-Signed-off-by: Jörg Thalheim <joerg@thalheim.io>
----
- arch/x86/kernel/fpu/core.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/kernel/fpu/core.c b/arch/x86/kernel/fpu/core.c
-index 12c70840980e..352538b3bb5d 100644
---- a/arch/x86/kernel/fpu/core.c
-+++ b/arch/x86/kernel/fpu/core.c
-@@ -102,7 +102,7 @@ void kernel_fpu_begin(void)
-    }
-    __cpu_invalidate_fpregs_state();
- }
--EXPORT_SYMBOL_GPL(kernel_fpu_begin);
-+EXPORT_SYMBOL(kernel_fpu_begin);
- 
- void kernel_fpu_end(void)
- {
-@@ -111,7 +111,7 @@ void kernel_fpu_end(void)
-    this_cpu_write(in_kernel_fpu, false);
-    preempt_enable();
- }
--EXPORT_SYMBOL_GPL(kernel_fpu_end);
-+EXPORT_SYMBOL(kernel_fpu_end);
- 
- /*
-  * Save the FPU state (mark it for reload if necessary):
--- 
-2.23.0
-#+end_src
-
-** grub_zfs.patch
-
-#+begin_src diff :tangle (meq/tangle-path)
---- a/grub-core/fs/zfs/zfs.c
-+++ b/grub-core/fs/zfs/zfs.c
-@@ -285,6 +285,7 @@ static const char *spa_feature_names[] = {
-   "com.delphix:embedded_data",
-   "com.delphix:extensible_dataset",
-   "org.open-zfs:large_blocks",
-+  "org.zfsonlinux:large_dnode",
-   NULL
- };
-#+end_src
-
-**** set_power_mgmt.patch
-
-#+begin_src diff :tangle (meq/tangle-path)
---- a/net/wireless/nl80211.c    2019-07-08 00:41:56.000000000 +0200
-+++ b/net/wireless/nl80211.c    2020-02-05 19:30:26.352718504 +0100
-@@ -10517,10 +10520,7 @@
-    if (!rdev->ops->set_power_mgmt)
-        return -EOPNOTSUPP;
- 
--   state = (ps_state == NL80211_PS_ENABLED) ? true : false;
--
--   if (state == wdev->ps)
--       return 0;
-+   state = false;
- 
-    err = rdev_set_power_mgmt(rdev, dev, state, wdev->ps_timeout);
-    if (!err)
 #+end_src
 
 * callPackages
@@ -429,123 +129,6 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/pkgs/developmen
 }
 #+end_src
 
-** sysget.nix
-
-#+begin_src :tangle (meq/tangle-path)
-{ stdenv, fetchFromGitHub, lib, installShellFiles }: let
-    owner = "emilengler";
-in stdenv.mkDerivation rec {
-    pname = "sysget";
-    version = "2.3";
-
-    src = fetchFromGitHub {
-        inherit owner;
-        repo = pname;
-        rev = "v${version}";
-        sha256 = "0zax8qf4pzglx0rsnv57xvh9wrjh479ymr70ja2nvv22k16gfx1r";
-    };
-
-    buildInputs = [ installShellFiles ];
-    nativeBuildInputs = buildInputs;
-
-    installPhase = ''
-        mkdir -p $out/bin
-        cp sysget $out/bin/
-        installManPage contrib/man/sysget.8
-        installShellCompletion --bash contrib/sysget.bash-completion
-    '';
-
-    meta = {
-        description = "One package manager to rule them all";
-        homepage = "https://github.com/${owner}/${pname}";
-        license = lib.licenses.gpl3;
-    };
-}
-#+end_src
-
-** pacapt.nix
-
-#+begin_src nix :tangle (meq/tangle-path)
-{ stdenv, fetchFromGitHub }: let
-    owner = "icy";
-in stdenv.mkDerivation rec {
-    pname = "pacapt";
-    version = "3.0.7";
-
-    src = fetchFromGitHub {
-        inherit owner;
-        repo = pname;
-        rev = "v${version}";
-        sha256 = "07zjdhn21rnacv2i59h91q4ykbqvsab4pmgqv8c952fzi3m5gjk4";
-    };
-
-    installPhase = ''
-        mkdir --parents $out/bin
-        cp "$src/pacapt" $out/bin/
-        chmod 755 $out/bin/*
-    '';
-
-    meta = {
-        description = "An ArchLinux's pacman-like shell wrapper for many package managers. 56KB and run anywhere.";
-        homepage = "https://github.com/${owner}/${pname}";
-    };
-}
-#+end_src
-
-** flk.nix
-
-#+begin_src nix :tangle (meq/tangle-path)
-{ stdenv, fetchgit, lib }: stdenv.mkDerivation rec {
-    pname = "flk";
-    version = "1.0.0.0";
-
-    src = fetchgit {
-        url = "https://github.com/chr15m/flk.git";
-        rev = "46a88bdb461dda336d5aca851c16d938e05304dc";
-        sha256 = "sha256-NAhWe0O1K3LOdIwYNOHfkBzkGm+h0wckpsCuY/lY/+8=";
-        deepClone = true;
-    };
-
-    installPhase = ''
-        mkdir --parents $out/bin
-        cp ./docs/flk $out/bin/
-    '';
-
-    meta = {
-        description = "A LISP that runs wherever Bash is";
-        homepage = "https://github.com/chr15m/flk";
-        license = lib.licenses.mpl20;
-    };
-}
-#+end_src
-
-** mdsh.nix
-
-#+begin_src nix :tangle (meq/tangle-path)
-{ stdenv, fetchFromGitHub, lib }: stdenv.mkDerivation rec {
-    pname = "mdsh";
-    version = "1.0.0.0";
-
-    src = fetchFromGitHub {
-        owner = "bashup";
-        repo = pname;
-        rev = "7e7af618a341eebd50e7825b062bc192079ad5fc";
-        sha256 = "1wg5iy1va2fl843rish2q1kif818cz8mnhwmg88ir5p364fc2kcp";
-    };
-
-    installPhase = ''
-        mkdir --parents $out/bin
-        cp "$src/bin/mdsh" $out/bin/
-    '';
-
-    meta = {
-        description = "Multi-lingual, Markdown-based Literate Programming... in run-anywhere bash";
-        homepage = "https://github.com/bashup/mdsh";
-        license = lib.licenses.mit;
-    };
-}
-#+end_src
-
 * overlays.nix
 :PROPERTIES:
 :header-args:nix+: :noweb-ref 21a85d93-a102-4b6e-bd9b-23b4edc9aa62
@@ -571,12 +154,6 @@ let
 
 #+begin_src nix
 in flatten [
-#+end_src
-
-** J
-
-#+begin_src nix
-(final: prev: { j = { inherit pkgs; };})
 #+end_src
 
 ** lib
@@ -923,7 +500,9 @@ with builtins; { lib, extras ? {} }: with lib; let
                 };
             };
 
-            users = fromJSON (readFile ./users.json);
+            users = fromJSON ''
+                <<users>>
+            '';
             usernames = attrValues users;
             designations = attrNames users;
 
@@ -935,7 +514,9 @@ with builtins; { lib, extras ? {} }: with lib; let
             allUsernames = attrValues allUsers;
             allDesignations = attrNames allUsers;
 
-            homes = fromJSON (readFile ./homes.json);
+            homes = fromJSON ''
+                <<homes>>
+            '';
             excludedHomes = { root = "/root"; };
             allHomes = recursiveUpdate homes excludedHomes;
 
@@ -1056,8 +637,6 @@ in makeExtensible newLib
                 base = system: patch.pkgs.default nixpkgs (make.nixpkgset.base system);
                 default = system: patch.pkgs.default nixpkgs (make.nixpkgset.default system);
                 overlayed = overlays: system: patch.pkgs.default nixpkgs (make.nixpkgset.overlayed overlays system);
-                all = system: mapAttrs (n: v: patch.pkgs.default v (make.nixpkgset.default system))
-                               (filterAttrs (n: v: (hasPrefix "nixos-" n) || (hasPrefix "release-" n)) inputs);
             };
             overlays = system: import ./overlays.nix {
                 inherit lib inputs channel;

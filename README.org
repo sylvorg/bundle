@@ -639,6 +639,71 @@ Peach gradient colorscheme can be found [[https://every-single-one-of-the-things
 <<20220207221553779604149(theme="paraiso-dark")>>
 #+end_src
 
+* default.nix
+
+Taken from [[https://github.com/edolstra/flake-compat#usage][here]]:
+
+#+begin_src nix :tangle (meq/tangle-path)
+(import
+  (
+    let lock = builtins.fromJSON (builtins.readFile ./flake.lock); in
+    fetchTarball {
+      url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
+      sha256 = lock.nodes.flake-compat.locked.narHash;
+    }
+  )
+  { src = ./.; }
+).defaultNix
+#+end_src
+
+* shell.nix
+
+#+begin_src nix :tangle (meq/tangle-path)
+(import ./.).devShell.${builtins.currentSystem}
+#+end_src
+
+* .gitignore
+
+#+begin_src gitignore
+**/*.*~
+**/*.direnv
+**/*.envrc:*
+node_modules/
+package-lock.json
+package.json
+#+end_src
+
+* envrc.nix
+
+#+begin_src nix
+(import ./.).devShells.${builtins.currentSystem}.envrc
+#+end_src
+
+* .envrc
+
+#+name: 34af8911-ef15-4145-a42d-4a7523aa37f1
+#+begin_src emacs-lisp
+(file-name-nondirectory buffer-file-name)
+#+end_src
+
+#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
+#! nix-shell envrc.nix
+#! nix-shell -i sh -p git settings
+files="<<34af8911-ef15-4145-a42d-4a7523aa37f1()>> flake.org"
+if hash org-tangle 2> /dev/null; then
+    org-tangle $files
+else
+    chmod +x ./bin/* && ./bin/org-tangle $files || :
+fi
+
+files="flake.nix"
+for file in files; do
+    [ -f "$file" ] && git add "$file" || :
+done
+
+nix flake info &> /dev/null && use flake || use nix
+#+end_src
+
 * bin
 ** org-export
 :PROPERTIES:
@@ -1103,7 +1168,8 @@ arguments and pop open the results in a preview buffer."
                         (if (string= curl-README "")
                             nil
                             (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
-                                (f-write curl-README 'utf-8 temp)))))))))
+                                (f-write curl-README 'utf-8 temp)
+                                temp))))))))
     file))
 
 (defun org-babel-pre-tangle-hooks nil (interactive)
@@ -1131,7 +1197,9 @@ Adapted from [[https://kitchingroup.cheme.cmu.edu/blog/2013/05/05/Getting-keywor
 #+begin_src emacs-lisp
         (unless (or (member "nosetupfile" (a-keys keywords)) (member "no setupfile" headlines))
             (goto-char 0)
-            (insert (format "#+setupfile: %s\n\n" (get-README t)))
+            (insert (format "#+setupfile: %s\n\n" (if (member "setuphere" (a-keys keywords))
+                                                        "./README.org"
+                                                        (get-README t))))
             (goto-char 0)
             (org-ctrl-c-ctrl-c)))
 #+end_src

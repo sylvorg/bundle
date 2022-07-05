@@ -70,7 +70,8 @@ arguments and pop open the results in a preview buffer."
                         (if (string= curl-README "")
                             nil
                             (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
-                                (f-write curl-README 'utf-8 temp)))))))))
+                                (f-write curl-README 'utf-8 temp)
+                                temp))))))))
     file))
 
 (defun org-babel-pre-tangle-hooks nil (interactive)
@@ -85,7 +86,9 @@ arguments and pop open the results in a preview buffer."
                         (lambda (keyword) (cons (downcase (org-element-property :key keyword)) (org-element-property :value keyword))))))
         (unless (or (member "nosetupfile" (a-keys keywords)) (member "no setupfile" headlines))
             (goto-char 0)
-            (insert (format "#+setupfile: %s\n\n" (get-README t)))
+            (insert (format "#+setupfile: %s\n\n" (if (member "setuphere" (a-keys keywords))
+                                                        "./README.org"
+                                                        (get-README t))))
             (goto-char 0)
             (org-ctrl-c-ctrl-c)))
     (setq org-src-preserve-indentation t)
