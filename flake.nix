@@ -1,37 +1,18 @@
-#+nosetupfile: yes
-#+setupfile: ./README.org
-#+property: header-args:nix+ :noweb-ref 0825f960-a3f1-4b7b-b8ac-04d62b23f431
-#+property: header-args:diff+ :noweb-ref 0825f960-a3f1-4b7b-b8ac-04d62b23f431
-#+property: header-args:json+ :noweb-ref 0825f960-a3f1-4b7b-b8ac-04d62b23f431
-#+property: header-args:perl+ :noweb-ref 0825f960-a3f1-4b7b-b8ac-04d62b23f431
-
-#+begin_src text :tangle flake.nix
-<<0825f960-a3f1-4b7b-b8ac-04d62b23f431>>
-#+end_src
-
-#+name: 49b87986-5ad9-41f2-ba20-b63599e596e7
-#+begin_src emacs-lisp :var dir=""
-(mapconcat (lambda (d) (concat "overlays.overlays." (file-name-base d))) (directory-files-recursively dir ".") " ")
-#+end_src
-
-* Description
-
-#+begin_src nix
 { description = "Our tools and settings!";
-#+end_src
-
-* Config
-
-#+begin_src nix
     nixConfig = {
         # Adapted From: https://github.com/divnix/digga/blob/main/examples/devos/flake.nix#L4
-        <<generate-nix-conf(flake='t)>>
+        # extra-substituters = "https://cache.nixos.org/ https://nix-community.cachix.org/";
+        trusted-substituters = "https://cache.nixos.org/";
+        # extra-trusted-public-keys = "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=";
+        trusted-public-keys = "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=";
+        # keep-derivations = true;
+        # keep-outputs = true;
+        extra-experimental-features = "nix-command flakes";
+        # flake-registry = https://raw.githubusercontent.com/sylvorg/settings/main/flake-registry.json;
+        # allow-unsafe-native-code-during-evaluation = true;
+        # min-free = 262144000;
+        # max-free = 1073741824;
     };
-#+end_src
-
-* Inputs
-
-#+begin_src nix
     inputs = {
         emacs.url = github:nix-community/emacs-overlay;
         nix.url = github:nixos/nix;
@@ -54,39 +35,21 @@
         nixos-master.url = github:NixOS/nixpkgs/master;
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
-        nixpkgs.url = github:NixOS/nixpkgs/<<channel(dotted='t)>>;
+        nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
     };
-#+end_src
-
-* Outputs
-
-#+begin_src nix
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
-#+end_src
-
-** Channel
-
-#+begin_src nix
-        channel = <<channel()>>;
-#+end_src
-
-** Flake Registry
-
-#+begin_src nix
+        channel = nixos-22-05;
         registry = fromJSON ''
-#+end_src
-
-#+begin_src json
 {
   "flakes": [
     {
       "from": {
-        "id": "<<username>>",
+        "id": "shadowrylander",
         "type": "indirect"
       },
       "to": {
-        "owner": "<<username>>",
-        "repo": "<<username>>",
+        "owner": "shadowrylander",
+        "repo": "shadowrylander",
         "type": "github"
       }
     },
@@ -104,15 +67,7 @@
   ],
   "version": 2
 }
-#+end_src
-
-#+begin_src nix
         '';
-#+end_src
-
-** Patch Nixpkgs Function
-
-#+begin_src nix
         patch = {
             nixpkgs = let
                 patches' = [ patches.bcachefs-module ];
@@ -134,25 +89,8 @@
                 extras = src: config: patches: import (patch.nixpkgs.extras src config patches) config;
             };
         };
-#+end_src
-
-** Lib
-
-With help from [[Henrik Lissner / hlissner][https://github.com/hlissner/dotfiles]]:
-
-#+begin_src nix
         lib = inputs.nixpkgs.lib.extend (final: prev: { j = with final; makeExtensible (self: rec {
-#+end_src
-
-Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/lib/attrsets.nix#L406][here]]:
-
-#+begin_src nix
             genAttrNames = values: f: listToAttrs (map (v: nameValuePair (f v) v) values);
-#+end_src
-
-These are kept separately so that they're easier to debug:
-
-#+begin_src nix
             mapAttrNames = f: mapAttrs' (n: v: nameValuePair (f n v) v);
             mif = {
                 list = optionals;
@@ -420,16 +358,8 @@ These are kept separately so that they're easier to debug:
                     else (import file extrargs))
                 ) (list (filterAttrs (n: v: ! (elem n [ "call" "extrargs" "func" ])) (recursiveUpdate args { ignores.dirs = true; }))));
             };
-#+end_src
-
-#+begin_src nix
             update = {
                 python = rec {
-#+end_src
-
-Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/536/4][here]] and [[https://discourse.nixos.org/t/use-multiple-instances-of-prev-python-override/20066/2?u=shadowrylander][here]]:
-
-#+begin_src nix
                     python = rec {
                         base = pv: attrs: prev: { "${pv}" = prev.${pv}.override (super: {
                             packageOverrides = lib.composeExtensions (super.packageOverrides or (_: _: {})) (new: old: attrs);
@@ -447,9 +377,6 @@ Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/53
                         two = base attrs.versions.python.two;
                         three = base attrs.versions.python.three;
                     };
-#+end_src
-
-#+begin_src nix
                     package = rec {
                         base = pv: pkg: func: prev: python.base pv { "${pkg}" = prev.${pv}.pkgs.${pkg}.overridePythonAttrs func; } prev;
                         two = base attrs.versions.python.two;
@@ -461,19 +388,11 @@ Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/53
                         three = base attrs.versions.python.three;
                     };
                 };
-#+end_src
-
-Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-891888835][here]]:
-
-#+begin_src nix
                 node = rec {
                     default = overlay: final: prev: {
                         nodePackages = fix (extends (final.callPackage overlay {}) (new: prev.nodePackages));
                     };
                 };
-#+end_src
-
-#+begin_src nix
             };
 
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
@@ -522,17 +441,7 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
 
             inherit patch;
         }); });
-#+end_src
-
-** callPackages
-
-#+begin_src nix
         callPackages = with lib; {
-#+end_src
-
-*** settings
-
-#+begin_src nix
             settings = { stdenv }: stdenv.mkDerivation rec {
                 pname = "settings";
                 version = "1.0.0.0";
@@ -545,41 +454,6 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
                 '';
                 meta.mainprogram = "org-tangle";
             };
-#+end_src
-
-*** sysget.nix
-
-#+begin_src
-            sysget = { stdenv, fetchFromGitHub, installShellFiles }: let
-                owner = "emilengler";
-            in stdenv.mkDerivation rec {
-                pname = "sysget";
-                version = "2.3";
-                src = fetchFromGitHub {
-                    inherit owner;
-                    repo = pname;
-                    rev = "v${version}";
-                    sha256 = "0zax8qf4pzglx0rsnv57xvh9wrjh479ymr70ja2nvv22k16gfx1r";
-                };
-                buildInputs = [ installShellFiles ];
-                nativeBuildInputs = buildInputs;
-                installPhase = ''
-                    mkdir -p $out/bin
-                    cp ${pname} $out/bin/
-                    installManPage contrib/man/${pname}.8
-                    installShellCompletion --bash contrib/${pname}.bash-completion
-                '';
-                meta = {
-                    description = "One package manager to rule them all";
-                    homepage = "https://github.com/${owner}/${pname}";
-                    license = licenses.gpl3;
-                };
-            };
-#+end_src
-
-*** pacapt.nix
-
-#+begin_src nix
             pacapt = { stdenv, fetchFromGitHub }: let
                 owner = "icy";
             in stdenv.mkDerivation rec {
@@ -601,11 +475,6 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
                     homepage = "https://github.com/${owner}/${pname}";
                 };
             };
-#+end_src
-
-*** flk.nix
-
-#+begin_src nix
             flk = { stdenv, fetchgit }: let
                 owner = "chr15m";
             in stdenv.mkDerivation rec {
@@ -627,11 +496,6 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
                     license = licenses.mpl20;
                 };
             };
-#+end_src
-
-*** mdsh.nix
-
-#+begin_src nix
             mdsh = { stdenv, fetchFromGitHub }: let
                 owner = "bashup";
             in stdenv.mkDerivation rec {
@@ -653,13 +517,6 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
                     license = licenses.mit;
                 };
             };
-#+end_src
-
-*** caddy
-
-Adapted from [[https://github.com/NixOS/nixpkgs/issues/14671#issuecomment-1016376290][here]]; allows us to build ~caddy~ with plugins:
-
-#+begin_src nix
             caddy = { fetchFromGitHub, buildGoModule }: let
                 imports = concatMapStrings (pkg: "\t\t\t_ \"${pkg}\"\n") [
                     "github.com/mholt/caddy-l4@latest"
@@ -707,13 +564,6 @@ Adapted from [[https://github.com/NixOS/nixpkgs/issues/14671#issuecomment-101637
                     maintainers = with maintainers; [ Br1ght0ne ];
                 };
             };
-#+end_src
-
-*** guix
-
-Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/pkgs/development/guix/guix.nix][here]]:
-
-#+begin_src nix
             guix = { stdenv, fetchurl }: stdenv.mkDerivation rec {
                 pname = "guix";
                 version = "1.0.0";
@@ -750,11 +600,6 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/pkgs/developmen
                     platforms = [ "aarch64-linux" "i686-linux" "x86_64-linux" ];
                 };
             };
-#+end_src
-
-*** poetry2setup
-
-#+begin_src nix
             poetry2setup = { lib, Python, fetchFromGitHub, gawk }: Python.pkgs.buildPythonApplication rec {
                 pname = "poetry2setup";
                 version = "1.0.0";
@@ -775,15 +620,7 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/pkgs/developmen
                     mkdir --parents $out/bin
                     cp $src/${pname}.py $out/bin/${pname}
                     chmod +x $out/bin/${pname}
-#+end_src
-
-Adapted from [[https://unix.stackexchange.com/users/28765/rudimeier][rudimeier's]] answer [[https://unix.stackexchange.com/a/313025/270053][here]]:
-
-#+begin_src nix
                     ${gawk}/bin/awk -i inplace 'BEGINFILE{print "#!/usr/bin/env python3"}{print}' $out/bin/${pname}
-#+end_src
-
-#+begin_src nix
                 '';
 
                 postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
@@ -796,19 +633,7 @@ Adapted from [[https://unix.stackexchange.com/users/28765/rudimeier][rudimeier's
                     license = licenses.mit;
                 };
             };
-#+end_src
-
-*** NodeJS
-
-All of these package derivations were generated by [[https://github.com/svanderburg/node2nix#deploying-a-collection-of-npm-packages-from-the-npm-registry][node2nix]]:
-
-#+begin_src nix
             nodejs = {
-#+end_src
-
-**** uglifycss
-
-#+begin_src nix
                 uglifycss =  {nodeEnv, fetchurl, fetchgit, nix-gitignore, stdenv, lib, globalBuildInputs ? []}: let
                     sources = {};
                 in {
@@ -831,41 +656,11 @@ All of these package derivations were generated by [[https://github.com/svanderb
                         reconstructLock = true;
                     };
                 };
-#+end_src
-
-**** End of NodeJS
-
-#+begin_src nix
             };
-#+end_src
-
-*** Python
-
-#+begin_src nix
             python = {
-#+end_src
-
-**** Two
-
-#+begin_src nix
                 two = {
-#+end_src
-
-***** End of two
-
-#+begin_src nix
                 };
-#+end_src
-
-**** Three
-
-#+begin_src nix
                 three = {
-#+end_src
-
-***** autoslot
-
-#+begin_src nix
                     autoslot = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit }: let
                         owner = "cjrh";
                     in buildPythonPackage rec {
@@ -888,11 +683,6 @@ All of these package derivations were generated by [[https://github.com/svanderb
                             license = lib.licenses.asl20;
                         };
                     };
-#+end_src
-
-***** magicattr
-
-#+begin_src nix
                     magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit }: let
                         owner = "frmdstryr";
                     in buildPythonPackage rec {
@@ -912,11 +702,6 @@ All of these package derivations were generated by [[https://github.com/svanderb
                             license = lib.licenses.mit;
                         };
                     };
-#+end_src
-
-***** backtrace
-
-#+begin_src nix
                     backtrace = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, colorama }: let
                         owner = "nir0s";
                     in buildPythonPackage rec {
@@ -937,23 +722,8 @@ All of these package derivations were generated by [[https://github.com/svanderb
                             license = lib.licenses.asl20;
                         };
                     };
-#+end_src
-
-***** End of three
-
-#+begin_src nix
                 };
-#+end_src
-
-**** Xonsh
-
-#+begin_src nix
                 xonsh = {
-#+end_src
-
-***** xontrib-readable-traceback
-
-#+begin_src nix
                     xontrib-readable-traceback = { lib, buildPythonPackage, fetchPypi, colorama, backtrace }: buildPythonPackage rec {
                         pname = "xontrib-readable-traceback";
                         version = "0.3.2";
@@ -968,11 +738,6 @@ All of these package derivations were generated by [[https://github.com/svanderb
                             license = lib.licenses.mit;
                         };
                     };
-#+end_src
-
-***** xonsh-autoxsh
-
-#+begin_src nix
                     xonsh-autoxsh = { lib, buildPythonPackage, fetchPypi }: buildPythonPackage rec {
                         pname = "xonsh-autoxsh";
                         version = "0.3";
@@ -986,11 +751,6 @@ All of these package derivations were generated by [[https://github.com/svanderb
                             license = lib.licenses.mit;
                         };
                     };
-#+end_src
-
-***** xonsh-direnv
-
-#+begin_src nix
                     xonsh-direnv = { lib, buildPythonPackage, fetchPypi }: buildPythonPackage rec {
                         pname = "xonsh-direnv";
                         version = "1.5.0";
@@ -1004,11 +764,6 @@ All of these package derivations were generated by [[https://github.com/svanderb
                             license = lib.licenses.mit;
                         };
                     };
-#+end_src
-
-***** xontrib-pipeliner
-
-#+begin_src nix
                     xontrib-pipeliner = { lib, buildPythonPackage, fetchPypi, six }: buildPythonPackage rec {
                         pname = "xontrib-pipeliner";
                         version = "0.3.4";
@@ -1026,11 +781,6 @@ All of these package derivations were generated by [[https://github.com/svanderb
                             license = lib.licenses.mit;
                         };
                     };
-#+end_src
-
-***** xontrib-sh
-
-#+begin_src nix
                     xontrib-sh = { lib, buildPythonPackage, fetchPypi }: buildPythonPackage rec {
                         pname = "xontrib-sh";
                         version = "0.3.0";
@@ -1044,39 +794,11 @@ All of these package derivations were generated by [[https://github.com/svanderb
                             license = lib.licenses.mit;
                         };
                     };
-#+end_src
-
-***** End of Xonsh
-
-#+begin_src nix
                 };
-#+end_src
-
-**** End of Python
-
-#+begin_src nix
             };
-#+end_src
-
-*** End of callPackages
-
-#+begin_src nix
         };
-#+end_src
-
-** Patches
-
-#+begin_src nix
         patches = {
-#+end_src
-
-*** bcachefs-module
-
-#+begin_src nix
             bcachefs-module = toFile "bcachefs-module.patch" ''
-#+end_src
-
-#+begin_src diff
 diff --git a/nixos/modules/tasks/filesystems/bcachefs.nix b/nixos/modules/tasks/filesystems/bcachefs.nix
 index 5fda24adb97..897ddf03927 100644
 --- a/nixos/modules/tasks/filesystems/bcachefs.nix
@@ -1090,19 +812,8 @@ index 5fda24adb97..897ddf03927 100644
      }
  
      (mkIf ((elem "bcachefs" config.boot.initrd.supportedFilesystems) || (bootFs != {})) {
-#+end_src
-
-#+begin_src nix
             '';
-#+end_src
-
-*** licenses
-
-#+begin_src nix
             licenses = toFile "licenses.patch" ''
-#+end_src
-
-#+begin_src diff
 diff --git a/lib/licenses.nix b/lib/licenses.nix
 index 4fa6d6abc7a..198b570e0ae 100644
 --- a/lib/licenses.nix
@@ -1119,19 +830,8 @@ index 4fa6d6abc7a..198b570e0ae 100644
    osl2 = {
      spdxId = "OSL-2.0";
      fullName = "Open Software License 2.0";
-#+end_src
-
-#+begin_src nix
             '';
-#+end_src
-
-*** python
-
-#+begin_src nix
             python = toFile "python.patch" ''
-#+end_src
-
-#+begin_src diff
 diff --git a/pkgs/top-level/aliases.nix b/pkgs/top-level/aliases.nix
 index 7b9c55ee702..4c86533cad5 100644
 --- a/pkgs/top-level/aliases.nix
@@ -1162,33 +862,10 @@ index 1803508bdd4..da416ccaea6 100644
  
    # pythonPackages further below, but assigned here because they need to be in sync
    python2Packages = dontRecurseIntoAttrs python27Packages;
-#+end_src
-
-#+begin_src nix
             '';
-#+end_src
-
-*** End of patches
-
-#+begin_src nix
         };
-#+end_src
-
-** Overlays
-
-#+begin_src nix
         overlayset = with lib; rec {
-#+end_src
-
-*** Node
-
-#+begin_src nix
-            nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.nodejs;
-#+end_src
-
-*** Python
-
-#+begin_src nix
+            nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.node;
             pythonOverlays = rec {
                 python2 = j.foldToSet [
                     (mapAttrs j.update.python.callPython.two callPackages.python.two)
@@ -1234,11 +911,6 @@ index 1803508bdd4..da416ccaea6 100644
                     (mapAttrs j.update.python.callPython.three callPackages.python.xonsh)
                 ];
             };
-#+end_src
-
-*** All
-
-#+begin_src nix
             overlays = let
                 calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
                 overlay = final: prev: { inherit (calledPackages) settings; };
@@ -1247,13 +919,6 @@ index 1803508bdd4..da416ccaea6 100644
                 pythonOverlays.python3
                 pythonOverlays.xonsh
                 calledPackages
-#+end_src
-
-**** Overrides from Older Channels
-
-You can use attribute sets to reassign packages from a particular channel, such as ~{ gcc10 = "gcc11" }~ assigned to ~nixos-unstable~ will have ~pkgs.gcc10~ call ~nixos-unstable.gcc11~ instead:
-
-#+begin_src nix
                 (let pkgsets = {
                     # nixos-unstable = [ "gnome-tour" ];
                     # nixos-unstable = "gnome-tour";
@@ -1271,11 +936,6 @@ You can use attribute sets to reassign packages from a particular channel, such 
                         in final: prev: { "${pkg1}" = if self then (if pkgIsAttrs then final.${pkg2} else prev.${pkg2}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg2}; }
                     ) pkglist
                 ) pkgsets)
-#+end_src
-
-***** Override Sets from Older Channels
-
-#+begin_src nix
                 (let pkgsets = {
                     # nixos-unstable = [ { python310Packages = "mypy"; } { python310Packages = [ "mypy" ]; } ];
                     # nixos-unstable = { python310Packages = "mypy"; };
@@ -1295,11 +955,6 @@ You can use attribute sets to reassign packages from a particular channel, such 
                         in final: prev: { "${pkg1}" = pkg2; }
                     ) pkglist
                 ) pkgsets)
-#+end_src
-
-**** Miscellaneous
-
-#+begin_src nix
                 {
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
@@ -1309,48 +964,6 @@ You can use attribute sets to reassign packages from a particular channel, such 
                     nix-direnv = final: prev: { nix-direnv = prev.nix-direnv.override { enableFlakes = true; }; };
                     lib = final: prev: { inherit lib; };
                     default = overlay;
-#+end_src
-
-***** Rust
-
-This is used to get all the rust packages in ~nixpkgs~; necessary because ~rustc~ keeps rebuilding otherwise:
-
-#+begin_src shell
-nix eval --impure --expr 'with builtins; let pkgs = import (fetchGit { url = "https://github.com/nixos/nixpkgs"; inherit ((fromJSON (readFile ./etc/nixos/flake.lock)).nodes.<<channel()>>.original) ref; }) {}; in with pkgs; with lib; attrNames (filterAttrs (n: v: all (b: b == true) [ (! (elem n [ ])) (tryEval v).success (v ? patchRegistryDeps) ]) pkgs)'
-#+end_src
-
-Adapted from [[https://stackoverflow.com/users/695591/cl%c3%a9ment][Clément's]] answer [[https://stackoverflow.com/a/29777273/10827766][here]]:
-
-#+name: 947c9d7c-a6bc-4ddc-b2a5-38830b0521d2
-#+begin_src emacs-lisp
-(setq command (concat "nix eval --impure --expr "
-                          "'with builtins; let "
-                              "pkgs = import (fetchGit { "
-                                  "url = \"https://github.com/nixos/nixpkgs\"; "
-                                  "inherit ((fromJSON (readFile ./etc/nixos/flake.lock)).nodes.<<channel()>>.original) ref; "
-                              "}) {}; "
-                          "in with pkgs; with lib; "
-                              "attrNames (filterAttrs (n: v: all (b: b == true) [ "
-                                  "(! (elem n [ ])) "
-                                  "(tryEval v).success "
-                                  "(v ? patchRegistryDeps) "
-                              "]) pkgs)'"))
-(replace-regexp-in-string "\n\\'" "" (shell-command-to-string command))
-#+end_src
-
-# TODO: Do I need this anymore?
-
-#+begin_src nix :noweb-ref no
-                    rust = final: prev: genAttrs <<947c9d7c-a6bc-4ddc-b2a5-38830b0521d2()>> (pkg: inputs.${channel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg});
-#+end_src
-
-***** Python
-
-Note: This was giving ~error: attempt to call something which is not a function but a set~ because I was
-importing the overlay file with an empty set in ~lib.j.imports.set~, i.e. ~import file extrargs~,
-when I should have been importing just the file using ~import file~.
-
-#+begin_src nix
                     Python = final: prev: rec {
                         Python2 = final.${j.attrs.versions.python.two};
                         Python2Packages = Python2.pkgs;
@@ -1359,40 +972,12 @@ when I should have been importing just the file using ~import file~.
                         Python = Python3;
                         PythonPackages = Python3Packages;
                     };
-#+end_src
-
-***** End of Miscellaneous
-
-#+begin_src nix
                 }
-#+end_src
-
-**** End of All
-
-#+begin_src nix
             ];
-#+end_src
-
-*** Default Overlays
-
-#+begin_src nix
             inherit overlay;
             defaultOverlay = overlay;
         };
-#+end_src
-
-** Profiles
-
-#+begin_src nix
         profiles = {
-#+end_src
-
-Adapted from the following:
-
-- [[https://github.com/hlissner/dotfiles/blob/master/hosts/linode.nix][hlissner's dotfiles]]
-- [[https://www.linode.com/docs/guides/install-nixos-on-linode/#prepare-your-linode][Install and Configure NixOS on a Linode]]
-
-#+begin_src nix
             server = { config, pkgs, ... }: let
                 relayNo = if config.variables.relay then "no" else "yes";
                 relayYes = if config.variables.relay then "yes" else "no";
@@ -1401,21 +986,8 @@ Adapted from the following:
                 environment.systemPackages = with pkgs; [ inetutils mtr sysstat git ];
                 variables.server = true;
             };
-#+end_src
-
-** Devices
-
-#+begin_src nix
         };
         devices = {
-#+end_src
-
-Adapted from the following:
-
-- [[https://github.com/hlissner/dotfiles/blob/master/hosts/linode.nix][hlissner's dotfiles]]
-- [[https://www.linode.com/docs/guides/install-nixos-on-linode/#prepare-your-linode][Install and Configure NixOS on a Linode]]
-
-#+begin_src nix
             linode = { config, ... }: {
                 imports = flatten [
                     profiles.server
@@ -1435,11 +1007,6 @@ Adapted from the following:
                     interfaces.eth0.useDHCP = true;
                 };
             };
-#+end_src
-
-Adapted from [[https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3][here]]:
-
-#+begin_src nix
             rpi3 = { config, pkgs, ... }: {
                 imports =  toList profiles.server;
                 hardware.enableRedistributableFirmware = true;
@@ -1469,9 +1036,6 @@ Adapted from [[https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3][here]]:
                 boot.kernelModules = [ "bcm2835-v4l2" ];
                 boot.initrd.kernelModules = [ "vc4" "bcm2835_dma" "i2c_bcm2835" ];
             };
-#+end_src
-
-#+begin_src nix
             rpi4 = { config, pkgs, ... }: {
                 imports =  flatten [
                     profiles.server
@@ -1480,23 +1044,8 @@ Adapted from [[https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3][here]]:
                 boot.kernelPackages = mkForce pkgs.linuxPackages_rpi4;
             };
         };
-#+end_src
-
-** Nixos Modules
-
-#+begin_src nix
         nixosModules = with lib; rec {
-#+end_src
-
-*** All Modules
-
-#+begin_src nix
             nixosModules = rec {
-#+end_src
-
-**** OpenSSH
-
-#+begin_src nix
                 openssh = { config, ... }: {
                     services.openssh = {
                         enable = true;
@@ -1509,21 +1058,8 @@ Adapted from [[https://nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi_3][here]]:
                         openFirewall = config.variables.relay;
                     };
                 };
-#+end_src
-
-**** Options
-
-#+begin_src nix
-                options = args@{ config, options, pkgs, ... }: {
+                options = { config, options, pkgs, ... }: {
                     options = {
-#+end_src
-
-***** Definitions
-****** Variables
-
-Adapted from [[https://discourse.nixos.org/t/variables-for-a-system/2342/6][here]] and [[https://discourse.nixos.org/t/variables-for-a-system/2342/12][here]]:
-
-#+begin_src nix
                         variables = {
                             zfs = mkOption {
                                 type = types.bool;
@@ -1550,38 +1086,7 @@ Adapted from [[https://discourse.nixos.org/t/variables-for-a-system/2342/6][here
                                 default = false;
                             };
                         };
-#+end_src
-
-****** Configs
-
-#+begin_src nix
-                        configs = {
-                            config' = mkOption {
-                                type = types.deferredModule;
-                                default = import ./configuration.nix args;
-                            };
-                            config = mkOption {
-                                type = types.submodule;
-                                default = (import ./configuration.nix args).config;
-                            };
-                            hardware' = mkOption {
-                                type = types.deferredModule;
-                                default = import ./hardware-configuration.nix args;
-                            };
-                            hardware = mkOption {
-                                type = types.submodule;
-                                default = (import ./hardware-configuration.nix args).config;
-                            };
-                        };
-#+end_src
-
-#+begin_src nix
                         programs = {
-#+end_src
-
-****** Mosh
-
-#+begin_src nix
                             mosh = {
                                 openFirewall = mkOption {
                                     type = types.bool;
@@ -1590,15 +1095,7 @@ Adapted from [[https://discourse.nixos.org/t/variables-for-a-system/2342/6][here
                                 };
                             };
                         };
-#+end_src
-
-#+begin_src nix
                         services = {
-#+end_src
-
-****** Tailscale
-
-#+begin_src nix
                             tailscale = {
                                 autoconnect = mkOption {
                                     type = types.bool;
@@ -1770,13 +1267,6 @@ Adapted from [[https://discourse.nixos.org/t/variables-for-a-system/2342/6][here
                                     description = "An attribute set of options and values; if an option is a single character, a single dash will be prepended, otherwise two.";
                                 };
                             };
-#+end_src
-
-****** Guix
-
-Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/nixos/modules/services/development/guix.nix][here]]:
-
-#+begin_src nix
                             guix = {
                                 enable = mkEnableOption "GNU Guix package manager";
                                 package = mkOption {
@@ -1786,38 +1276,15 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/nixos/modules/s
                                     description = "Package that contains the guix binary and initial store.";
                                 };
                             };
-#+end_src
-
-#+begin_src nix
                         };
                     };
                 };
                 imports = [ ./var ];
                 config = mkMerge [
-#+end_src
-
-***** Config
-****** Variables
-
-Adapted from [[https://discourse.nixos.org/t/variables-for-a-system/2342/6][here]] and [[https://discourse.nixos.org/t/variables-for-a-system/2342/12][here]]:
-
-#+begin_src nix
                     { _module.args.variables = config.variables; }
-#+end_src
-
-****** Mosh
-
-#+begin_src nix
                     (let cfg = config.programs.mosh; in mkIf cfg.enable {
                         networking.firewall.allowedUDPPortRanges = optional cfg.openFirewall { from = 60000; to = 61000; };
                     })
-#+end_src
-
-****** Guix
-
-Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/nixos/modules/services/development/guix.nix][here]]:
-
-#+begin_src nix
                     (let cfg = config.services.guix; in mkIf cfg.enable {
                         users = {
                             extraUsers = lib.fold (a: b: a // b) {} (builtins.map buildGuixUser (lib.range 1 10));
@@ -1875,11 +1342,6 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/nixos/modules/s
                             export INFOPATH="$HOME/.guix-profile/share/info:$INFOPATH"
                         '';
                     })
-#+end_src
-
-****** Tailscale
-
-#+begin_src nix
                     (let cfg = config.services.tailscale; in mkIf cfg.enable {
                         assertions = flatten [
                             (optional ((count (state: state != null) (with cfg.state; [ text file dir ])) > 1)
@@ -2021,26 +1483,9 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/nixos/modules/s
                             };
                         };
                     })
-#+end_src
-
-***** End of Options
-
-#+begin_src nix
                 ];
             };
-#+end_src
-
-**** Default
-
-#+begin_src nix
             default = options;
-#+end_src
-
-**** Var
-
-Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system/etc/etc-activation.nix][here]] and [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system/etc/etc.nix][here]]:
-
-#+begin_src nix
             var = { config, pkgs, ... }: let
                 var' = filter (f: f.enable) (attrValues config.environment.vars);
                 var = pkgs.runCommandLocal "var" {
@@ -2094,11 +1539,6 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                     ]) var'}
                 '';
                 setup-var = toFile "setup.var.pl" ''
-#+end_src
-
-Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system/etc/setup-etc.pl][here]]:
-
-#+begin_src perl
 use strict;
 use File::Find;
 use File::Copy;
@@ -2245,9 +1685,6 @@ write_file("/var/.clean", map { "$_\n" } @copied);
 # so we need to check and re-create it during activation.
 open TAG, ">>/var/NIXOS";
 close TAG;
-#+end_src
-
-#+begin_src nix
                 '';
             in {
                 options = {
@@ -2361,36 +1798,11 @@ close TAG;
                     };
                 };
             };
-#+end_src
-
-*** Default Modules
-
-#+begin_src nix
             nixosModule = nixosModules.default;
             defaultNixosModule = nixosModule;
-#+end_src
-
-*** End of Nixos Modules
-
-#+begin_src nix
         };
-#+end_src
-
-** Templates
-
-#+begin_src nix
         templates = rec {
-#+end_src
-
-*** All Templates
-
-#+begin_src nix
             templates = rec {
-#+end_src
-
-**** General
-
-#+begin_src nix
                 general = {
                     description = "The general template for all our programs!";
                     path = toFile "general-template.nix" ''
@@ -2447,11 +1859,6 @@ close TAG;
 }
                     '';
                 };
-#+end_src
-
-**** Python
-
-#+begin_src nix
                 python = toFile "python-template.nix" ''
 {
 
@@ -2514,46 +1921,16 @@ close TAG;
     ];
 }
                 '';
-#+end_src
-
-**** Default
-
-#+begin_src nix
                 default = python;
-#+end_src
-
-**** End of Templates
-
-#+begin_src nix
             };
-#+end_src
-
-*** Default Templates
-
-#+begin_src nix
             template = templates.default;
             defaultTemplate = template;
-#+end_src
-
-*** End of Templates
-
-#+begin_src nix
         };
-#+end_src
-
-** Individual Outputs
-
-#+begin_src nix
         individual-outputs = with lib; j.foldToSet (flatten [
             overlayset
             nixosModules
             { inherit make lib channel registry profiles devices; }
         ]);
-#+end_src
-
-** Make
-
-#+begin_src nix
         make = system: overlays: with lib; rec {
             config' = rec {
                 base = { inherit system; };
@@ -2608,11 +1985,6 @@ close TAG;
             };
             buildInputs = with pkgs; [ git poetry2setup ];
         };
-#+end_src
-
-** Final Outputs
-
-#+begin_src nix
     in with lib; j.foldToSet [
         (eachSystem allSystems (system: let
             made = make system (attrValues overlayset.overlays);
@@ -2645,10 +2017,4 @@ close TAG;
         }))
         individual-outputs
     ];
-#+end_src
-
-* End of flake.nix
-
-#+begin_src nix
 }
-#+end_src

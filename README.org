@@ -1151,24 +1151,25 @@ arguments and pop open the results in a preview buffer."
 #+begin_src emacs-lisp
 (defun get-README (&optional return-link) (interactive)
     (let* ((README (f-join "settings" "README.org"))
+        (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"(import ./.).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
+        (flake-README (unless (s-blank flake-settings) (f-expand (f-join flake-settings "README.org"))))
         (repo-README (f-expand README))
         (home-README (f-expand (f-join "~" README)))
         (user-README (f-expand (f-join "<<userrepo>>" README)))
         (root-README (f-expand (f-join "/" README)))
         (env (getenv "SETTINGS_README"))
-        (env-README (if env (f-expand (substitute-in-file-name env)) env))
+        (env-README (unless (s-blank? env) (f-expand (substitute-in-file-name env))))
         (file (cond
                 ((f-exists? README) (concat "./" README))
                 ((f-exists? repo-README) repo-README)
                 ((f-exists? home-README) home-README)
                 ((f-exists? user-README) user-README)
                 ((f-exists? root-README) root-README)
-                ((if env (f-exists? env-README) env) env-README)
+                ((unless (s-blank? env) (f-exists? env-README)) env-README)
                 (t (if return-link
                     "https://raw.githubusercontent.com/sylvorg/settings/main/README.org"
                     (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
-                        (if (string= curl-README "")
-                            nil
+                        (unless (s-blank? curl-README)
                             (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
                                 (f-write curl-README 'utf-8 temp)
                                 temp))))))))
@@ -1199,9 +1200,7 @@ Adapted from [[https://kitchingroup.cheme.cmu.edu/blog/2013/05/05/Getting-keywor
 #+begin_src emacs-lisp
         (unless (or (member "nosetupfile" (a-keys keywords)) (member "no setupfile" headlines))
             (goto-char 0)
-            (insert (format "#+setupfile: %s\n\n" (if (member "setuphere" (a-keys keywords))
-                                                        "./README.org"
-                                                        (get-README t))))
+            (insert (format "#+setupfile: %s\n\n" (get-README t)))
             (goto-char 0)
             (org-ctrl-c-ctrl-c)))
 #+end_src
@@ -1498,6 +1497,7 @@ trusted-public-keys = %qcache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspc
 %ckeep-derivations = true%d
 %ckeep-outputs = true%d
 extra-experimental-features = %qnix-command flakes%q%d
+%caccept-flake-config = true%d
 %cflake-registry = https://raw.githubusercontent.com/sylvorg/settings/main/flake-registry.json%d
 %callow-unsafe-native-code-during-evaluation = true%d
 %cmin-free = 262144000%d
