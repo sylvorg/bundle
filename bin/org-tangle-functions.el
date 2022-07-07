@@ -54,7 +54,7 @@ arguments and pop open the results in a preview buffer."
 (defun get-README (&optional return-link) (interactive)
     (let* ((README (f-join "settings" "README.org"))
         (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"(import ./.).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
-        (flake-README (unless (s-blank flake-settings) (f-expand (f-join flake-settings "README.org"))))
+        (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
         (repo-README (f-expand README))
         (home-README (f-expand (f-join "~" README)))
         (user-README (f-expand (f-join "/home/shadowrylander/aiern" README)))
@@ -63,6 +63,7 @@ arguments and pop open the results in a preview buffer."
         (env-README (unless (s-blank? env) (f-expand (substitute-in-file-name env))))
         (file (cond
                 ((f-exists? README) (concat "./" README))
+                ((f-exists? flake-README) flake-README)
                 ((f-exists? repo-README) repo-README)
                 ((f-exists? home-README) home-README)
                 ((f-exists? user-README) user-README)
