@@ -1,1 +1,0 @@
-final: prev: { settings = final.callPackage ./package.nix {}; }
