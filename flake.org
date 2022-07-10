@@ -55,6 +55,11 @@
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/<<channel(dotted='t)>>;
+
+        # pypkg-rich = {
+        #     url = github:syvlorg/rich;
+        #     inputs.settings.follows = "";
+        # };
     };
 #+end_src
 
@@ -67,7 +72,7 @@
 ** Channel
 
 #+begin_src nix
-        channel = <<channel()>>;
+        channel = "<<channel()>>";
 #+end_src
 
 ** Flake Registry
@@ -200,6 +205,7 @@ These are kept separately so that they're easier to debug:
                     attr-attr = attrs: filterAttrs (n: v: elem n (attrNames attrs));
 
                 };
+
                 keep = {
                     prefix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.prefix n (toList keeping)) attrs);
                     suffix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.suffix n (toList keeping)) attrs);
@@ -466,9 +472,9 @@ Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/53
 Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-891888835][here]]:
 
 #+begin_src nix
-                node = rec {
-                    default = overlay: final: prev: {
-                        nodePackages = fix (extends (final.callPackage overlay {}) (new: prev.nodePackages));
+                node = {
+                    default = pkg: final: prev: {
+                        nodePackages = fix (extends (node-final: node-prev: recursiveUpdate node-prev (final.callPackage pkg {})) (new: prev.nodePackages));
                     };
                 };
 #+end_src
@@ -530,6 +536,26 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
         callPackages = with lib; {
 #+end_src
 
+*** strapper
+
+#+begin_src nix
+            strapper = { Python }: Python.pkgs.buildPythonApplication rec {
+                pname = "strapper";
+                version = "1.0.0.0";
+                src = ./strapper;
+                propagatedBuildInputs = with Python.pkgs; [ bakery ];
+                installPhase = ''
+                    mkdir --parents $out/bin
+                    cp $src/${pname}.py $out/bin/${pname}
+                    cp $src/${pname}.hy $out/bin/
+                    chmod +x $out/bin/${pname}
+                    patchShebangs $out/bin/${pname}
+                '';
+                postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
+                makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${Python.pkgs.python.libPrefix}/site-packages" ];
+            };
+#+end_src
+
 *** settings
 
 #+begin_src nix
@@ -547,7 +573,7 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
             };
 #+end_src
 
-*** sysget.nix
+*** sysget
 
 #+begin_src
             sysget = { stdenv, fetchFromGitHub, installShellFiles }: let
@@ -577,7 +603,7 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
             };
 #+end_src
 
-*** pacapt.nix
+*** pacapt
 
 #+begin_src nix
             pacapt = { stdenv, fetchFromGitHub }: let
@@ -603,7 +629,7 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
             };
 #+end_src
 
-*** flk.nix
+*** flk
 
 #+begin_src nix
             flk = { stdenv, fetchgit }: let
@@ -629,7 +655,7 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
             };
 #+end_src
 
-*** mdsh.nix
+*** mdsh
 
 #+begin_src nix
             mdsh = { stdenv, fetchFromGitHub }: let
@@ -690,6 +716,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/issues/14671#issuecomment-101637
                     rev = "v${version}";
                     sha256 = "1nlphjg5wh5drpwkm4cczrkxdzbv72ll7hp5x7z6ww8pzz3q10b3";
                 };
+                doCheck = false;
                 vendorSha256 = "sha256-xu3klc9yb4Ws8fvXRV286IDhi/zQVN1PKCiFKb8VJBo=";
                 overrideModAttrs = (_: {
                     preBuild    = "echo '${main}' > cmd/caddy/main.go";
@@ -1233,6 +1260,8 @@ index 1803508bdd4..da416ccaea6 100644
                 xonsh = j.foldToSet [
                     (mapAttrs j.update.python.callPython.three callPackages.python.xonsh)
                 ];
+                external = mapAttrs' (n: v: nameValuePair (removePrefix "pyapp-" (removePrefix "pypkg-" n)) v.overlay)
+                                     (filterAttrs (n: v: j.has.prefix n [ "pypkg-" "pyapp-" ] ) inputs);
             };
 #+end_src
 
@@ -1242,10 +1271,9 @@ index 1803508bdd4..da416ccaea6 100644
             overlays = let
                 calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
                 overlay = final: prev: { inherit (calledPackages) settings; };
-            in j.foldToSet [
-                pythonOverlays.python2
-                pythonOverlays.python3
-                pythonOverlays.xonsh
+            in j.foldToSet (flatten [
+                (attrValues pythonOverlays)
+                nodeOverlays
                 calledPackages
 #+end_src
 
@@ -1313,29 +1341,15 @@ You can use attribute sets to reassign packages from a particular channel, such 
 
 ***** Rust
 
-This is used to get all the rust packages in ~nixpkgs~; necessary because ~rustc~ keeps rebuilding otherwise:
-
-#+begin_src shell
-nix eval --impure --expr 'with builtins; let pkgs = import (fetchGit { url = "https://github.com/nixos/nixpkgs"; inherit ((fromJSON (readFile ./etc/nixos/flake.lock)).nodes.<<channel()>>.original) ref; }) {}; in with pkgs; with lib; attrNames (filterAttrs (n: v: all (b: b == true) [ (! (elem n [ ])) (tryEval v).success (v ? patchRegistryDeps) ]) pkgs)'
-#+end_src
-
-Adapted from [[https://stackoverflow.com/users/695591/cl%c3%a9ment][Clément's]] answer [[https://stackoverflow.com/a/29777273/10827766][here]]:
+This is used to get all the rust packages in ~nixpkgs~; necessary because ~rustc~ keeps rebuilding otherwise;
+newline replacement is adapted from [[https://stackoverflow.com/users/695591/cl%c3%a9ment][Clément's]] answer [[https://stackoverflow.com/a/29777273/10827766][here]]:
 
 #+name: 947c9d7c-a6bc-4ddc-b2a5-38830b0521d2
 #+begin_src emacs-lisp
-(setq command (concat "nix eval --impure --expr "
-                          "'with builtins; let "
-                              "pkgs = import (fetchGit { "
-                                  "url = \"https://github.com/nixos/nixpkgs\"; "
-                                  "inherit ((fromJSON (readFile ./etc/nixos/flake.lock)).nodes.<<channel()>>.original) ref; "
-                              "}) {}; "
-                          "in with pkgs; with lib; "
-                              "attrNames (filterAttrs (n: v: all (b: b == true) [ "
-                                  "(! (elem n [ ])) "
-                                  "(tryEval v).success "
-                                  "(v ? patchRegistryDeps) "
-                              "]) pkgs)'"))
-(replace-regexp-in-string "\n\\'" "" (shell-command-to-string command))
+(replace-regexp-in-string "\n\\'"
+                            ""
+                            (shell-command-to-string
+                            "nix eval --impure --expr 'with builtins; with (import ./.).pkgs.${currentSystem}; with lib; attrNames (filterAttrs (n: v: all (b: b == true) [ (! (elem n [ ])) (tryEval v).success (v ? patchRegistryDeps) ]) pkgs)'"))
 #+end_src
 
 # TODO: Do I need this anymore?
@@ -1370,7 +1384,7 @@ when I should have been importing just the file using ~import file~.
 **** End of All
 
 #+begin_src nix
-            ];
+            ]);
 #+end_src
 
 *** Default Overlays
@@ -1788,15 +1802,26 @@ Adapted from [[https://github.com/pukkamustard/nixpkgs/blob/guix/nixos/modules/s
                             };
 #+end_src
 
+****** End of Definitions
+
 #+begin_src nix
                         };
                     };
                 };
-                imports = [ ./var ];
-                config = mkMerge [
+#+end_src
+
+***** Imports
+
+#+begin_src nix
+                imports = [ var ];
 #+end_src
 
 ***** Config
+
+#+begin_src nix
+                config = mkMerge [
+#+end_src
+
 ****** Variables
 
 Adapted from [[https://discourse.nixos.org/t/variables-for-a-system/2342/6][here]] and [[https://discourse.nixos.org/t/variables-for-a-system/2342/12][here]]:
@@ -2400,7 +2425,13 @@ close TAG;
     description = "";
 
     inputs = {
-        settings.url = github:sylvorg/settings;
+        settings = {
+            url = github:sylvorg/settings;
+
+            # TODO: Change the pname ONLY!
+            inputs.pname.follows = "";
+
+        };
         nixpkgs.follows = "settings/nixpkgs";
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
@@ -2408,7 +2439,7 @@ close TAG;
             flake = false;
         };
     };
-    outputs = inputs@{ self, nixpkgs, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
 
         # TODO: Change this!
         pname = "";
@@ -2427,16 +2458,17 @@ close TAG;
         (eachSystem allSystems (system: let
             made = make system (attrValues overlayset.overlays);
         in rec {
-            inherit (made) legacyPackages;
-            packages = flattenTree { default = legacyPackages.${pname}; "${pname}" = legacyPackages.${pname}; };
+            inherit (made) legacyPackages pkgs nixpkgs;
+            inherit made;
+            packages = flattenTree { default = pkgs.${pname}; "${pname}" = pkgs.${pname}; };
             package = packages.default;
             defaultPackage = package;
             apps = mapAttrs (n: made.app) packages;
             app = apps.default;
             defaultApp = app;
             devShells = j.foldToSet [
-                (mapAttrs (n: v: legacyPackages.mkShell { buildInputs = toList v; }) packages)
-                { default = legacyPackages.mkShell { buildInputs = unique (attrValues packages); }; }
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                { default = pkgs.mkShell { buildInputs = unique (attrValues packages); }; }
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
@@ -2455,11 +2487,17 @@ close TAG;
                 python = toFile "python-template.nix" ''
 {
 
-    # TODO: Change this!
+    # TODO: Change the description!
     description = "";
 
     inputs = {
-        settings.url = github:sylvorg/settings;
+        settings = {
+            url = github:sylvorg/settings;
+
+            # TODO: Change the pname ONLY!
+            inputs.pname.follows = "";
+
+        };
         nixpkgs.follows = "settings/nixpkgs";
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
@@ -2467,12 +2505,12 @@ close TAG;
             flake = false;
         };
     };
-    outputs = inputs@{ self, nixpkgs, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
 
-        # TODO: Change this!
+        # TODO: Change the pname!
         pname = "";
 
-        # TODO: Change this!
+        # TODO: Change the callPackage!
         callPackage = {}: {};
 
         overlayset = let
@@ -2485,11 +2523,11 @@ close TAG;
     in j.foldToSet [
         (eachSystem allSystems (system: let
             made = settings.make system (attrValues overlayset.overlays);
-            python = made.mkPython made.legacyPackages.Python3 [] pname;
+            python = made.mkPython made.pkgs.Python3 [] pname;
             xonsh = made.mkXonsh [] pname;
         in rec {
             inherit (settings) base;
-            inherit (made) legacyPackages;
+            inherit (made) legacyPackages pkgs nixpkgs;
             packages = flattenTree {
                 default = python;
                 "python-${pname}" = python;
@@ -2503,8 +2541,8 @@ close TAG;
             app = apps.default;
             defaultApp = app;
             devShells = j.foldToSet [
-                (mapAttrs (n: v: legacyPackages.mkShell { buildInputs = toList v; }) packages)
-                { default = legacyPackages.mkShell { buildInputs = unique (attrValues packages); }; }
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                { default = pkgs.mkShell { buildInputs = unique (attrValues packages); }; }
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
@@ -2575,12 +2613,15 @@ close TAG;
             nixpkgs = config'.overlayed;
             specialArgs = j.foldToSet [
                 individual-outputs
-                { inherit inputs legacyPackages pkgs nixpkgs; }
+                {
+                    inherit inputs legacyPackages pkgs nixpkgs;
+                    made = make system overlays;
+                }
             ];
             app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name}"}"; };
             mkXonsh = pkglist: pname: let
-                python3Packages = legacyPackages.Python3.pkgs;
-            in (legacyPackages.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
+                python3Packages = pkgs.Python3.pkgs;
+            in (pkgs.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
                 propagatedBuildInputs = j.filters.has.list [
                     pkglist
                     pname
@@ -2593,20 +2634,19 @@ close TAG;
             ] ppkgs);
             withPackages = {
                 python = j.foldToSet (flatten [
-                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython legacyPackages.${j.toCapital python} [
+                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pkgs.${j.toCapital python} [
                         pkg
                         pkglist
                     ])) (attrNames overlayset.pythonOverlays.${python})))) [ "python" "python2" "python3" ])
                     (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
                     (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
-                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython legacyPackages.${j.toCapital python} [
+                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pkgs.${j.toCapital python} [
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [ "python" "python2" "python3" ]))
                     { xonsh = pkglist: mkXonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ]; }
                 ]);
             };
-            buildInputs = with pkgs; [ git poetry2setup ];
         };
 #+end_src
 
@@ -2623,9 +2663,9 @@ close TAG;
             in flattenTree (j.foldToSet [
                 pythonPackages
                 (j.filters.has.attrs [
-                    (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames legacyPackages))
+                    (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames pkgs))
                     (attrNames overlayset.overlays)
-                ] legacyPackages)
+                ] pkgs)
                 { default = pythonPackages.xonsh; }
             ]);
             package = packages.default;

@@ -36,9 +36,14 @@
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
+
+        # pypkg-rich = {
+        #     url = github:syvlorg/rich;
+        #     inputs.settings.follows = "";
+        # };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
-        channel = nixos-22-05;
+        channel = "nixos-22-05";
         registry = fromJSON ''
 {
   "flakes": [
@@ -138,6 +143,7 @@
                     attr-attr = attrs: filterAttrs (n: v: elem n (attrNames attrs));
 
                 };
+
                 keep = {
                     prefix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.prefix n (toList keeping)) attrs);
                     suffix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.suffix n (toList keeping)) attrs);
@@ -388,9 +394,9 @@
                         three = base attrs.versions.python.three;
                     };
                 };
-                node = rec {
-                    default = overlay: final: prev: {
-                        nodePackages = fix (extends (final.callPackage overlay {}) (new: prev.nodePackages));
+                node = {
+                    default = pkg: final: prev: {
+                        nodePackages = fix (extends (node-final: node-prev: recursiveUpdate node-prev (final.callPackage pkg {})) (new: prev.nodePackages));
                     };
                 };
             };
@@ -442,6 +448,21 @@
             inherit patch;
         }); });
         callPackages = with lib; {
+            strapper = { Python }: Python.pkgs.buildPythonApplication rec {
+                pname = "strapper";
+                version = "1.0.0.0";
+                src = ./strapper;
+                propagatedBuildInputs = with Python.pkgs; [ bakery ];
+                installPhase = ''
+                    mkdir --parents $out/bin
+                    cp $src/${pname}.py $out/bin/${pname}
+                    cp $src/${pname}.hy $out/bin/
+                    chmod +x $out/bin/${pname}
+                    patchShebangs $out/bin/${pname}
+                '';
+                postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
+                makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${Python.pkgs.python.libPrefix}/site-packages" ];
+            };
             settings = { stdenv }: stdenv.mkDerivation rec {
                 pname = "settings";
                 version = "1.0.0.0";
@@ -547,6 +568,7 @@
                     rev = "v${version}";
                     sha256 = "1nlphjg5wh5drpwkm4cczrkxdzbv72ll7hp5x7z6ww8pzz3q10b3";
                 };
+                doCheck = false;
                 vendorSha256 = "sha256-xu3klc9yb4Ws8fvXRV286IDhi/zQVN1PKCiFKb8VJBo=";
                 overrideModAttrs = (_: {
                     preBuild    = "echo '${main}' > cmd/caddy/main.go";
@@ -865,7 +887,7 @@ index 1803508bdd4..da416ccaea6 100644
             '';
         };
         overlayset = with lib; rec {
-            nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.node;
+            nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.nodejs;
             pythonOverlays = rec {
                 python2 = j.foldToSet [
                     (mapAttrs j.update.python.callPython.two callPackages.python.two)
@@ -910,14 +932,15 @@ index 1803508bdd4..da416ccaea6 100644
                 xonsh = j.foldToSet [
                     (mapAttrs j.update.python.callPython.three callPackages.python.xonsh)
                 ];
+                external = mapAttrs' (n: v: nameValuePair (removePrefix "pyapp-" (removePrefix "pypkg-" n)) v.overlay)
+                                     (filterAttrs (n: v: j.has.prefix n [ "pypkg-" "pyapp-" ] ) inputs);
             };
             overlays = let
                 calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
                 overlay = final: prev: { inherit (calledPackages) settings; };
-            in j.foldToSet [
-                pythonOverlays.python2
-                pythonOverlays.python3
-                pythonOverlays.xonsh
+            in j.foldToSet (flatten [
+                (attrValues pythonOverlays)
+                nodeOverlays
                 calledPackages
                 (let pkgsets = {
                     # nixos-unstable = [ "gnome-tour" ];
@@ -973,7 +996,7 @@ index 1803508bdd4..da416ccaea6 100644
                         PythonPackages = Python3Packages;
                     };
                 }
-            ];
+            ]);
             inherit overlay;
             defaultOverlay = overlay;
         };
@@ -1058,7 +1081,7 @@ index 1803508bdd4..da416ccaea6 100644
                         openFirewall = config.variables.relay;
                     };
                 };
-                options = { config, options, pkgs, ... }: {
+                options = args@{ config, options, pkgs, ... }: {
                     options = {
                         variables = {
                             zfs = mkOption {
@@ -1084,6 +1107,24 @@ index 1803508bdd4..da416ccaea6 100644
                             encrypted = mkOption {
                                 type = types.bool;
                                 default = false;
+                            };
+                        };
+                        configs = {
+                            config' = mkOption {
+                                type = types.deferredModule;
+                                default = import ./configuration.nix args;
+                            };
+                            config = mkOption {
+                                type = types.submodule;
+                                default = (import ./configuration.nix args).config;
+                            };
+                            hardware' = mkOption {
+                                type = types.deferredModule;
+                                default = import ./hardware-configuration.nix args;
+                            };
+                            hardware = mkOption {
+                                type = types.submodule;
+                                default = (import ./hardware-configuration.nix args).config;
                             };
                         };
                         programs = {
@@ -1279,7 +1320,7 @@ index 1803508bdd4..da416ccaea6 100644
                         };
                     };
                 };
-                imports = [ ./var ];
+                imports = [ var ];
                 config = mkMerge [
                     { _module.args.variables = config.variables; }
                     (let cfg = config.programs.mosh; in mkIf cfg.enable {
@@ -1812,7 +1853,13 @@ close TAG;
     description = "";
 
     inputs = {
-        settings.url = github:sylvorg/settings;
+        settings = {
+            url = github:sylvorg/settings;
+
+            # TODO: Change the pname ONLY!
+            inputs.pname.follows = "";
+
+        };
         nixpkgs.follows = "settings/nixpkgs";
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
@@ -1820,7 +1867,7 @@ close TAG;
             flake = false;
         };
     };
-    outputs = inputs@{ self, nixpkgs, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
 
         # TODO: Change this!
         pname = "";
@@ -1839,16 +1886,17 @@ close TAG;
         (eachSystem allSystems (system: let
             made = make system (attrValues overlayset.overlays);
         in rec {
-            inherit (made) legacyPackages;
-            packages = flattenTree { default = legacyPackages.${pname}; "${pname}" = legacyPackages.${pname}; };
+            inherit (made) legacyPackages pkgs nixpkgs;
+            inherit made;
+            packages = flattenTree { default = pkgs.${pname}; "${pname}" = pkgs.${pname}; };
             package = packages.default;
             defaultPackage = package;
             apps = mapAttrs (n: made.app) packages;
             app = apps.default;
             defaultApp = app;
             devShells = j.foldToSet [
-                (mapAttrs (n: v: legacyPackages.mkShell { buildInputs = toList v; }) packages)
-                { default = legacyPackages.mkShell { buildInputs = unique (attrValues packages); }; }
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                { default = pkgs.mkShell { buildInputs = unique (attrValues packages); }; }
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
@@ -1862,11 +1910,17 @@ close TAG;
                 python = toFile "python-template.nix" ''
 {
 
-    # TODO: Change this!
+    # TODO: Change the description!
     description = "";
 
     inputs = {
-        settings.url = github:sylvorg/settings;
+        settings = {
+            url = github:sylvorg/settings;
+
+            # TODO: Change the pname ONLY!
+            inputs.pname.follows = "";
+
+        };
         nixpkgs.follows = "settings/nixpkgs";
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
@@ -1874,12 +1928,12 @@ close TAG;
             flake = false;
         };
     };
-    outputs = inputs@{ self, nixpkgs, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
 
-        # TODO: Change this!
+        # TODO: Change the pname!
         pname = "";
 
-        # TODO: Change this!
+        # TODO: Change the callPackage!
         callPackage = {}: {};
 
         overlayset = let
@@ -1892,11 +1946,11 @@ close TAG;
     in j.foldToSet [
         (eachSystem allSystems (system: let
             made = settings.make system (attrValues overlayset.overlays);
-            python = made.mkPython made.legacyPackages.Python3 [] pname;
+            python = made.mkPython made.pkgs.Python3 [] pname;
             xonsh = made.mkXonsh [] pname;
         in rec {
             inherit (settings) base;
-            inherit (made) legacyPackages;
+            inherit (made) legacyPackages pkgs nixpkgs;
             packages = flattenTree {
                 default = python;
                 "python-${pname}" = python;
@@ -1910,8 +1964,8 @@ close TAG;
             app = apps.default;
             defaultApp = app;
             devShells = j.foldToSet [
-                (mapAttrs (n: v: legacyPackages.mkShell { buildInputs = toList v; }) packages)
-                { default = legacyPackages.mkShell { buildInputs = unique (attrValues packages); }; }
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                { default = pkgs.mkShell { buildInputs = unique (attrValues packages); }; }
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
@@ -1952,12 +2006,15 @@ close TAG;
             nixpkgs = config'.overlayed;
             specialArgs = j.foldToSet [
                 individual-outputs
-                { inherit inputs legacyPackages pkgs nixpkgs; }
+                {
+                    inherit inputs legacyPackages pkgs nixpkgs;
+                    made = make system overlays;
+                }
             ];
             app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name}"}"; };
             mkXonsh = pkglist: pname: let
-                python3Packages = legacyPackages.Python3.pkgs;
-            in (legacyPackages.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
+                python3Packages = pkgs.Python3.pkgs;
+            in (pkgs.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
                 propagatedBuildInputs = j.filters.has.list [
                     pkglist
                     pname
@@ -1970,20 +2027,19 @@ close TAG;
             ] ppkgs);
             withPackages = {
                 python = j.foldToSet (flatten [
-                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython legacyPackages.${j.toCapital python} [
+                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pkgs.${j.toCapital python} [
                         pkg
                         pkglist
                     ])) (attrNames overlayset.pythonOverlays.${python})))) [ "python" "python2" "python3" ])
                     (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
                     (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
-                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython legacyPackages.${j.toCapital python} [
+                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pkgs.${j.toCapital python} [
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [ "python" "python2" "python3" ]))
                     { xonsh = pkglist: mkXonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ]; }
                 ]);
             };
-            buildInputs = with pkgs; [ git poetry2setup ];
         };
     in with lib; j.foldToSet [
         (eachSystem allSystems (system: let
@@ -1995,9 +2051,9 @@ close TAG;
             in flattenTree (j.foldToSet [
                 pythonPackages
                 (j.filters.has.attrs [
-                    (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames legacyPackages))
+                    (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames pkgs))
                     (attrNames overlayset.overlays)
-                ] legacyPackages)
+                ] pkgs)
                 { default = pythonPackages.xonsh; }
             ]);
             package = packages.default;
