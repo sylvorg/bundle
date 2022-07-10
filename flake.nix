@@ -8,6 +8,7 @@
         # keep-derivations = true;
         # keep-outputs = true;
         extra-experimental-features = "nix-command flakes";
+        # accept-flake-config = true;
         # flake-registry = https://raw.githubusercontent.com/sylvorg/settings/main/flake-registry.json;
         # allow-unsafe-native-code-during-evaluation = true;
         # min-free = 262144000;
@@ -367,8 +368,8 @@
             update = {
                 python = rec {
                     python = rec {
-                        base = pv: attrs: prev: { "${pv}" = prev.${pv}.override (super: {
-                            packageOverrides = lib.composeExtensions (super.packageOverrides or (_: _: {})) (new: old: attrs);
+                        base = pv: pattrs: prev: { "${pv}" = prev.${pv}.override (super: {
+                            packageOverrides = lib.composeExtensions (super.packageOverrides or (_: _: {})) (new: old: pattrs);
                         }); };
                         two = base attrs.versions.python.two;
                         three = base attrs.versions.python.three;
@@ -705,7 +706,7 @@
                             license = lib.licenses.asl20;
                         };
                     };
-                    magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit }: let
+                    magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook }: let
                         owner = "frmdstryr";
                     in buildPythonPackage rec {
                         pname = "magicattr";
@@ -886,7 +887,10 @@ index 1803508bdd4..da416ccaea6 100644
    python2Packages = dontRecurseIntoAttrs python27Packages;
             '';
         };
-        overlayset = with lib; rec {
+        overlayset = with lib; let
+            calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
+            overlay = final: prev: { inherit (calledPackages) settings; };
+        in rec {
             nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.nodejs;
             pythonOverlays = rec {
                 python2 = j.foldToSet [
@@ -896,8 +900,9 @@ index 1803508bdd4..da416ccaea6 100644
                     update = j.update.python.package.three;
                 in j.foldToSet [
                     {
-                        hy = final: update "hy" (old: rec {
+                        hy = final: update "hy" (old: with final.Python3.pkgs; rec {
                             version = "0.24.0";
+                            HY_VERSION = version;
                             src = final.fetchFromGitHub {
                                 owner = "hylang";
                                 repo = old.pname;
@@ -906,6 +911,19 @@ index 1803508bdd4..da416ccaea6 100644
                             };
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
                             disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
+                            passthru = (old.passthru or {}) // {
+                                tests.version = testers.testVersion {
+                                    package = hy;
+                                    command = "hy -v";
+                                };
+                                # also for backwards compatibility with removed pkgs/development/interpreters/hy
+                                # withPackages = python-packages: (toPythonApplication hy).override {
+                                #     hyDefinedPythonPackages = lib.debug.traceVal python-packages;
+                                # };
+                                withPackages = python-packages: (toPythonApplication hy).overrideAttrs (old: {
+                                    propagatedBuildInputs = python-packages final.Python3.pkgs ++ (old.propagatedBuildInputs or []);
+                                });
+                            };
                         });
                         hyrule = final: update "hyrule" (old: rec {
                             version = "0.2";
@@ -917,14 +935,14 @@ index 1803508bdd4..da416ccaea6 100644
                             };
                             postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
                         });
-                        flit = final: update "flit" (old: with final; let newInputs = [ git ]; in {
-                            buildInputs = newInputs ++ (old.buildInputs or []);
-                            nativeBuildInputs = newInputs ++ (old.nativeBuildInputs or []);
-                            disabledTestPaths = [
-                                "tests/test_sdist.py"
-                                "tests/test_upload.py"
-                            ] ++ (old.disabledTestPaths or []);
-                        });
+                        # flit = final: update "flit" (old: with final; let newInputs = [ git ]; in {
+                        #     buildInputs = newInputs ++ (old.buildInputs or []);
+                        #     nativeBuildInputs = newInputs ++ (old.nativeBuildInputs or []);
+                        #     disabledTestPaths = [
+                        #         "tests/test_sdist.py"
+                        #         "tests/test_upload.py"
+                        #     ] ++ (old.disabledTestPaths or []);
+                        # });
                     }
                     (mapAttrs j.update.python.callPython.three callPackages.python.three)
                 ];
@@ -935,10 +953,7 @@ index 1803508bdd4..da416ccaea6 100644
                 external = mapAttrs' (n: v: nameValuePair (removePrefix "pyapp-" (removePrefix "pypkg-" n)) v.overlay)
                                      (filterAttrs (n: v: j.has.prefix n [ "pypkg-" "pyapp-" ] ) inputs);
             };
-            overlays = let
-                calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
-                overlay = final: prev: { inherit (calledPackages) settings; };
-            in j.foldToSet (flatten [
+            overlays = j.foldToSet [
                 (attrValues pythonOverlays)
                 nodeOverlays
                 calledPackages
@@ -996,7 +1011,7 @@ index 1803508bdd4..da416ccaea6 100644
                         PythonPackages = Python3Packages;
                     };
                 }
-            ]);
+            ];
             inherit overlay;
             defaultOverlay = overlay;
         };
@@ -1319,267 +1334,266 @@ index 1803508bdd4..da416ccaea6 100644
                             };
                         };
                     };
-                };
-                imports = [ var ];
-                config = mkMerge [
-                    { _module.args.variables = config.variables; }
-                    (let cfg = config.programs.mosh; in mkIf cfg.enable {
-                        networking.firewall.allowedUDPPortRanges = optional cfg.openFirewall { from = 60000; to = 61000; };
-                    })
-                    (let cfg = config.services.guix; in mkIf cfg.enable {
-                        users = {
-                            extraUsers = lib.fold (a: b: a // b) {} (builtins.map buildGuixUser (lib.range 1 10));
-                            extraGroups.guixbuild = {name = "guixbuild";};
-                        };
-                        systemd.services.guix-daemon = {
-                            enable = true;
-                            description = "Build daemon for GNU Guix";
-                            serviceConfig = {
-                                ExecStart="/var/guix/profiles/per-user/root/current-guix/bin/guix-daemon --build-users-group=guixbuild";
-                                Environment="GUIX_LOCPATH=/var/guix/profiles/per-user/root/guix-profile/lib/locale";
-                                RemainAfterExit="yes";
-
-                                # See <https://lists.gnu.org/archive/html/guix-devel/2016-04/msg00608.html>.
-                                # Some package builds (for example, go@1.8.1) may require even more than
-                                # 1024 tasks.
-                                TasksMax="8192";
+                    imports = [ var ];
+                    config = mkMerge [
+                        { _module.args.variables = config.variables; }
+                        (let cfg = config.programs.mosh; in mkIf cfg.enable {
+                            networking.firewall.allowedUDPPortRanges = optional cfg.openFirewall { from = 60000; to = 61000; };
+                        })
+                        (let cfg = config.services.guix; in mkIf cfg.enable {
+                            users = {
+                                extraUsers = lib.fold (a: b: a // b) {} (builtins.map buildGuixUser (lib.range 1 10));
+                                extraGroups.guixbuild = {name = "guixbuild";};
                             };
-                            wantedBy = [ "multi-user.target" ];
-                        };
-                        system.activationScripts.guix = ''
-                            # copy initial /gnu/store
-                            if [ ! -d /gnu/store ]
-                            then
-                                mkdir -p /gnu
-                                cp -ra ${cfg.package.store}/gnu/store /gnu/
-                            fi
+                            systemd.services.guix-daemon = {
+                                enable = true;
+                                description = "Build daemon for GNU Guix";
+                                serviceConfig = {
+                                    ExecStart="/var/guix/profiles/per-user/root/current-guix/bin/guix-daemon --build-users-group=guixbuild";
+                                    Environment="GUIX_LOCPATH=/var/guix/profiles/per-user/root/guix-profile/lib/locale";
+                                    RemainAfterExit="yes";
 
-                            # copy initial /var/guix content
-                            if [ ! -d /var/guix ]
-                            then
-                                mkdir -p /var
-                                cp -ra ${cfg.package.var}/var/guix /var/
-                            fi
-
-                            # root profile
-                            if [ ! -d ~root/.config/guix ]
-                            then
-                                mkdir -p ~root/.config/guix
-                                ln -sf /var/guix/profiles/per-user/root/current-guix \
-                                ~root/.config/guix/current
-                            fi
-
-                            # authorize substitutes
-                            GUIX_PROFILE="`echo ~root`/.config/guix/current"; source $GUIX_PROFILE/etc/profile
-                            guix archive --authorize < ~root/.config/guix/current/share/guix/ci.guix.info.pub
-                        '';
-
-                        environment.shellInit = ''
-                            # Make the Guix command available to users
-                            export PATH="/var/guix/profiles/per-user/root/current-guix/bin:$PATH"
-
-                            export GUIX_LOCPATH="$HOME/.guix-profile/lib/locale"
-                            export PATH="$HOME/.guix-profile/bin:$PATH"
-                            export INFOPATH="$HOME/.guix-profile/share/info:$INFOPATH"
-                        '';
-                    })
-                    (let cfg = config.services.tailscale; in mkIf cfg.enable {
-                        assertions = flatten [
-                            (optional ((count (state: state != null) (with cfg.state; [ text file dir ])) > 1)
-                                      "Sorry; only one of `config.services.tailscale.state.{text|file|dir}' may be set!")
-                            (optional ((cfg.exitNode.ip != null) && (cfg.exitNode.hostName != null))
-                                      "Sorry; only one of `config.services.tailscale.exitNode.{ip|hostName}' may be set!")
-                            (optional ((cfg.exitNode.hostName != null) && (cfg.api.key == null) && (cfg.api.file == null))
-                                      "Sorry; `config.services.tailscale.api.{key|file}' must be set when using `config.services.tailscale.exitNode.hostName'!")
-                            (optional ((count (auth: auth != null) (with cfg; [ authkey authfile api.key api.file ])) > 1)
-                                      "Sorry; only one of `config.services.tailscale.{authkey|authfile|api.key|api.file}' may be set!")
-                            (optional ((cfg.api.domain == null) && ((cfg.api.key != null) || (cfg.api.file != null)))
-                                      "Sorry; `config.services.tailscale.api.domain' must be set when using `config.services.tailscale.api.{key|file}'!")
-                        ];
-                        warnings = flatten [
-                            (optional (cfg.exitNode.advertise && cfg.acceptDNS)
-                                      "Advertising this device as an exit node and accepting the preconfigured DNS servers on the tailscale admin page at the same time may result in this device attempting to use itself as a DNS server.")
-
-                            # TODO: Why is this causing an infinite recursion error?
-                            # (optional (((isBool cfg.routes.accept) && cfg.routes.accept) && (cfg.routes.advertise != null))
-                            #           "Advertising this device as a subnet router and accepting the preconfigured subnet routes on the tailscale admin page at the same time may result in this device #TODO")
-
-                        ];
-                        services.tailscale = {
-                            api.ephemeral = if (cfg.api.ephemeral == null) then config.services.tailscale.useUUID else cfg.api.ephemeral;
-                            hostName = if (cfg.hostName == null) then config.networking.hostName else cfg.hostName;
-                            routes.accept = if (cfg.routes.accept == null) then (cfg.routes.advertise == null) else cfg.routes.accept;
-                        };
-                        environment.vars = let
-                            nullText = cfg.state.text != null;
-                            nullFile = cfg.state.file != null;
-                            nullDir = cfg.state.dir != null;
-                        in optionalAttrs (nullText || nullFile || nullDir) {
-                            "lib/tailscale/tailscaled.state" = mkIf (nullText || nullFile) {
-                                ${if nullText then "text" else "source"} = if (nullText) then cfg.state.text else cfg.state.file;
+                                    # See <https://lists.gnu.org/archive/html/guix-devel/2016-04/msg00608.html>.
+                                    # Some package builds (for example, go@1.8.1) may require even more than
+                                    # 1024 tasks.
+                                    TasksMax="8192";
+                                };
+                                wantedBy = [ "multi-user.target" ];
                             };
-                            "lib/tailscale" = mkIf nullDir { source = cfg.state.dir; };
-                        };
-                        networking = {
-                            nameservers = optionals cfg.magicDNS.enable (flatten [ cfg.magicDNS.nameservers "100.100.100.100" ]);
-                            search = optionals cfg.magicDNS.enable cfg.magicDNS.searchDomains;
-                            firewall = {
-                                ${if cfg.strictReversePathFiltering then null else "checkReversePath"} = "loose";
-                                trustedInterfaces = optional cfg.trustInterface cfg.interfaceName;
-                                allowedUDPPorts = optional cfg.openFirewall cfg.port;
+                            system.activationScripts.guix = ''
+                                # copy initial /gnu/store
+                                if [ ! -d /gnu/store ]
+                                then
+                                    mkdir -p /gnu
+                                    cp -ra ${cfg.package.store}/gnu/store /gnu/
+                                fi
+
+                                # copy initial /var/guix content
+                                if [ ! -d /var/guix ]
+                                then
+                                    mkdir -p /var
+                                    cp -ra ${cfg.package.var}/var/guix /var/
+                                fi
+
+                                # root profile
+                                if [ ! -d ~root/.config/guix ]
+                                then
+                                    mkdir -p ~root/.config/guix
+                                    ln -sf /var/guix/profiles/per-user/root/current-guix \
+                                    ~root/.config/guix/current
+                                fi
+
+                                # authorize substitutes
+                                GUIX_PROFILE="`echo ~root`/.config/guix/current"; source $GUIX_PROFILE/etc/profile
+                                guix archive --authorize < ~root/.config/guix/current/share/guix/ci.guix.info.pub
+                            '';
+
+                            environment.shellInit = ''
+                                # Make the Guix command available to users
+                                export PATH="/var/guix/profiles/per-user/root/current-guix/bin:$PATH"
+
+                                export GUIX_LOCPATH="$HOME/.guix-profile/lib/locale"
+                                export PATH="$HOME/.guix-profile/bin:$PATH"
+                                export INFOPATH="$HOME/.guix-profile/share/info:$INFOPATH"
+                            '';
+                        })
+                        (let cfg = config.services.tailscale; in mkIf cfg.enable {
+                            assertions = flatten [
+                                (optional ((count (state: state != null) (with cfg.state; [ text file dir ])) > 1)
+                                        "Sorry; only one of `config.services.tailscale.state.{text|file|dir}' may be set!")
+                                (optional ((cfg.exitNode.ip != null) && (cfg.exitNode.hostName != null))
+                                        "Sorry; only one of `config.services.tailscale.exitNode.{ip|hostName}' may be set!")
+                                (optional ((cfg.exitNode.hostName != null) && (cfg.api.key == null) && (cfg.api.file == null))
+                                        "Sorry; `config.services.tailscale.api.{key|file}' must be set when using `config.services.tailscale.exitNode.hostName'!")
+                                (optional ((count (auth: auth != null) (with cfg; [ authkey authfile api.key api.file ])) > 1)
+                                        "Sorry; only one of `config.services.tailscale.{authkey|authfile|api.key|api.file}' may be set!")
+                                (optional ((cfg.api.domain == null) && ((cfg.api.key != null) || (cfg.api.file != null)))
+                                        "Sorry; `config.services.tailscale.api.domain' must be set when using `config.services.tailscale.api.{key|file}'!")
+                            ];
+                            warnings = flatten [
+                                (optional (cfg.exitNode.advertise && cfg.acceptDNS)
+                                        "Advertising this device as an exit node and accepting the preconfigured DNS servers on the tailscale admin page at the same time may result in this device attempting to use itself as a DNS server.")
+
+                                # TODO: Why is this causing an infinite recursion error?
+                                # (optional (((isBool cfg.routes.accept) && cfg.routes.accept) && (cfg.routes.advertise != null))
+                                #           "Advertising this device as a subnet router and accepting the preconfigured subnet routes on the tailscale admin page at the same time may result in this device #TODO")
+
+                            ];
+                            services.tailscale = {
+                                api.ephemeral = if (cfg.api.ephemeral == null) then config.services.tailscale.useUUID else cfg.api.ephemeral;
+                                hostName = if (cfg.hostName == null) then config.networking.hostName else cfg.hostName;
+                                routes.accept = if (cfg.routes.accept == null) then (cfg.routes.advertise == null) else cfg.routes.accept;
                             };
-                        };
-                        systemd.services.tailscale-autoconnect = mkIf cfg.autoconnect {
-                            description = "Automatic connection to Tailscale";
+                            environment.vars = let
+                                nullText = cfg.state.text != null;
+                                nullFile = cfg.state.file != null;
+                                nullDir = cfg.state.dir != null;
+                            in optionalAttrs (nullText || nullFile || nullDir) {
+                                "lib/tailscale/tailscaled.state" = mkIf (nullText || nullFile) {
+                                    ${if nullText then "text" else "source"} = if (nullText) then cfg.state.text else cfg.state.file;
+                                };
+                                "lib/tailscale" = mkIf nullDir { source = cfg.state.dir; };
+                            };
+                            networking = {
+                                nameservers = optionals cfg.magicDNS.enable (flatten [ cfg.magicDNS.nameservers "100.100.100.100" ]);
+                                search = optionals cfg.magicDNS.enable cfg.magicDNS.searchDomains;
+                                firewall = {
+                                    ${if cfg.strictReversePathFiltering then null else "checkReversePath"} = "loose";
+                                    trustedInterfaces = optional cfg.trustInterface cfg.interfaceName;
+                                    allowedUDPPorts = optional cfg.openFirewall cfg.port;
+                                };
+                            };
+                            systemd.services.tailscale-autoconnect = mkIf cfg.autoconnect {
+                                description = "Automatic connection to Tailscale";
 
-                            # make sure tailscale is running before trying to connect to tailscale
-                            after = [ "network-pre.target" "tailscale.service" ];
-                            wants = [ "network-pre.target" "tailscale.service" ];
-                            wantedBy = [ "multi-user.target" ];
+                                # make sure tailscale is running before trying to connect to tailscale
+                                after = [ "network-pre.target" "tailscale.service" ];
+                                wants = [ "network-pre.target" "tailscale.service" ];
+                                wantedBy = [ "multi-user.target" ];
 
-                            environment.TAILSCALE_APIKEY = if (cfg.api.key != null) then cfg.api.key else (readFile cfg.api.file);
+                                environment.TAILSCALE_APIKEY = if (cfg.api.key != null) then cfg.api.key else (readFile cfg.api.file);
 
-                            # set this service as a oneshot job
-                            serviceConfig = {
-                                Type = "oneshot";
-                                ExecStart = let
-                                    extraConfig = mapAttrsToList (opt: val: let
-                                        value = optionalString (! (isBool val)) " ${toString val}";
-                                    in (if ((stringLength opt) == 1) then "-" else "--") + opt + value) cfg.extraConfig;
-                                    connect = authenticating: ''
-                                        # otherwise connect to ${optionalString authenticating "and authenticate with "}tailscale
-                                        echo "Connecting to ${optionalString authenticating "and authenticating with "}Tailscale ..."
-                                        ${cfg.package}/bin/tailscale up --hostname ${if cfg.useUUID then "$(${pkgs.util-linux}/bin/uuidgen)" else cfg.hostName} \
-                                        ${optionalString cfg.acceptDNS "--accept-dns \\"}
-                                        ${optionalString cfg.routes.accept "--accept-routes \\"}
-                                        ${optionalString (cfg.routes.advertise != null) "--advertise-routes ${cfg.routes.advertise} \\"}
-                                        ${optionalString cfg.exitNode.advertise "--advertise-exit-node \\"}
-                                        ${optionalString (cfg.exitNode.ip != null) "--exit-node ${cfg.exitNode.ip} \\"}
-                                        ${optionalString (cfg.exitNode.hostName != null) ''--exit-node $(${pkgs.tailapi}/bin/tailapi --domain ${cfg.api.domain} \
-                                                                                           --recreate-response \
-                                                                                           --devices ${cfg.exitNode.hostName} \
-                                                                                           ip -f4) \''}
-                                        ${optionalString (((cfg.exitNode.ip != null) || (cfg.exitNode.hostName != null)) && cfg.exitNode.allowLANAccess)
-                                                         "--exit-node-allow-lan-access \\"}
+                                # set this service as a oneshot job
+                                serviceConfig = {
+                                    Type = "oneshot";
+                                    ExecStart = let
+                                        extraConfig = mapAttrsToList (opt: val: let
+                                            value = optionalString (! (isBool val)) " ${toString val}";
+                                        in (if ((stringLength opt) == 1) then "-" else "--") + opt + value) cfg.extraConfig;
+                                        connect = authenticating: ''
+                                            # otherwise connect to ${optionalString authenticating "and authenticate with "}tailscale
+                                            echo "Connecting to ${optionalString authenticating "and authenticating with "}Tailscale ..."
+                                            ${cfg.package}/bin/tailscale up --hostname ${if cfg.useUUID then "$(${pkgs.util-linux}/bin/uuidgen)" else cfg.hostName} \
+                                            ${optionalString cfg.acceptDNS "--accept-dns \\"}
+                                            ${optionalString cfg.routes.accept "--accept-routes \\"}
+                                            ${optionalString (cfg.routes.advertise != null) "--advertise-routes ${cfg.routes.advertise} \\"}
+                                            ${optionalString cfg.exitNode.advertise "--advertise-exit-node \\"}
+                                            ${optionalString (cfg.exitNode.ip != null) "--exit-node ${cfg.exitNode.ip} \\"}
+                                            ${optionalString (cfg.exitNode.hostName != null) ''--exit-node $(${pkgs.tailapi}/bin/tailapi --domain ${cfg.api.domain} \
+                                                                                            --recreate-response \
+                                                                                            --devices ${cfg.exitNode.hostName} \
+                                                                                            ip -f4) \''}
+                                            ${optionalString (((cfg.exitNode.ip != null) || (cfg.exitNode.hostName != null)) && cfg.exitNode.allowLANAccess)
+                                                            "--exit-node-allow-lan-access \\"}
 
-                                        ${concatStringsSep " " (mapAttrsToList (n: v: let
-                                            opt = (if ((stringLength n) == 1) then "-" else "--") + n;
-                                        in "${opt} ${v}") extraConfig)} \
+                                            ${concatStringsSep " " (mapAttrsToList (n: v: let
+                                                opt = (if ((stringLength n) == 1) then "-" else "--") + n;
+                                            in "${opt} ${v}") extraConfig)} \
 
-                                        ${optionalString (authenticating && (cfg.authkey != null)) "--authkey ${cfg.authkey} \\"}
-                                        ${optionalString (authenticating && (cfg.authfile != null)) "--authkey ${readFile cfg.authfile} \\"}
-                                        ${optionalString authenticating ''--authkey $(${pkgs.tailapi}/bin/tailapi --domain ${cfg.api.domain} \
-                                                                                                                  --recreate-response \
-                                                                                                                  create \
-                                                                                                                  ${optionalString cfg.api.reusable "--reusable \\"}
-                                                                                                                  ${optionalString cfg.api.ephemeral "--ephemeral \\"}
-                                                                                                                  ${optionalString cfg.api.reusable "--preauthorized \\"}
-                                                                                                                  ${optionalString (cfg.api.tags != null)
-                                                                                                                                   (concatStringsSep " " cfg.api.tags)} \
-                                                                                                                  --just-key)''}
+                                            ${optionalString (authenticating && (cfg.authkey != null)) "--authkey ${cfg.authkey} \\"}
+                                            ${optionalString (authenticating && (cfg.authfile != null)) "--authkey ${readFile cfg.authfile} \\"}
+                                            ${optionalString authenticating ''--authkey $(${pkgs.tailapi}/bin/tailapi --domain ${cfg.api.domain} \
+                                                                                                                    --recreate-response \
+                                                                                                                    create \
+                                                                                                                    ${optionalString cfg.api.reusable "--reusable \\"}
+                                                                                                                    ${optionalString cfg.api.ephemeral "--ephemeral \\"}
+                                                                                                                    ${optionalString cfg.api.reusable "--preauthorized \\"}
+                                                                                                                    ${optionalString (cfg.api.tags != null)
+                                                                                                                                    (concatStringsSep " " cfg.api.tags)} \
+                                                                                                                    --just-key)''}
+                                        '';
+                                    in ''
+                                        # wait for tailscaled to settle
+                                        sleep 2
+
+                                        # check if we are already connected to tailscale
+                                        echo "Waiting for tailscale.service start completion ..."
+                                        status="$(${cfg.package}/bin/tailscale status -json | ${pkgs.jq}/bin/jq -r .BackendState)"
+                                        if [ $status = "Running" ]; then # if so, then do nothing
+                                            echo "Already connected to Tailscale, exiting."
+                                            exit 0
+                                        fi
+
+                                        # Delete host from tailnet if:
+                                        # * `config.services.tailscale.deleteHostBeforeAuth' is enabled
+                                        # * `config.services.tailscale.api.{key|file}' is not null
+                                        # * tailscale is not authenticated
+                                        if [ $status = "NeedsLogin" ]; then
+                                            ${if cfg.deleteHostBeforeAuth then ''${pkgs.coreutils}/bin/cat <<EOF
+                                                                                Because `config.services.tailscale.deleteHostBeforeAuth' has been enabled,
+                                                                                any devices with hostname "${config.networking.hostName}" will be deleted before authentication.
+                                                                                EOF''
+                                                                        else ''${pkgs.coreutils}/bin/cat <<EOF
+                                                                                Because `config.services.tailscale.deleteHostBeforeAuth' has not been enabled,
+                                                                                any devices with hostname "${config.networking.hostName}" will not be deleted before authentication.
+                                                                                EOF''}
+                                            ${optionalString cfg.deleteHostBeforeAuth ''${pkgs.tailapi}/bin/tailapi --domain ${cfg.api.domain} \
+                                                                                                                    --recreate-response \
+                                                                                                                    --devices ${cfg.hostName} \
+                                                                                                                    delete \
+                                                                                                                    --do-not-prompt &> /dev/null && \
+                                                                                        echo Successfully deleted device of hostname \"${config.networking.hostName}\"!"''}
+                                        fi
+
+                                        if [ $status = "NeedsLogin" ]; then
+                                            ${connect true}
+                                        else
+                                            ${connect false}
+                                        fi
+
+                                        ${optionalString ((cfg.state.file != null) && (! (pathExists cfg.state.file))) "cp /var/lib/tailscale/tailscaled.state ${cfg.state.file}"}
+                                        ${optionalString ((cfg.state.dir != null) && ((! (pathExists cfg.state.dir)) || ((length (attrNames (readDir cfg.state.dir))) == 0)))
+                                                        "${pkgs.rsync}/bin/rsync -avvczz /var/lib/tailscale/ ${cfg.state.dir}/"}
                                     '';
-                                in ''
-                                    # wait for tailscaled to settle
-                                    sleep 2
-
-                                    # check if we are already connected to tailscale
-                                    echo "Waiting for tailscale.service start completion ..."
-                                    status="$(${cfg.package}/bin/tailscale status -json | ${pkgs.jq}/bin/jq -r .BackendState)"
-                                    if [ $status = "Running" ]; then # if so, then do nothing
-                                        echo "Already connected to Tailscale, exiting."
-                                        exit 0
-                                    fi
-
-                                    # Delete host from tailnet if:
-                                    # * `config.services.tailscale.deleteHostBeforeAuth' is enabled
-                                    # * `config.services.tailscale.api.{key|file}' is not null
-                                    # * tailscale is not authenticated
-                                    if [ $status = "NeedsLogin" ]; then
-                                        ${if cfg.deleteHostBeforeAuth then ''${pkgs.coreutils}/bin/cat <<EOF
-                                                                             Because `config.services.tailscale.deleteHostBeforeAuth' has been enabled,
-                                                                             any devices with hostname "${config.networking.hostName}" will be deleted before authentication.
-                                                                             EOF''
-                                                                      else ''${pkgs.coreutils}/bin/cat <<EOF
-                                                                             Because `config.services.tailscale.deleteHostBeforeAuth' has not been enabled,
-                                                                             any devices with hostname "${config.networking.hostName}" will not be deleted before authentication.
-                                                                             EOF''}
-                                        ${optionalString cfg.deleteHostBeforeAuth ''${pkgs.tailapi}/bin/tailapi --domain ${cfg.api.domain} \
-                                                                                                                --recreate-response \
-                                                                                                                --devices ${cfg.hostName} \
-                                                                                                                delete \
-                                                                                                                --do-not-prompt &> /dev/null && \
-                                                                                    echo Successfully deleted device of hostname \"${config.networking.hostName}\"!"''}
-                                    fi
-
-                                    if [ $status = "NeedsLogin" ]; then
-                                        ${connect true}
-                                    else
-                                        ${connect false}
-                                    fi
-
-                                    ${optionalString ((cfg.state.file != null) && (! (pathExists cfg.state.file))) "cp /var/lib/tailscale/tailscaled.state ${cfg.state.file}"}
-                                    ${optionalString ((cfg.state.dir != null) && ((! (pathExists cfg.state.dir)) || ((length (attrNames (readDir cfg.state.dir))) == 0)))
-                                                     "${pkgs.rsync}/bin/rsync -avvczz /var/lib/tailscale/ ${cfg.state.dir}/"}
-                                '';
+                                };
                             };
-                        };
-                    })
-                ];
-            };
-            default = options;
-            var = { config, pkgs, ... }: let
-                var' = filter (f: f.enable) (attrValues config.environment.vars);
-                var = pkgs.runCommandLocal "var" {
-                    # This is needed for the systemd module
-                    passthru.targets = map (x: x.target) var';
-                } /* sh */ ''
-                    set -euo pipefail
+                        })
+                    ];
+                };
+                default = options;
+                var = { config, pkgs, ... }: let
+                    var' = filter (f: f.enable) (attrValues config.environment.vars);
+                    var = pkgs.runCommandLocal "var" {
+                        # This is needed for the systemd module
+                        passthru.targets = map (x: x.target) var';
+                    } /* sh */ ''
+                        set -euo pipefail
 
-                    makevarEntry() {
-                        src="$1"
-                        target="$2"
-                        mode="$3"
-                        user="$4"
-                        group="$5"
+                        makevarEntry() {
+                            src="$1"
+                            target="$2"
+                            mode="$3"
+                            user="$4"
+                            group="$5"
 
-                        if [[ "$src" = *'*'* ]]; then
-                            # If the source name contains '*', perform globbing.
-                            mkdir -p "$out/var/$target"
-                            for fn in $src; do
-                                ln -s "$fn" "$out/var/$target/"
-                            done
-                        else
-                            mkdir -p "$out/var/$(dirname "$target")"
-                            if ! [ -e "$out/var/$target" ]; then
-                                ln -s "$src" "$out/var/$target"
+                            if [[ "$src" = *'*'* ]]; then
+                                # If the source name contains '*', perform globbing.
+                                mkdir -p "$out/var/$target"
+                                for fn in $src; do
+                                    ln -s "$fn" "$out/var/$target/"
+                                done
                             else
-                                echo "duplicate entry $target -> $src"
-                                if [ "$(readlink "$out/var/$target")" != "$src" ]; then
-                                    echo "mismatched duplicate entry $(readlink "$out/var/$target") <-> $src"
-                                    ret=1
-                                    continue
+                                mkdir -p "$out/var/$(dirname "$target")"
+                                if ! [ -e "$out/var/$target" ]; then
+                                    ln -s "$src" "$out/var/$target"
+                                else
+                                    echo "duplicate entry $target -> $src"
+                                    if [ "$(readlink "$out/var/$target")" != "$src" ]; then
+                                        echo "mismatched duplicate entry $(readlink "$out/var/$target") <-> $src"
+                                        ret=1
+                                        continue
+                                    fi
+                                fi
+                                if [ "$mode" != symlink ]; then
+                                    echo "$mode" > "$out/var/$target.mode"
+                                    echo "$user" > "$out/var/$target.uid"
+                                    echo "$group" > "$out/var/$target.gid"
                                 fi
                             fi
-                            if [ "$mode" != symlink ]; then
-                                echo "$mode" > "$out/var/$target.mode"
-                                echo "$user" > "$out/var/$target.uid"
-                                echo "$group" > "$out/var/$target.gid"
-                            fi
-                        fi
-                    }
+                        }
 
-                    mkdir -p "$out/var"
-                    ${concatMapStringsSep "\n" (varEntry: escapeShellArgs [
-                        "makevarEntry"
-                        # Force local source paths to be added to the store
-                        "${varEntry.source}"
-                        varEntry.target
-                        varEntry.mode
-                        varEntry.user
-                        varEntry.group
-                    ]) var'}
-                '';
-                setup-var = toFile "setup.var.pl" ''
+                        mkdir -p "$out/var"
+                        ${concatMapStringsSep "\n" (varEntry: escapeShellArgs [
+                            "makevarEntry"
+                            # Force local source paths to be added to the store
+                            "${varEntry.source}"
+                            varEntry.target
+                            varEntry.mode
+                            varEntry.user
+                            varEntry.group
+                        ]) var'}
+                    '';
+                    setup-var = toFile "setup.var.pl" ''
 use strict;
 use File::Find;
 use File::Copy;
@@ -1726,115 +1740,116 @@ write_file("/var/.clean", map { "$_\n" } @copied);
 # so we need to check and re-create it during activation.
 open TAG, ">>/var/NIXOS";
 close TAG;
-                '';
-            in {
-                options = {
-                    environment.vars = mkOption {
-                        default = {};
-                        example = literalExpression ''
-                            { example-configuration-file =
-                                { source = "/nix/store/.../var/dir/file.conf.example";
-                                mode = "0440";
-                                };
-                            "default/useradd".text = "GROUP=100 ...";
-                            }
-                        '';
-                        description = ''
-                            Set of files that have to be linked in <filename>/var</filename>.
-                        '';
-                        type = with types; attrsOf (submodule (
-                            { name, config, options, ... }:
-                            { options = {
-                                enable = mkOption {
-                                    type = types.bool;
-                                    default = true;
-                                    description = ''
-                                        Whether this /var file should be generated.  This
-                                        option allows specific /var files to be disabled.
-                                    '';
-                                };
-                                target = mkOption {
-                                    type = types.str;
-                                    description = ''
-                                        Name of symlink (relative to
-                                        <filename>/var</filename>).  Defaults to the attribute
-                                        name.
-                                    '';
-                                };
-                                text = mkOption {
-                                    default = null;
-                                    type = types.nullOr types.lines;
-                                    description = "Text of the file.";
-                                };
-                                source = mkOption {
-                                    type = types.path;
-                                    description = "Path of the source file.";
-                                };
-                                mode = mkOption {
-                                    type = types.str;
-                                    default = "symlink";
-                                    example = "0600";
-                                    description = ''
-                                        If set to something else than <literal>symlink</literal>,
-                                        the file is copied instead of symlinked, with the given
-                                        file mode.
-                                    '';
-                                };
-                                uid = mkOption {
-                                    default = 0;
-                                    type = types.int;
-                                    description = ''
-                                        UID of created file. Only takes effect when the file is
-                                        copied (that is, the mode is not 'symlink').
-                                    '';
-                                };
-                                gid = mkOption {
-                                    default = 0;
-                                    type = types.int;
-                                    description = ''
-                                        GID of created file. Only takes effect when the file is
-                                        copied (that is, the mode is not 'symlink').
-                                    '';
-                                };
-                                user = mkOption {
-                                    default = "+${toString config.uid}";
-                                    type = types.str;
-                                    description = ''
-                                        User name of created file.
-                                        Only takes effect when the file is copied (that is, the mode is not 'symlink').
-                                        Changing this option takes precedence over <literal>uid</literal>.
-                                    '';
-                                };
-                                group = mkOption {
-                                    default = "+${toString config.gid}";
-                                    type = types.str;
-                                    description = ''
-                                        Group name of created file.
-                                        Only takes effect when the file is copied (that is, the mode is not 'symlink').
-                                        Changing this option takes precedence over <literal>gid</literal>.
-                                    '';
-                                };
-                            };
-                            config = {
-                                target = mkDefault name;
-                                source = mkIf (config.text != null) (
-                                    let name' = "var-" + baseNameOf name;
-                                    in mkDerivedConfig options.text (pkgs.writeText name')
-                                );
-                            };
-                        }));
-                    };
-                };
-                config = {
-                    system = {
-                        activationScripts.vars = lib.stringAfter [ "users" "groups" ] config.system.build.varActivationCommands;
-                        build = {
-                            var = var;
-                            varActivationCommands = ''
-                                # Set up the statically computed bits of /var.
-                                echo "setting up /var..."
-                                ${pkgs.perl.withPackages (p: [ p.FileSlurp ])}/bin/perl ${setup-var} ${var}/var
+                    '';
+                in {
+                    options = {
+                        environment.vars = mkOption {
+                            default = {};
+                            example = literalExpression ''
+                                { example-configuration-file =
+                                    { source = "/nix/store/.../var/dir/file.conf.example";
+                                    mode = "0440";
+                                    };
+                                "default/useradd".text = "GROUP=100 ...";
+                                }
                             '';
+                            description = ''
+                                Set of files that have to be linked in <filename>/var</filename>.
+                            '';
+                            type = with types; attrsOf (submodule (
+                                { name, config, options, ... }:
+                                { options = {
+                                    enable = mkOption {
+                                        type = types.bool;
+                                        default = true;
+                                        description = ''
+                                            Whether this /var file should be generated.  This
+                                            option allows specific /var files to be disabled.
+                                        '';
+                                    };
+                                    target = mkOption {
+                                        type = types.str;
+                                        description = ''
+                                            Name of symlink (relative to
+                                            <filename>/var</filename>).  Defaults to the attribute
+                                            name.
+                                        '';
+                                    };
+                                    text = mkOption {
+                                        default = null;
+                                        type = types.nullOr types.lines;
+                                        description = "Text of the file.";
+                                    };
+                                    source = mkOption {
+                                        type = types.path;
+                                        description = "Path of the source file.";
+                                    };
+                                    mode = mkOption {
+                                        type = types.str;
+                                        default = "symlink";
+                                        example = "0600";
+                                        description = ''
+                                            If set to something else than <literal>symlink</literal>,
+                                            the file is copied instead of symlinked, with the given
+                                            file mode.
+                                        '';
+                                    };
+                                    uid = mkOption {
+                                        default = 0;
+                                        type = types.int;
+                                        description = ''
+                                            UID of created file. Only takes effect when the file is
+                                            copied (that is, the mode is not 'symlink').
+                                        '';
+                                    };
+                                    gid = mkOption {
+                                        default = 0;
+                                        type = types.int;
+                                        description = ''
+                                            GID of created file. Only takes effect when the file is
+                                            copied (that is, the mode is not 'symlink').
+                                        '';
+                                    };
+                                    user = mkOption {
+                                        default = "+${toString config.uid}";
+                                        type = types.str;
+                                        description = ''
+                                            User name of created file.
+                                            Only takes effect when the file is copied (that is, the mode is not 'symlink').
+                                            Changing this option takes precedence over <literal>uid</literal>.
+                                        '';
+                                    };
+                                    group = mkOption {
+                                        default = "+${toString config.gid}";
+                                        type = types.str;
+                                        description = ''
+                                            Group name of created file.
+                                            Only takes effect when the file is copied (that is, the mode is not 'symlink').
+                                            Changing this option takes precedence over <literal>gid</literal>.
+                                        '';
+                                    };
+                                };
+                                config = {
+                                    target = mkDefault name;
+                                    source = mkIf (config.text != null) (
+                                        let name' = "var-" + baseNameOf name;
+                                        in mkDerivedConfig options.text (pkgs.writeText name')
+                                    );
+                                };
+                            }));
+                        };
+                    };
+                    config = {
+                        system = {
+                            activationScripts.vars = lib.stringAfter [ "users" "groups" ] config.system.build.varActivationCommands;
+                            build = {
+                                var = var;
+                                varActivationCommands = ''
+                                    # Set up the statically computed bits of /var.
+                                    echo "setting up /var..."
+                                    ${pkgs.perl.withPackages (p: [ p.FileSlurp ])}/bin/perl ${setup-var} ${var}/var
+                                '';
+                            };
                         };
                     };
                 };
@@ -1951,6 +1966,7 @@ close TAG;
             made = settings.make system (attrValues overlayset.overlays);
             python = made.mkPython made.pkgs.Python3 [] pname;
             xonsh = made.mkXonsh [] pname;
+            hy = made.mkHy [] pname;
         in rec {
             inherit (settings) base;
             inherit (made) legacyPackages pkgs nixpkgs;
@@ -1958,8 +1974,9 @@ close TAG;
                 default = python;
                 "python-${pname}" = python;
                 "xonsh-${pname}" = xonsh;
+                "hy-${pname}" = hy;
                 "${pname}" = python;
-                inherit python xonsh;
+                inherit python xonsh hy;
             };
             package = packages.default;
             defaultPackage = package;
@@ -1975,7 +1992,7 @@ close TAG;
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
-        };))
+        }))
         overlayset
         { inherit pname callPackage; }
     ];
@@ -1986,11 +2003,11 @@ close TAG;
             template = templates.default;
             defaultTemplate = template;
         };
-        individual-outputs = with lib; j.foldToSet (flatten [
+        individual-outputs = with lib; j.foldToSet [
             overlayset
             nixosModules
             { inherit make lib channel registry profiles devices; }
-        ]);
+        ];
         make = system: overlays: with lib; rec {
             config' = rec {
                 base = { inherit system; };
@@ -2031,8 +2048,12 @@ close TAG;
                 pkglist
                 pname
             ] ppkgs);
+            mkHy = pkglist: pname: pkgs.Python3.pkgs.hy.withPackages (ppkgs: j.filters.has.list [
+                pkglist
+                pname
+            ] ppkgs);
             withPackages = {
-                python = j.foldToSet (flatten [
+                python = j.foldToSet [
                     (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pkgs.${j.toCapital python} [
                         pkg
                         pkglist
@@ -2043,8 +2064,12 @@ close TAG;
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [ "python" "python2" "python3" ]))
-                    { xonsh = pkglist: mkXonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ]; }
-                ]);
+                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkHy [ pkg pkglist ])) (filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3))))
+                    {
+                        xonsh = pkglist: mkXonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
+                        hy = pkglist: mkHy [ (attrNames overlayset.pythonOverlays.python3) pkglist ];
+                    }
+                ];
             };
         };
     in with lib; j.foldToSet [
@@ -2068,7 +2093,7 @@ close TAG;
             app = apps.default;
             defaultApp = app;
             eBuildInputs = [ git settings ];
-            devShells = with pkgs; j.foldToSet [
+            devShells = with pkgs; lib.j.foldToSet [
                 (mapAttrs (n: v: mkShell { buildInputs = toList v; }) packages)
                 {
                     default = mkShell { buildInputs = attrValues packages; };
