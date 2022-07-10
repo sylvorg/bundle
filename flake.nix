@@ -1896,7 +1896,10 @@ close TAG;
             defaultApp = app;
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                { default = pkgs.mkShell { buildInputs = unique (attrValues packages); }; }
+                {
+                    default = pkgs.mkShell { buildInputs = unique (attrValues packages); };
+                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
+                }
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
@@ -1965,7 +1968,10 @@ close TAG;
             defaultApp = app;
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                { default = pkgs.mkShell { buildInputs = unique (attrValues packages); }; }
+                {
+                    default = pkgs.mkShell { buildInputs = unique (attrValues packages); };
+                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
+                }
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
@@ -2061,11 +2067,13 @@ close TAG;
             apps = mapAttrs (n: made.app) packages;
             app = apps.default;
             defaultApp = app;
-            devShells = j.foldToSet [
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+            eBuildInputs = [ git settings ];
+            devShells = with pkgs; j.foldToSet [
+                (mapAttrs (n: v: mkShell { buildInputs = toList v; }) packages)
                 {
-                    default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    site = pkgs.mkShell { buildInputs = with pkgs.nodePackages; [ uglifycss uglify-js pkgs.sd ]; };
+                    default = mkShell { buildInputs = attrValues packages; };
+                    site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
+                    envrc = mkShell { buildInputs = eBuildInputs; };
                 }
             ];
             devShell = devShells.default;
