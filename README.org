@@ -781,6 +781,461 @@ pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5p
 pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{border-radius:0.2rem;background:#2f1e2e;color:#a39e9b}.hljs-comment,.hljs-quote{color:#8d8687}.hljs-link,.hljs-meta,.hljs-name,.hljs-regexp,.hljs-selector-class,.hljs-selector-id,.hljs-tag,.hljs-template-variable,.hljs-variable{color:#ef6155}.hljs-built_in,.hljs-deletion,.hljs-literal,.hljs-number,.hljs-params,.hljs-type{color:#f99b15}.hljs-attribute,.hljs-section,.hljs-title{color:#fec418}.hljs-addition,.hljs-bullet,.hljs-string,.hljs-symbol{color:#48b685}.hljs-keyword,.hljs-selector-tag{color:#815ba4}.hljs-emphasis{font-style:italic}.hljs-strong{font-weight:700}
 #+end_src
 
+* patches
+** bcachefs-module.patch
+
+#+begin_src diff :tangle (meq/tangle-path)
+diff --git a/nixos/modules/tasks/filesystems/bcachefs.nix b/nixos/modules/tasks/filesystems/bcachefs.nix
+index 5fda24adb97..897ddf03927 100644
+--- a/nixos/modules/tasks/filesystems/bcachefs.nix
++++ b/nixos/modules/tasks/filesystems/bcachefs.nix
+@@ -45,7 +45,7 @@ in
+       system.fsPackages = [ pkgs.bcachefs-tools ];
+ 
+       # use kernel package with bcachefs support until it's in mainline
+-      boot.kernelPackages = pkgs.linuxPackages_testing_bcachefs;
++      # boot.kernelPackages = pkgs.linuxPackages_testing_bcachefs;
+     }
+ 
+     (mkIf ((elem "bcachefs" config.boot.initrd.supportedFilesystems) || (bootFs != {})) {
+#+end_src
+
+** licenses.patch
+
+#+begin_src diff :tangle (meq/tangle-path)
+diff --git a/lib/licenses.nix b/lib/licenses.nix
+index 4fa6d6abc7a..198b570e0ae 100644
+--- a/lib/licenses.nix
++++ b/lib/licenses.nix
+@@ -690,6 +690,11 @@ in mkLicense lset) ({
+     fullName = "OpenSSL License";
+   };
+ 
++  oreo = {
++    fullName = "Oreo Public License";
++    free = true;
++  };
++
+   osl2 = {
+     spdxId = "OSL-2.0";
+     fullName = "Open Software License 2.0";
+#+end_src
+
+** python.patch
+
+#+begin_src diff :tangle (meq/tangle-path)
+diff --git a/pkgs/top-level/aliases.nix b/pkgs/top-level/aliases.nix
+index 7b9c55ee702..4c86533cad5 100644
+--- a/pkgs/top-level/aliases.nix
++++ b/pkgs/top-level/aliases.nix
+@@ -1154,10 +1154,10 @@ mapAliases ({
+   pyrex095 = throw "pyrex has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-12
+   pyrex096 = throw "pyrex has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-12
+   pyrit = throw "pyrit has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-01
+-  python = python2; # Added 2022-01-11
++  python = python3; # Added 2022-01-11
+   python-swiftclient = swiftclient; # Added 2021-09-09
+   python2nix = throw "python2nix has been removed as it is outdated. Use e.g. nixpkgs-pytools instead"; # Added 2021-03-08
+-  pythonFull = python2Full; # Added 2022-01-11
++  pythonFull = python3Full; # Added 2022-01-11
+   pythonPackages = python.pkgs; # Added 2022-01-11
+ 
+   ### Q ###
+diff --git a/pkgs/top-level/all-packages.nix b/pkgs/top-level/all-packages.nix
+index 1803508bdd4..da416ccaea6 100644
+--- a/pkgs/top-level/all-packages.nix
++++ b/pkgs/top-level/all-packages.nix
+@@ -14502,7 +14502,7 @@ with pkgs;
+   # available as `pythonPackages.tkinter` and can be used as any other Python package.
+   # When switching these sets, please update docs at ../../doc/languages-frameworks/python.md
+   python2 = python27;
+-  python3 = python39;
++  python3 = python310;
+ 
+   # pythonPackages further below, but assigned here because they need to be in sync
+   python2Packages = dontRecurseIntoAttrs python27Packages;
+#+end_src
+
+* setup-var.pl
+
+Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system/etc/setup-etc.pl][here]]:
+
+#+begin_src perl :tangle (meq/tangle-path)
+use strict;
+use File::Find;
+use File::Copy;
+use File::Path;
+use File::Basename;
+use File::Slurp;
+
+my $var = $ARGV[0] or die;
+my $static = "/var/static";
+
+sub atomicSymlink {
+    my ($source, $target) = @_;
+    my $tmp = "$target.tmp";
+    unlink $tmp;
+    symlink $source, $tmp or return 0;
+    rename $tmp, $target or return 0;
+    return 1;
+}
+
+
+# Atomically update /var/static to point at the var files of the
+# current configuration.
+atomicSymlink $var, $static or die;
+
+# Returns 1 if the argument points to the files in /var/static.  That
+# means either argument is a symlink to a file in /var/static or a
+# directory with all children being static.
+sub isStatic {
+    my $path = shift;
+
+    if (-l $path) {
+        my $target = readlink $path;
+        return substr($target, 0, length "/var/static/") eq "/var/static/";
+    }
+
+    if (-d $path) {
+        opendir DIR, "$path" or return 0;
+        my @names = readdir DIR or die;
+        closedir DIR;
+
+        foreach my $name (@names) {
+            next if $name eq "." || $name eq "..";
+            unless (isStatic("$path/$name")) {
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+# Remove dangling symlinks that point to /var/static.  These are
+# configuration files that existed in a previous configuration but not
+# in the current one.  For efficiency, don't look under /var/nixos
+# (where all the NixOS sources live).
+sub cleanup {
+    if ($File::Find::name eq "/var/nixos") {
+        $File::Find::prune = 1;
+        return;
+    }
+    if (-l $_) {
+        my $target = readlink $_;
+        if (substr($target, 0, length $static) eq $static) {
+            my $x = "/var/static/" . substr($File::Find::name, length "/var/");
+            unless (-l $x) {
+                print STDERR "removing obsolete symlink ‘$File::Find::name’...\n";
+                unlink "$_";
+            }
+        }
+    }
+}
+
+find(\&cleanup, "/var");
+
+
+# Use /var/.clean to keep track of copied files.
+my @oldCopied = read_file("/var/.clean", chomp => 1, err_mode => 'quiet');
+open CLEAN, ">>/var/.clean";
+
+
+# For every file in the var tree, create a corresponding symlink in
+# /var to /var/static.  The indirection through /var/static is to make
+# switching to a new configuration somewhat more atomic.
+my %created;
+my @copied;
+
+sub link {
+    my $fn = substr $File::Find::name, length($var) + 1 or next;
+    my $target = "/var/$fn";
+    File::Path::make_path(dirname $target);
+    $created{$fn} = 1;
+
+    # Rename doesn't work if target is directory.
+    if (-l $_ && -d $target) {
+        if (isStatic $target) {
+            rmtree $target or warn;
+        } else {
+            warn "$target directory contains user files. Symlinking may fail.";
+        }
+    }
+
+    if (-e "$_.mode") {
+        my $mode = read_file("$_.mode"); chomp $mode;
+        if ($mode eq "direct-symlink") {
+            atomicSymlink readlink("$static/$fn"), $target or warn;
+        } else {
+            my $uid = read_file("$_.uid"); chomp $uid;
+            my $gid = read_file("$_.gid"); chomp $gid;
+            copy "$static/$fn", "$target.tmp" or warn;
+            $uid = getpwnam $uid unless $uid =~ /^\+/;
+            $gid = getgrnam $gid unless $gid =~ /^\+/;
+            chown int($uid), int($gid), "$target.tmp" or warn;
+            chmod oct($mode), "$target.tmp" or warn;
+            rename "$target.tmp", $target or warn;
+        }
+        push @copied, $fn;
+        print CLEAN "$fn\n";
+    } elsif (-l "$_") {
+        atomicSymlink "$static/$fn", $target or warn;
+    }
+}
+
+find(\&link, $var);
+
+
+# Delete files that were copied in a previous version but not in the
+# current.
+foreach my $fn (@oldCopied) {
+    if (!defined $created{$fn}) {
+        $fn = "/var/$fn";
+        print STDERR "removing obsolete file ‘$fn’...\n";
+        unlink "$fn";
+    }
+}
+
+
+# Rewrite /var/.clean.
+close CLEAN;
+write_file("/var/.clean", map { "$_\n" } @copied);
+
+# Create /var/NIXOS tag if not exists.
+# When /var is not on a persistent filesystem, it will be wiped after reboot,
+# so we need to check and re-create it during activation.
+open TAG, ">>/var/NIXOS";
+close TAG;
+#+end_src
+
+* templates
+** general
+*** nix.org
+:PROPERTIES:
+:header-args:nix+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
+:header-args:shell+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
+:header-args:org+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
+:END:
+
+#+begin_src text :tangle (meq/tangle-path)
+<<97220a9c-af77-4056-b7f8-00e11819e210>>
+#+end_src
+
+#+name: 76512af3-e0ac-4662-99be-27dde39e8741
+#+begin_src org
+,* shell.nix
+
+,#+begin_src nix :tangle (meq/tangle-path)
+(import ./.).devShell.${builtins.currentSystem}
+,#+end_src
+
+,* default.nix
+
+,#+begin_src nix :tangle (meq/tangle-path)
+(import
+  (
+    let lock = builtins.fromJSON (builtins.readFile ./flake.lock); in
+    fetchTarball {
+      url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
+      sha256 = lock.nodes.flake-compat.locked.narHash;
+    }
+  )
+  { src = ./.; }
+).defaultNix
+,#+end_src
+
+,* .envrc
+
+,#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
+#+end_src
+
+#+name: a8c4a30e-898b-4bb4-a8e9-f62df2be0d43
+#+begin_src shell :noweb no
+#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
+#! nix-shell -i sh
+files="<<current-file()>>"
+if hash org-tangle 2> /dev/null; then
+    org-tangle $files
+else
+    chmod +x ./settings/bin/* && ./settings/bin/org-tangle $files || :
+fi
+
+files="flake.nix"
+for file in files; do
+    [ -f "$file" ] && git add "$file" || :
+done
+
+nix flake info &> /dev/null && use flake || use nix
+#+end_src
+
+#+name: d0ed4b24-8222-4ecd-bfbb-37e14696110c
+#+begin_src org
+,#+end_src
+
+,* flake.nix
+
+,#+begin_src nix :tangle (meq/tangle-path)
+#+end_src
+
+#+begin_src nix
+{
+
+    # TODO: Change this!
+    description = "";
+
+    inputs = rec {
+        settings = {
+            url = github:sylvorg/settings;
+
+            # TODO: Change the pname ONLY!
+            inputs.pname.follows = "";
+
+        };
+        nixpkgs.follows = "settings/nixpkgs";
+        flake-utils.url = github:numtide/flake-utils;
+        flake-compat = {
+            url = "github:edolstra/flake-compat";
+            flake = false;
+        };
+    };
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
+
+        # TODO: Change this!
+        pname = "";
+
+        # TODO: Change this!
+        callPackage = {}: {};
+
+        overlayset = let
+            overlay = final: prev: { "${pname}" = final.callPackage callPackage {}; };
+        in rec {
+            overlays = settings.overlays // { default = overlay; "${pname}" = overlay; };
+            overlay = overlays.default;
+            defaultOverlay = overlay;
+        };
+    in j.foldToSet [
+        (eachSystem allSystems (system: let
+            made = make system (attrValues overlayset.overlays);
+        in rec {
+            inherit (made) legacyPackages pkgs nixpkgs;
+            inherit made;
+            packages = flattenTree { default = pkgs.${pname}; "${pname}" = pkgs.${pname}; };
+            package = packages.default;
+            defaultPackage = package;
+            apps = mapAttrs (n: made.app) packages;
+            app = apps.default;
+            defaultApp = app;
+            devShells = j.foldToSet [
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                {
+                    default = pkgs.mkShell { buildInputs = attrValues packages; };
+                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
+                }
+            ];
+            devShell = devShells.default;
+            defaultdevShell = devShell;
+        }))
+        overlayset
+        { inherit pname callPackage; }
+    ];
+}
+#+end_src
+
+#+begin_src org
+,#+end_src
+#+end_src
+
+** python
+*** nix.org
+:PROPERTIES:
+:header-args:nix+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
+:header-args:shell+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
+:header-args:org+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
+:END:
+
+#+begin_src text :tangle (meq/tangle-path)
+<<76512af3-e0ac-4662-99be-27dde39e8741>>
+<<a8c4a30e-898b-4bb4-a8e9-f62df2be0d43>>
+<<d0ed4b24-8222-4ecd-bfbb-37e14696110c>>
+<<42b96823-24f3-4924-becd-721155468419>>
+,#+end_src
+#+end_src
+
+#+begin_src nix
+{
+
+    # TODO: Change the description!
+    description = "";
+
+    inputs = rec {
+        settings = {
+            url = github:sylvorg/settings;
+
+            # TODO: Change the PNAME ONLY!
+            inputs.pypkg-PNAME.follows = "";
+
+        };
+        nixpkgs.follows = "settings/nixpkgs";
+        flake-utils.url = github:numtide/flake-utils;
+        flake-compat = {
+            url = "github:edolstra/flake-compat";
+            flake = false;
+        };
+    };
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
+
+        # TODO: Change the pname!
+        pname = "";
+
+        # TODO: Change the callPackage!
+        callPackage = {}: {};
+
+        overlayset = let
+            overlay = j.update.python.callPython.three { inherit pname; } pname callPackage;
+        in rec {
+            overlays = settings.overlays // { default = overlay; "${pname}" = overlay; };
+            inherit overlay;
+            defaultOverlay = overlay;
+        };
+    in j.foldToSet [
+        (eachSystem allSystems (system: let
+            made = settings.make system (attrValues overlayset.overlays);
+            python = made.mkPython made.pkgs.Python3 [] pname;
+            xonsh = made.mkXonsh [] pname;
+            hy = made.mkHy [] pname;
+        in rec {
+            inherit (settings) base;
+            inherit (made) legacyPackages pkgs nixpkgs;
+            packages = flattenTree {
+                inherit python xonsh hy;
+                "python-${pname}" = python;
+                "xonsh-${pname}" = xonsh;
+                "hy-${pname}" = hy;
+                "${pname}" = python;
+                default = python;
+            };
+            package = packages.default;
+            defaultPackage = package;
+            apps = mapAttrs (n: made.app) packages;
+            app = apps.default;
+            defaultApp = app;
+            devShells = j.foldToSet [
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                {
+                    default = pkgs.mkShell { buildInputs = attrValues packages; };
+                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
+                }
+            ];
+            devShell = devShells.default;
+            defaultdevShell = devShell;
+        }))
+        overlayset
+        { inherit pname callPackage; }
+    ];
+}
+#+end_src
+
 * default.nix
 
 Taken from [[https://github.com/edolstra/flake-compat#usage][here]]:
@@ -827,7 +1282,7 @@ else
     chmod +x ./bin/* && ./bin/org-tangle $files || :
 fi
 
-files="flake.nix"
+files="flake.nix patches templates"
 for file in files; do
     [ -f "$file" ] && git add "$file" || :
 done

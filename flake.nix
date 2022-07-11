@@ -14,7 +14,7 @@
         # min-free = 262144000;
         # max-free = 1073741824;
     };
-    inputs = {
+    inputs = rec {
         emacs.url = github:nix-community/emacs-overlay;
         nix.url = github:nixos/nix;
         nur.url = github:nix-community/nur;
@@ -38,10 +38,10 @@
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
 
-        # pypkg-rich = {
-        #     url = github:syvlorg/rich;
-        #     inputs.settings.follows = "";
-        # };
+        pypkg-rich = {
+            url = github:syvlorg/rich;
+            inputs.settings.follows = "";
+        };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         channel = "nixos-22-05";
@@ -339,13 +339,15 @@
                     dir,
                     extrargs ? {},
                     suffix ? ".nix",
+                    files ? false,
                     ...
                 }: listToAttrs (map (file: nameValuePair
                     (name { inherit file suffix; })
-                    (if (call != null) then (call.callPackage file extrargs)
+                    (if files then file
+                    else if (call != null) then (call.callPackage file extrargs)
                     else if (extrargs == {}) then (import file)
                     else (import file extrargs))
-                ) (list (filterAttrs (n: v: ! (elem n [ "call" "extrargs" ])) args)));
+                ) (list (filterAttrs (n: v: ! (elem n [ "call" "extrargs" "files" ])) args)));
                 overlaySet = args@{
                     call ? null,
                     dir,
@@ -375,12 +377,12 @@
                         three = base attrs.versions.python.three;
                     };
                     callPython = rec {
-                        base = pv: name: pkg: final: python.base pv { "${name}" = final.${pv}.pkgs.callPackage pkg {}; };
+                        base = pv: extrargs: name: pkg: final: python.base pv { "${name}" = final.${pv}.pkgs.callPackage pkg extrargs; };
                         two = base attrs.versions.python.two;
                         three = base attrs.versions.python.three;
                     };
                     callPython' = rec {
-                        base = pv: file: final: python.base pv { "${imports.name { inherit file; }}" = final.${pv}.pkgs.callPackage file {}; };
+                        base = pv: extrargs: file: final: python.base pv { "${imports.name { inherit file; }}" = final.${pv}.pkgs.callPackage file extrargs; };
                         two = base attrs.versions.python.two;
                         three = base attrs.versions.python.three;
                     };
@@ -684,10 +686,10 @@
                 two = {
                 };
                 three = {
-                    autoslot = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit }: let
+                    autoslot = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit, pname }: let
                         owner = "cjrh";
                     in buildPythonPackage rec {
-                        pname = "autoslot";
+                        inherit pname;
                         version = "2021.10.1";
                         format = "pyproject";
                         src = fetchFromGitHub {
@@ -706,10 +708,10 @@
                             license = lib.licenses.asl20;
                         };
                     };
-                    magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook }: let
+                    magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, pname }: let
                         owner = "frmdstryr";
                     in buildPythonPackage rec {
-                        pname = "magicattr";
+                        inherit pname;
                         version = "0.1.6";
                         src = fetchFromGitHub {
                             inherit owner;
@@ -725,10 +727,10 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    backtrace = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, colorama }: let
+                    backtrace = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, colorama, pname }: let
                         owner = "nir0s";
                     in buildPythonPackage rec {
-                        pname = "backtrace";
+                        inherit pname;
                         version = "0.2.1";
                         src = fetchFromGitHub {
                             inherit owner;
@@ -747,8 +749,8 @@
                     };
                 };
                 xonsh = {
-                    xontrib-readable-traceback = { lib, buildPythonPackage, fetchPypi, colorama, backtrace }: buildPythonPackage rec {
-                        pname = "xontrib-readable-traceback";
+                    xontrib-readable-traceback = { lib, buildPythonPackage, fetchPypi, colorama, backtrace, pname }: buildPythonPackage rec {
+                        inherit pname;
                         version = "0.3.2";
                         src = fetchPypi {
                             inherit pname version;
@@ -761,8 +763,8 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    xonsh-autoxsh = { lib, buildPythonPackage, fetchPypi }: buildPythonPackage rec {
-                        pname = "xonsh-autoxsh";
+                    xonsh-autoxsh = { lib, buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
+                        inherit pname;
                         version = "0.3";
                         src = fetchPypi {
                             inherit pname version;
@@ -774,8 +776,8 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    xonsh-direnv = { lib, buildPythonPackage, fetchPypi }: buildPythonPackage rec {
-                        pname = "xonsh-direnv";
+                    xonsh-direnv = { lib, buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
+                        inherit pname;
                         version = "1.5.0";
                         src = fetchPypi {
                             inherit pname version;
@@ -787,8 +789,8 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    xontrib-pipeliner = { lib, buildPythonPackage, fetchPypi, six }: buildPythonPackage rec {
-                        pname = "xontrib-pipeliner";
+                    xontrib-pipeliner = { lib, buildPythonPackage, fetchPypi, six, pname }: buildPythonPackage rec {
+                        inherit pname;
                         version = "0.3.4";
                         src = fetchPypi {
                             inherit pname version;
@@ -804,8 +806,8 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    xontrib-sh = { lib, buildPythonPackage, fetchPypi }: buildPythonPackage rec {
-                        pname = "xontrib-sh";
+                    xontrib-sh = { lib, buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
+                        inherit pname;
                         version = "0.3.0";
                         src = fetchPypi {
                             inherit pname version;
@@ -820,72 +822,11 @@
                 };
             };
         };
-        patches = {
-            bcachefs-module = toFile "bcachefs-module.patch" ''
-diff --git a/nixos/modules/tasks/filesystems/bcachefs.nix b/nixos/modules/tasks/filesystems/bcachefs.nix
-index 5fda24adb97..897ddf03927 100644
---- a/nixos/modules/tasks/filesystems/bcachefs.nix
-+++ b/nixos/modules/tasks/filesystems/bcachefs.nix
-@@ -45,7 +45,7 @@ in
-       system.fsPackages = [ pkgs.bcachefs-tools ];
- 
-       # use kernel package with bcachefs support until it's in mainline
--      boot.kernelPackages = pkgs.linuxPackages_testing_bcachefs;
-+      # boot.kernelPackages = pkgs.linuxPackages_testing_bcachefs;
-     }
- 
-     (mkIf ((elem "bcachefs" config.boot.initrd.supportedFilesystems) || (bootFs != {})) {
-            '';
-            licenses = toFile "licenses.patch" ''
-diff --git a/lib/licenses.nix b/lib/licenses.nix
-index 4fa6d6abc7a..198b570e0ae 100644
---- a/lib/licenses.nix
-+++ b/lib/licenses.nix
-@@ -690,6 +690,11 @@ in mkLicense lset) ({
-     fullName = "OpenSSL License";
-   };
- 
-+  oreo = {
-+    fullName = "Oreo Public License";
-+    free = true;
-+  };
-+
-   osl2 = {
-     spdxId = "OSL-2.0";
-     fullName = "Open Software License 2.0";
-            '';
-            python = toFile "python.patch" ''
-diff --git a/pkgs/top-level/aliases.nix b/pkgs/top-level/aliases.nix
-index 7b9c55ee702..4c86533cad5 100644
---- a/pkgs/top-level/aliases.nix
-+++ b/pkgs/top-level/aliases.nix
-@@ -1154,10 +1154,10 @@ mapAliases ({
-   pyrex095 = throw "pyrex has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-12
-   pyrex096 = throw "pyrex has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-12
-   pyrit = throw "pyrit has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-01
--  python = python2; # Added 2022-01-11
-+  python = python3; # Added 2022-01-11
-   python-swiftclient = swiftclient; # Added 2021-09-09
-   python2nix = throw "python2nix has been removed as it is outdated. Use e.g. nixpkgs-pytools instead"; # Added 2021-03-08
--  pythonFull = python2Full; # Added 2022-01-11
-+  pythonFull = python3Full; # Added 2022-01-11
-   pythonPackages = python.pkgs; # Added 2022-01-11
- 
-   ### Q ###
-diff --git a/pkgs/top-level/all-packages.nix b/pkgs/top-level/all-packages.nix
-index 1803508bdd4..da416ccaea6 100644
---- a/pkgs/top-level/all-packages.nix
-+++ b/pkgs/top-level/all-packages.nix
-@@ -14502,7 +14502,7 @@ with pkgs;
-   # available as `pythonPackages.tkinter` and can be used as any other Python package.
-   # When switching these sets, please update docs at ../../doc/languages-frameworks/python.md
-   python2 = python27;
--  python3 = python39;
-+  python3 = python310;
- 
-   # pythonPackages further below, but assigned here because they need to be in sync
-   python2Packages = dontRecurseIntoAttrs python27Packages;
-            '';
+        patches = lib.j.imports.set {
+            dir = ./patches;
+            ignores.dirs = true;
+            suffix = ".patch";
+            files = true;
         };
         overlayset = with lib; let
             calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
@@ -894,7 +835,7 @@ index 1803508bdd4..da416ccaea6 100644
             nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.nodejs;
             pythonOverlays = rec {
                 python2 = j.foldToSet [
-                    (mapAttrs j.update.python.callPython.two callPackages.python.two)
+                    (mapAttrs (pname: j.update.python.callPython.two { inherit pname; } pname) callPackages.python.two)
                 ];
                 python3 = let
                     update = j.update.python.package.three;
@@ -944,11 +885,11 @@ index 1803508bdd4..da416ccaea6 100644
                         #     ] ++ (old.disabledTestPaths or []);
                         # });
                     }
-                    (mapAttrs j.update.python.callPython.three callPackages.python.three)
+                    (mapAttrs (pname: j.update.python.callPython.three { inherit pname; } pname) callPackages.python.three)
                 ];
                 python = python3;
                 xonsh = j.foldToSet [
-                    (mapAttrs j.update.python.callPython.three callPackages.python.xonsh)
+                    (mapAttrs (pname: j.update.python.callPython.three { inherit pname; } pname) callPackages.python.xonsh)
                 ];
                 external = mapAttrs' (n: v: nameValuePair (removePrefix "pyapp-" (removePrefix "pypkg-" n)) v.overlay)
                                      (filterAttrs (n: v: j.has.prefix n [ "pypkg-" "pyapp-" ] ) inputs);
@@ -1593,154 +1534,6 @@ index 1803508bdd4..da416ccaea6 100644
                             varEntry.group
                         ]) var'}
                     '';
-                    setup-var = toFile "setup.var.pl" ''
-use strict;
-use File::Find;
-use File::Copy;
-use File::Path;
-use File::Basename;
-use File::Slurp;
-
-my $var = $ARGV[0] or die;
-my $static = "/var/static";
-
-sub atomicSymlink {
-    my ($source, $target) = @_;
-    my $tmp = "$target.tmp";
-    unlink $tmp;
-    symlink $source, $tmp or return 0;
-    rename $tmp, $target or return 0;
-    return 1;
-}
-
-
-# Atomically update /var/static to point at the var files of the
-# current configuration.
-atomicSymlink $var, $static or die;
-
-# Returns 1 if the argument points to the files in /var/static.  That
-# means either argument is a symlink to a file in /var/static or a
-# directory with all children being static.
-sub isStatic {
-    my $path = shift;
-
-    if (-l $path) {
-        my $target = readlink $path;
-        return substr($target, 0, length "/var/static/") eq "/var/static/";
-    }
-
-    if (-d $path) {
-        opendir DIR, "$path" or return 0;
-        my @names = readdir DIR or die;
-        closedir DIR;
-
-        foreach my $name (@names) {
-            next if $name eq "." || $name eq "..";
-            unless (isStatic("$path/$name")) {
-                return 0;
-            }
-        }
-        return 1;
-    }
-
-    return 0;
-}
-
-# Remove dangling symlinks that point to /var/static.  These are
-# configuration files that existed in a previous configuration but not
-# in the current one.  For efficiency, don't look under /var/nixos
-# (where all the NixOS sources live).
-sub cleanup {
-    if ($File::Find::name eq "/var/nixos") {
-        $File::Find::prune = 1;
-        return;
-    }
-    if (-l $_) {
-        my $target = readlink $_;
-        if (substr($target, 0, length $static) eq $static) {
-            my $x = "/var/static/" . substr($File::Find::name, length "/var/");
-            unless (-l $x) {
-                print STDERR "removing obsolete symlink ‘$File::Find::name’...\n";
-                unlink "$_";
-            }
-        }
-    }
-}
-
-find(\&cleanup, "/var");
-
-
-# Use /var/.clean to keep track of copied files.
-my @oldCopied = read_file("/var/.clean", chomp => 1, err_mode => 'quiet');
-open CLEAN, ">>/var/.clean";
-
-
-# For every file in the var tree, create a corresponding symlink in
-# /var to /var/static.  The indirection through /var/static is to make
-# switching to a new configuration somewhat more atomic.
-my %created;
-my @copied;
-
-sub link {
-    my $fn = substr $File::Find::name, length($var) + 1 or next;
-    my $target = "/var/$fn";
-    File::Path::make_path(dirname $target);
-    $created{$fn} = 1;
-
-    # Rename doesn't work if target is directory.
-    if (-l $_ && -d $target) {
-        if (isStatic $target) {
-            rmtree $target or warn;
-        } else {
-            warn "$target directory contains user files. Symlinking may fail.";
-        }
-    }
-
-    if (-e "$_.mode") {
-        my $mode = read_file("$_.mode"); chomp $mode;
-        if ($mode eq "direct-symlink") {
-            atomicSymlink readlink("$static/$fn"), $target or warn;
-        } else {
-            my $uid = read_file("$_.uid"); chomp $uid;
-            my $gid = read_file("$_.gid"); chomp $gid;
-            copy "$static/$fn", "$target.tmp" or warn;
-            $uid = getpwnam $uid unless $uid =~ /^\+/;
-            $gid = getgrnam $gid unless $gid =~ /^\+/;
-            chown int($uid), int($gid), "$target.tmp" or warn;
-            chmod oct($mode), "$target.tmp" or warn;
-            rename "$target.tmp", $target or warn;
-        }
-        push @copied, $fn;
-        print CLEAN "$fn\n";
-    } elsif (-l "$_") {
-        atomicSymlink "$static/$fn", $target or warn;
-    }
-}
-
-find(\&link, $var);
-
-
-# Delete files that were copied in a previous version but not in the
-# current.
-foreach my $fn (@oldCopied) {
-    if (!defined $created{$fn}) {
-        $fn = "/var/$fn";
-        print STDERR "removing obsolete file ‘$fn’...\n";
-        unlink "$fn";
-    }
-}
-
-
-# Rewrite /var/.clean.
-close CLEAN;
-write_file("/var/.clean", map { "$_\n" } @copied);
-
-# Create /var/NIXOS tag if not exists.
-# When /var is not on a persistent filesystem, it will be wiped after reboot,
-# so we need to check and re-create it during activation.
-open TAG, ">>/var/NIXOS";
-close TAG;
-                    '';
                 in {
                     options = {
                         environment.vars = mkOption {
@@ -1847,7 +1640,7 @@ close TAG;
                                 varActivationCommands = ''
                                     # Set up the statically computed bits of /var.
                                     echo "setting up /var..."
-                                    ${pkgs.perl.withPackages (p: [ p.FileSlurp ])}/bin/perl ${setup-var} ${var}/var
+                                    ${pkgs.perl.withPackages (p: [ p.FileSlurp ])}/bin/perl ${./setup-var.pl} ${var}/var
                                 '';
                             };
                         };
@@ -1857,155 +1650,24 @@ close TAG;
             nixosModule = nixosModules.default;
             defaultNixosModule = nixosModule;
         };
-        templates = rec {
-            templates = rec {
-                general = {
-                    description = "The general template for all our programs!";
-                    path = toFile "general-template.nix" ''
-{
-
-    # TODO: Change this!
-    description = "";
-
-    inputs = {
-        settings = {
-            url = github:sylvorg/settings;
-
-            # TODO: Change the pname ONLY!
-            inputs.pname.follows = "";
-
-        };
-        nixpkgs.follows = "settings/nixpkgs";
-        flake-utils.url = github:numtide/flake-utils;
-        flake-compat = {
-            url = "github:edolstra/flake-compat";
-            flake = false;
-        };
-    };
-    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
-
-        # TODO: Change this!
-        pname = "";
-
-        # TODO: Change this!
-        callPackage = {}: {};
-
-        overlayset = let
-            overlay = final: prev: { "${pname}" = final.callPackage callPackage {}; };
-        in rec {
-            overlays = settings.overlays // { default = overlay; "${pname}" = overlay; };
-            overlay = overlays.default;
-            defaultOverlay = overlay;
-        };
-    in j.foldToSet [
-        (eachSystem allSystems (system: let
-            made = make system (attrValues overlayset.overlays);
-        in rec {
-            inherit (made) legacyPackages pkgs nixpkgs;
-            inherit made;
-            packages = flattenTree { default = pkgs.${pname}; "${pname}" = pkgs.${pname}; };
-            package = packages.default;
-            defaultPackage = package;
-            apps = mapAttrs (n: made.app) packages;
-            app = apps.default;
-            defaultApp = app;
-            devShells = j.foldToSet [
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                {
-                    default = pkgs.mkShell { buildInputs = unique (attrValues packages); };
-                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
-                }
+        templates = with lib; rec {
+            templates = let
+                allTemplates = mapAttrs (n: path: { description = "The {n} template!"; inherit path; }) (j.imports.set {
+                    dir = ./templates;
+                    ignores.files = true;
+                    files = true;
+                });
+            in j.foldToSet [
+                allTemplates
+                { default = allTemplates.python; }
             ];
-            devShell = devShells.default;
-            defaultdevShell = devShell;
-        }))
-        overlayset
-        { inherit pname callPackage; }
-    ];
-}
-                    '';
-                };
-                python = toFile "python-template.nix" ''
-{
-
-    # TODO: Change the description!
-    description = "";
-
-    inputs = {
-        settings = {
-            url = github:sylvorg/settings;
-
-            # TODO: Change the pname ONLY!
-            inputs.pname.follows = "";
-
-        };
-        nixpkgs.follows = "settings/nixpkgs";
-        flake-utils.url = github:numtide/flake-utils;
-        flake-compat = {
-            url = "github:edolstra/flake-compat";
-            flake = false;
-        };
-    };
-    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
-
-        # TODO: Change the pname!
-        pname = "";
-
-        # TODO: Change the callPackage!
-        callPackage = {}: {};
-
-        overlayset = let
-            overlay = j.update.python.callPython.three pname callPackage;
-        in rec {
-            overlays = settings.overlays // { default = overlay; "${pname}" = overlay; };
-            inherit overlay;
-            defaultOverlay = overlay;
-        };
-    in j.foldToSet [
-        (eachSystem allSystems (system: let
-            made = settings.make system (attrValues overlayset.overlays);
-            python = made.mkPython made.pkgs.Python3 [] pname;
-            xonsh = made.mkXonsh [] pname;
-            hy = made.mkHy [] pname;
-        in rec {
-            inherit (settings) base;
-            inherit (made) legacyPackages pkgs nixpkgs;
-            packages = flattenTree {
-                default = python;
-                "python-${pname}" = python;
-                "xonsh-${pname}" = xonsh;
-                "hy-${pname}" = hy;
-                "${pname}" = python;
-                inherit python xonsh hy;
-            };
-            package = packages.default;
-            defaultPackage = package;
-            apps = mapAttrs (n: made.app) packages;
-            app = apps.default;
-            defaultApp = app;
-            devShells = j.foldToSet [
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                {
-                    default = pkgs.mkShell { buildInputs = unique (attrValues packages); };
-                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
-                }
-            ];
-            devShell = devShells.default;
-            defaultdevShell = devShell;
-        }))
-        overlayset
-        { inherit pname callPackage; }
-    ];
-}
-                '';
-                default = python;
-            };
             template = templates.default;
             defaultTemplate = template;
         };
         individual-outputs = with lib; j.foldToSet [
             overlayset
             nixosModules
+            templates
             { inherit make lib channel registry profiles devices; }
         ];
         make = system: overlays: with lib; rec {
