@@ -1754,13 +1754,22 @@
             apps = mapAttrs (n: made.app) packages;
             app = apps.default;
             defaultApp = app;
-            eBuildInputs = [ git settings ];
+            buildInputs = with pkgs; {
+                envrc = [ git settings ];
+            };
             devShells = with pkgs; lib.j.foldToSet [
                 (mapAttrs (n: v: mkShell { buildInputs = toList v; }) packages)
+                (mapAttrs (n: v: mkShell { buildInputs = toList v; }) buildInputs)
                 {
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
-                    envrc = mkShell { buildInputs = eBuildInputs; };
+                    makefile = mkShell {
+                        buildInputs = [ settings ];
+                        shellHook = ''
+                            echo $PATH
+                            exit
+                        '';
+                    };
                 }
             ];
             devShell = devShells.default;

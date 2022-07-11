@@ -1013,16 +1013,28 @@ close TAG;
 ** general
 *** nix.org
 :PROPERTIES:
-:header-args:nix+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
-:header-args:shell+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
+:header-args:nix+: :noweb-ref 8cafdd99-97cb-4714-8c18-36fcf8c7f319
 :header-args:org+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
+:header-args:shell+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
+:header-args:makefile+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
 :END:
 
 #+begin_src text :tangle (meq/tangle-path)
+<<074ce005-3299-46ab-b259-b988558203b5>>
+<<ab36c35f-aaf5-4372-a0b5-529ae78cd5e8>>
+,#+end_src
+#+end_src
+
+#+name: 074ce005-3299-46ab-b259-b988558203b5
+#+begin_src text
 <<97220a9c-af77-4056-b7f8-00e11819e210>>
 #+end_src
 
-#+name: 76512af3-e0ac-4662-99be-27dde39e8741
+#+name: ab36c35f-aaf5-4372-a0b5-529ae78cd5e8
+#+begin_src text
+<<8cafdd99-97cb-4714-8c18-36fcf8c7f319>>
+#+end_src
+
 #+begin_src org
 ,* shell.nix
 
@@ -1050,7 +1062,6 @@ close TAG;
 ,#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
 #+end_src
 
-#+name: a8c4a30e-898b-4bb4-a8e9-f62df2be0d43
 #+begin_src shell :noweb no
 #! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
 #! nix-shell -i sh
@@ -1069,7 +1080,65 @@ done
 nix flake info &> /dev/null && use flake || use nix
 #+end_src
 
-#+name: d0ed4b24-8222-4ecd-bfbb-37e14696110c
+#+begin_src org :noweb no
+,#+end_src
+
+,* makefile
+:PROPERTIES:
+:header-args:makefile+: :noweb-ref makefile-12345678-1234-1234-1234-123456789abc
+:END:
+
+,#+begin_src text :tangle (meq/tangle-path)
+<<makefile-12345678-1234-1234-1234-123456789abc>>
+,#+end_src
+
+,#+begin_src makefile
+#+end_src
+
+#+begin_src makefile
+.RECIPEPREFIX := |
+.DEFAULT_GOAL := test
+#+end_src
+
+#+begin_src org
+,#+end_src
+
+Adapted from [[https://t-ravis.com/post/nix/nix-make/][here]]:
+
+,#+begin_src makefile
+#+end_src
+
+#+begin_src makefile
+export PATH := $(shell nix-shell -E "(import ./.).devShells.$${builtins.currentSystem}.makefile")
+#+end_src
+
+#+begin_src org
+,#+end_src
+
+Adapted from [[https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/][here]]:
+
+,#+begin_src makefile
+#+end_src
+
+#+begin_src makefile
+mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
+mkfileDir := $(dir $(mkfilePath))
+#+end_src
+
+#+begin_src org
+,#+end_src
+
+,#+begin_src makefile
+#+end_src
+
+#+begin_src makefile
+tangle:
+|org-tangle $(mkfileDir)/src $(mkfileDir)/tests.org
+
+test: tangle
+|hy $(mkfileDir)/tests.hy
+#+end_src
+
 #+begin_src org
 ,#+end_src
 
@@ -1128,9 +1197,16 @@ nix flake info &> /dev/null && use flake || use nix
             defaultApp = app;
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) settings.buildInputs)
                 {
-                    default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
+                    default = mkShell { buildInputs = attrValues packages; };
+                    makefile = mkShell {
+                        buildInputs = [ settings ];
+                        shellHook = ''
+                            echo $PATH
+                            exit
+                        '';
+                    };
                 }
             ];
             devShell = devShells.default;
@@ -1142,22 +1218,14 @@ nix flake info &> /dev/null && use flake || use nix
 }
 #+end_src
 
-#+begin_src org
-,#+end_src
-#+end_src
-
 ** python
 *** nix.org
 :PROPERTIES:
 :header-args:nix+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
-:header-args:shell+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
-:header-args:org+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
 :END:
 
 #+begin_src text :tangle (meq/tangle-path)
-<<76512af3-e0ac-4662-99be-27dde39e8741>>
-<<a8c4a30e-898b-4bb4-a8e9-f62df2be0d43>>
-<<d0ed4b24-8222-4ecd-bfbb-37e14696110c>>
+<<074ce005-3299-46ab-b259-b988558203b5>>
 <<42b96823-24f3-4924-becd-721155468419>>
 ,#+end_src
 #+end_src
@@ -1220,11 +1288,18 @@ nix flake info &> /dev/null && use flake || use nix
             apps = mapAttrs (n: made.app) packages;
             app = apps.default;
             defaultApp = app;
-            devShells = j.foldToSet [
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+            devShells = with pkgs; lib.j.foldToSet [
+                (mapAttrs (n: v: mkShell { buildInputs = toList v; }) packages)
+                (mapAttrs (n: v: mkShell { buildInputs = toList v; }) settings.buildInputs)
                 {
-                    default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
+                    default = mkShell { buildInputs = attrValues packages; };
+                    makefile = mkShell {
+                        buildInputs = [ settings ];
+                        shellHook = ''
+                            echo $PATH
+                            exit
+                        '';
+                    };
                 }
             ];
             devShell = devShells.default;

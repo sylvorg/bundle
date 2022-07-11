@@ -39,6 +39,41 @@ done
 nix flake info &> /dev/null && use flake || use nix
 #+end_src
 
+* makefile
+:PROPERTIES:
+:header-args:makefile+: :noweb-ref makefile-12345678-1234-1234-1234-123456789abc
+:END:
+
+#+begin_src text :tangle (meq/tangle-path)
+<<makefile-12345678-1234-1234-1234-123456789abc>>
+#+end_src
+
+#+begin_src makefile
+.RECIPEPREFIX := |
+.DEFAULT_GOAL := test
+#+end_src
+
+Adapted from [[https://t-ravis.com/post/nix/nix-make/][here]]:
+
+#+begin_src makefile
+export PATH := $(shell nix-shell -E "(import ./.).devShells.$${builtins.currentSystem}.makefile")
+#+end_src
+
+Adapted from [[https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/][here]]:
+
+#+begin_src makefile
+mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
+mkfileDir := $(dir $(mkfilePath))
+#+end_src
+
+#+begin_src makefile
+tangle:
+|org-tangle $(mkfileDir)/src $(mkfileDir)/tests.org
+
+test: tangle
+|hy $(mkfileDir)/tests.hy
+#+end_src
+
 * flake.nix
 
 #+begin_src nix :tangle (meq/tangle-path)
@@ -91,9 +126,16 @@ nix flake info &> /dev/null && use flake || use nix
             defaultApp = app;
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) settings.buildInputs)
                 {
-                    default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    envrc = mkShell { buildInputs = settings.eBuildInputs.${system}; };
+                    default = mkShell { buildInputs = attrValues packages; };
+                    makefile = mkShell {
+                        buildInputs = [ settings ];
+                        shellHook = ''
+                            echo $PATH
+                            exit
+                        '';
+                    };
                 }
             ];
             devShell = devShells.default;
