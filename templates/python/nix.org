@@ -119,7 +119,6 @@ test: tangle
             xonsh = made.mkXonsh [] pname;
             hy = made.mkHy [] pname;
         in rec {
-            inherit (settings) base;
             inherit (made) legacyPackages pkgs nixpkgs;
             packages = flattenTree {
                 inherit python xonsh hy;

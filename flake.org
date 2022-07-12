@@ -2227,14 +2227,14 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                     (old.propagatedBuildInputs or [])
                 ] python3Packages;
             });
-            mkPython = python: pkglist: pname: python.withPackages (ppkgs: j.filters.has.list [
+            mkPython = python: pkglist: pname: python.withPackages (j.filters.has.list [
                 pkglist
                 pname
-            ] ppkgs);
-            mkHy = pkglist: pname: pkgs.Python3.pkgs.hy.withPackages (ppkgs: j.filters.has.list [
+            ]);
+            mkHy = pkglist: pname: pkgs.Python3.pkgs.hy.withPackages (j.filters.has.list [
                 pkglist
                 pname
-            ] ppkgs);
+            ]);
             withPackages = {
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
