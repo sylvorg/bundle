@@ -68,7 +68,7 @@ mkfileDir := $(dir $(mkfilePath))
 
 #+begin_src makefile
 tangle:
-|org-tangle $(mkfileDir)/src $(mkfileDir)/tests.org $(mkfileDir)/README.org.org
+|org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name) $(mkfileDir)/tests.org $(mkfileDir)/README.org
 
 test: tangle
 |hy $(mkfileDir)/tests.hy
@@ -116,7 +116,7 @@ test: tangle
         (eachSystem allSystems (system: let
             made = settings.make system (attrValues overlayset.overlays);
             python = made.mkPython made.pkgs.Python3 [] pname;
-            xonsh = made.mkXonsh [] pname;
+            xonsh = settings.mkXonsh [] pname;
             hy = made.mkHy [] pname;
         in rec {
             inherit (made) legacyPackages pkgs nixpkgs;

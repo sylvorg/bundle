@@ -68,7 +68,7 @@ mkfileDir := $(dir $(mkfilePath))
 
 #+begin_src makefile
 tangle:
-|org-tangle $(mkfileDir)/src $(mkfileDir)/tests.org $(mkfileDir)/README.org.org
+|org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name) $(mkfileDir)/tests.org $(mkfileDir)/README.org
 
 test: tangle
 |hy $(mkfileDir)/tests.hy

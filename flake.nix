@@ -828,6 +828,16 @@
             suffix = ".patch";
             files = true;
         };
+        mkXonsh = pkgs: pkglist: pname: let
+            python3Packages = pkgs.Python3.pkgs;
+        in (pkgs.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
+            propagatedBuildInputs = j.filters.has.list [
+                pkglist
+                pname
+                (old.propagatedBuildInputs or [])
+            ] python3Packages;
+            disabledTestPaths = [ "tests/test_xonfig.py" ] ++ (old.disabledTestPaths or []);
+        });
         overlayset = with lib; let
             calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
             overlay = final: prev: { inherit (calledPackages) settings; };
@@ -923,6 +933,7 @@
                     ) pkglist
                 ) pkgsets)
                 {
+                    xonsh = final: prev: { xonsh = mkXonsh final [] null; };
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
                     emacs = inputs.emacs.overlay;
@@ -1656,7 +1667,7 @@
             overlayset
             nixosModules
             templates
-            { inherit make lib channel registry profiles devices; }
+            { inherit make lib channel registry profiles devices mkXonsh; }
         ];
         make = system: overlays: with lib; rec {
             config' = rec {
@@ -1685,15 +1696,6 @@
                 }
             ];
             app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name}"}"; };
-            mkXonsh = pkglist: pname: let
-                python3Packages = pkgs.Python3.pkgs;
-            in (pkgs.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
-                propagatedBuildInputs = j.filters.has.list [
-                    pkglist
-                    pname
-                    (old.propagatedBuildInputs or [])
-                ] python3Packages;
-            });
             mkPython = python: pkglist: pname: python.withPackages (j.filters.has.list [
                 pkglist
                 pname
@@ -1710,15 +1712,15 @@
                         pkg
                         pkglist
                     ])) (attrNames overlayset.pythonOverlays.${python})))) [ "python" "python2" "python3" ])
-                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
-                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
+                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh pkgs [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
+                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh pkgs [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
                     (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pkgs.${j.toCapital python} [
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [ "python" "python2" "python3" ]))
                     (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkHy [ pkg pkglist ])) hyOverlays))
                     {
-                        xonsh = pkglist: mkXonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
+                        xonsh = pkglist: mkXonsh pkgs [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
                         hy = pkglist: mkHy [ hyOverlays pkglist ];
                     }
                 ];
@@ -1754,7 +1756,7 @@
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
                     makefile = mkShell {
-                        buildInputs = [ settings ];
+                        buildInputs = [ settings yq ];
                         shellHook = ''
                             echo $PATH
                             exit
