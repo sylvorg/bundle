@@ -856,6 +856,42 @@ index 1803508bdd4..da416ccaea6 100644
    python2Packages = dontRecurseIntoAttrs python27Packages;
 #+end_src
 
+** hy.patch
+
+#+begin_src diff :tangle (meq/tangle-path)
+diff --git a/pkgs/development/python-modules/hy/default.nix b/pkgs/development/python-modules/hy/default.nix
+index a962f868..a84a95ac 100644
+--- a/pkgs/development/python-modules/hy/default.nix
++++ b/pkgs/development/python-modules/hy/default.nix
+@@ -16,18 +16,22 @@
+ 
+ buildPythonPackage rec {
+   pname = "hy";
+-  version = "1.0a4";
++  version = "0.24.0";
+   format = "setuptools";
+ 
+   disabled = pythonOlder "3.7";
+ 
+   src = fetchFromGitHub {
+-    owner = "hylang";
+-    repo = pname;
+-    rev = version;
+-    sha256 = "sha256-MBzp3jqBg/kH233wcgYYHc+Yg9GuOaBsXIfjFDihD1E=";
++      owner = "hylang";
++      repo = pname;
++      rev = version;
++      sha256 = "1s458ymd9g3s8k2ccc300jr4w66c7q3vhmhs9z3d3a4qg0xdhs9y";
+   };
+ 
++  postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'';
++
++  disabledTestPaths = [ "tests/test_bin.py" ];
++
+   # https://github.com/hylang/hy/blob/1.0a4/get_version.py#L9-L10
+   HY_VERSION = version;
+#+end_src
+
 * setup-var.pl
 
 Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system/etc/setup-etc.pl][here]]:
@@ -1109,7 +1145,7 @@ Adapted from [[https://t-ravis.com/post/nix/nix-make/][here]]:
 #+end_src
 
 #+begin_src makefile
-export PATH := $(shell nix-shell -E "(import ./.).devShells.$${builtins.currentSystem}.makefile")
+export PATH := $(shell nix-shell -E '(import ./.).devShells.$${builtins.currentSystem}.makefile' --show-trace)
 #+end_src
 
 #+begin_src org
@@ -1133,7 +1169,7 @@ mkfileDir := $(dir $(mkfilePath))
 
 #+begin_src makefile
 tangle:
-|org-tangle $(mkfileDir)/src $(mkfileDir)/tests.org
+|org-tangle $(mkfileDir)/src $(mkfileDir)/tests.org $(mkfileDir)/<<current-file()>>.org
 
 test: tangle
 |hy $(mkfileDir)/tests.hy
@@ -1198,7 +1234,7 @@ test: tangle
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) settings.buildInputs)
-                {
+                (with pkgs; {
                     default = mkShell { buildInputs = attrValues packages; };
                     makefile = mkShell {
                         buildInputs = [ settings ];
@@ -1207,7 +1243,7 @@ test: tangle
                             exit
                         '';
                     };
-                }
+                })
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
@@ -1288,10 +1324,10 @@ test: tangle
             apps = mapAttrs (n: made.app) packages;
             app = apps.default;
             defaultApp = app;
-            devShells = with pkgs; lib.j.foldToSet [
-                (mapAttrs (n: v: mkShell { buildInputs = toList v; }) packages)
-                (mapAttrs (n: v: mkShell { buildInputs = toList v; }) settings.buildInputs)
-                {
+            devShells = j.foldToSet [
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) settings.buildInputs)
+                (with pkgs; {
                     default = mkShell { buildInputs = attrValues packages; };
                     makefile = mkShell {
                         buildInputs = [ settings ];
@@ -1300,7 +1336,7 @@ test: tangle
                             exit
                         '';
                     };
-                }
+                })
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;

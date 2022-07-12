@@ -76,7 +76,7 @@
         '';
         patch = {
             nixpkgs = let
-                patches' = [ patches.bcachefs-module ];
+                patches' = with patches; [ bcachefs-module ];
             in {
                 default = src: config: (import src config).applyPatches {
                     name = "defaultPatches";
@@ -371,7 +371,7 @@
                 python = rec {
                     python = rec {
                         base = pv: pattrs: prev: { "${pv}" = prev.${pv}.override (super: {
-                            packageOverrides = lib.composeExtensions (super.packageOverrides or (_: _: {})) (new: old: pattrs);
+                            packageOverrides = composeExtensions (super.packageOverrides or (_: _: {})) (new: old: pattrs);
                         }); };
                         two = base attrs.versions.python.two;
                         three = base attrs.versions.python.three;
@@ -852,15 +852,11 @@
                             };
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
                             disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
-                            passthru = (old.passthru or {}) // {
+                            passthru = {
                                 tests.version = testers.testVersion {
                                     package = hy;
                                     command = "hy -v";
                                 };
-                                # also for backwards compatibility with removed pkgs/development/interpreters/hy
-                                # withPackages = python-packages: (toPythonApplication hy).override {
-                                #     hyDefinedPythonPackages = lib.debug.traceVal python-packages;
-                                # };
                                 withPackages = python-packages: (toPythonApplication hy).overrideAttrs (old: {
                                     propagatedBuildInputs = python-packages final.Python3.pkgs ++ (old.propagatedBuildInputs or []);
                                 });
@@ -876,14 +872,6 @@
                             };
                             postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
                         });
-                        # flit = final: update "flit" (old: with final; let newInputs = [ git ]; in {
-                        #     buildInputs = newInputs ++ (old.buildInputs or []);
-                        #     nativeBuildInputs = newInputs ++ (old.nativeBuildInputs or []);
-                        #     disabledTestPaths = [
-                        #         "tests/test_sdist.py"
-                        #         "tests/test_upload.py"
-                        #     ] ++ (old.disabledTestPaths or []);
-                        # });
                     }
                     (mapAttrs (pname: j.update.python.callPython.three { inherit pname; } pname) callPackages.python.three)
                 ];
@@ -1715,7 +1703,9 @@
                 pname
             ] ppkgs);
             withPackages = {
-                python = j.foldToSet [
+                python = let
+                    hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
+                in j.foldToSet [
                     (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pkgs.${j.toCapital python} [
                         pkg
                         pkglist
@@ -1726,10 +1716,10 @@
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [ "python" "python2" "python3" ]))
-                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkHy [ pkg pkglist ])) (filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3))))
+                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkHy [ pkg pkglist ])) hyOverlays))
                     {
                         xonsh = pkglist: mkXonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
-                        hy = pkglist: mkHy [ (attrNames overlayset.pythonOverlays.python3) pkglist ];
+                        hy = pkglist: mkHy [ hyOverlays pkglist ];
                     }
                 ];
             };
@@ -1742,11 +1732,11 @@
             packages = let
                 pythonPackages = mapAttrs (n: v: v [] null) made.withPackages.python;
             in flattenTree (j.foldToSet [
-                pythonPackages
                 (j.filters.has.attrs [
                     (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames pkgs))
                     (attrNames overlayset.overlays)
                 ] pkgs)
+                pythonPackages
                 { default = pythonPackages.xonsh; }
             ]);
             package = packages.default;
@@ -1757,10 +1747,10 @@
             buildInputs = with pkgs; {
                 envrc = [ git settings ];
             };
-            devShells = with pkgs; lib.j.foldToSet [
-                (mapAttrs (n: v: mkShell { buildInputs = toList v; }) packages)
-                (mapAttrs (n: v: mkShell { buildInputs = toList v; }) buildInputs)
-                {
+            devShells = j.foldToSet [
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) buildInputs)
+                (with pkgs; {
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
                     makefile = mkShell {
@@ -1770,7 +1760,7 @@
                             exit
                         '';
                     };
-                }
+                })
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;

@@ -361,11 +361,11 @@
         "settings": []
       },
       "locked": {
-        "lastModified": 1657522276,
-        "narHash": "sha256-X3GMNrwYl1lJJaYTuDWZHaP5qU1mfGRg9y/qVWQwcJ4=",
+        "lastModified": 1657560707,
+        "narHash": "sha256-o915fmDDV09HyNQVYlD3wUyQEzPzWoVT7BVmOLaK/0E=",
         "owner": "syvlorg",
         "repo": "rich",
-        "rev": "0c853cb68e8c7bb4ef0c339a0c5131888ea54a68",
+        "rev": "1eab50daa61033ac92bf1404aa738f1a66bb40e0",
         "type": "github"
       },
       "original": {

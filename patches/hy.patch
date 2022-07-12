@@ -1,0 +1,31 @@
+diff --git a/pkgs/development/python-modules/hy/default.nix b/pkgs/development/python-modules/hy/default.nix
+index a962f868..a84a95ac 100644
+--- a/pkgs/development/python-modules/hy/default.nix
++++ b/pkgs/development/python-modules/hy/default.nix
+@@ -16,18 +16,22 @@
+ 
+ buildPythonPackage rec {
+   pname = "hy";
+-  version = "1.0a4";
++  version = "0.24.0";
+   format = "setuptools";
+ 
+   disabled = pythonOlder "3.7";
+ 
+   src = fetchFromGitHub {
+-    owner = "hylang";
+-    repo = pname;
+-    rev = version;
+-    sha256 = "sha256-MBzp3jqBg/kH233wcgYYHc+Yg9GuOaBsXIfjFDihD1E=";
++      owner = "hylang";
++      repo = pname;
++      rev = version;
++      sha256 = "1s458ymd9g3s8k2ccc300jr4w66c7q3vhmhs9z3d3a4qg0xdhs9y";
+   };
+ 
++  postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'';
++
++  disabledTestPaths = [ "tests/test_bin.py" ];
++
+   # https://github.com/hylang/hy/blob/1.0a4/get_version.py#L9-L10
+   HY_VERSION = version;
