@@ -427,6 +427,7 @@
                                          ]);
             pyVersion = format: src: pyVersion' format (readFile "${src}/${if (format == "pyproject") then "pyproject.toml" else "setup.py"}");
             pyVersionSrc = src: pyVersion (if (elem "pyproject.toml" (dirCon.others src)) then "pyproject" else "setuptools") src;
+            pyVersionFlake = pname: lockfile: lockfile.nodes.${pname}.original.ref;
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
                 map (nv: nameValuePair nv.fst nv.snd) (let hasAttrs = any isAttrs values; in zipLists (
@@ -854,7 +855,7 @@
         mkXonsh = final: prev: pkglist: pname: let
             python3Packages = final.Python3.pkgs;
         in (prev.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
-            propagatedBuildInputs = j.filters.has.list [
+            propagatedBuildInputs = lib.j.filters.has.list [
                 pkglist
                 pname
                 (old.propagatedBuildInputs or [])
@@ -876,7 +877,7 @@
                 in j.foldToSet [
                     {
                         hy = final: update "hy" (old: with final.Python3.pkgs; rec {
-                            version = lockfile.nodes.hy.original.ref;
+                            version = j.pyVersionFlake "hy" lockfile;
                             HY_VERSION = version;
                             src = inputs.hy;
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
@@ -892,7 +893,7 @@
                             };
                         });
                         hyrule = final: update "hyrule" (old: rec {
-                            version = lockfile.nodes.hyrule.original.ref;
+                            version = j.pyVersionFlake "hyrule" lockfile;
                             src = inputs.hyrule;
                             postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
                         });
