@@ -852,7 +852,7 @@
             suffix = ".patch";
             files = true;
         };
-        mkXonsh = final: prev: pkglist: pname: let
+        mkXonsh' = final: prev: pkglist: pname: let
             python3Packages = final.Python3.pkgs;
         in (prev.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
             propagatedBuildInputs = lib.j.filters.has.list [
@@ -862,6 +862,7 @@
             ] python3Packages;
             disabledTestPaths = [ "tests/test_xonfig.py" ] ++ (old.disabledTestPaths or []);
         });
+        mkXonsh = pkgs: mkXonsh pkgs pkgs;
         overlayset = with lib; let
             calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
             overlay = final: prev: { inherit (calledPackages) settings; };
@@ -952,7 +953,7 @@
                     ) pkglist
                 ) pkgsets)
                 {
-                    xonsh = final: prev: { xonsh = mkXonsh final [] null; };
+                    xonsh = final: prev: { xonsh = mkXonsh' final prev [] null; };
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
                     emacs = inputs.emacs.overlay;
@@ -1686,7 +1687,7 @@
             overlayset
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkXonsh; }
+            { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh; }
         ];
         make = system: overlays: with lib; rec {
             config' = rec {

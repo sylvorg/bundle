@@ -1303,7 +1303,7 @@ poetry2setup:
         (eachSystem allSystems (system: let
             made = settings.make system (attrValues overlayset.overlays);
             python = made.mkPython made.pkgs.Python3 [] pname;
-            xonsh = settings.mkXonsh made.pkgs made.pkgs [] pname;
+            xonsh = settings.mkXonsh made.pkgs [] pname;
             hy = made.mkHy [] pname;
         in rec {
             inherit (made) legacyPackages pkgs nixpkgs;
