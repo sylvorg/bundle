@@ -860,7 +860,6 @@
                 pname
                 (old.propagatedBuildInputs or [])
             ] python3Packages;
-            disabledTestPaths = [ "tests/test_xonfig.py" ] ++ (old.disabledTestPaths or []);
         });
         mkXonsh = pkgs: mkXonsh' pkgs pkgs;
         overlayset = with lib; let
