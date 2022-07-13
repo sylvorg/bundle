@@ -828,9 +828,9 @@
             suffix = ".patch";
             files = true;
         };
-        mkXonsh = pkgs: pkglist: pname: let
-            python3Packages = pkgs.Python3.pkgs;
-        in (pkgs.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
+        mkXonsh = final: prev: pkglist: pname: let
+            python3Packages = final.Python3.pkgs;
+        in (prev.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
             propagatedBuildInputs = j.filters.has.list [
                 pkglist
                 pname
@@ -1756,7 +1756,7 @@
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
                     makefile = mkShell {
-                        buildInputs = [ settings yq ];
+                        buildInputs = buildInputs.envrc ++ [ poetry2setup yq ];
                         shellHook = ''
                             echo $PATH
                             exit
