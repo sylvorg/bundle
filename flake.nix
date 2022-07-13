@@ -862,7 +862,7 @@
             ] python3Packages;
             disabledTestPaths = [ "tests/test_xonfig.py" ] ++ (old.disabledTestPaths or []);
         });
-        mkXonsh = pkgs: mkXonsh pkgs pkgs;
+        mkXonsh = pkgs: mkXonsh' pkgs pkgs;
         overlayset = with lib; let
             calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
             overlay = final: prev: { inherit (calledPackages) settings; };
