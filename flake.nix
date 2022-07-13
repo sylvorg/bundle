@@ -852,14 +852,18 @@
             suffix = ".patch";
             files = true;
         };
-        mkXonsh' = final: prev: pkglist: pname: let
+        mkXonsh' = with lib; final: prev: pkglist: pname: let
             python3Packages = final.Python3.pkgs;
         in (prev.xonsh.override { inherit python3Packages; }).overrideAttrs (old: {
-            propagatedBuildInputs = lib.j.filters.has.list [
+            propagatedBuildInputs = j.filters.has.list [
                 pkglist
                 pname
                 (old.propagatedBuildInputs or [])
             ] python3Packages;
+            disabledTestPaths = flatten [
+                "tests/test_xonfig.py"
+                (old.disabledTestPaths or [])
+            ];
         });
         mkXonsh = pkgs: mkXonsh' pkgs pkgs;
         overlayset = with lib; let
