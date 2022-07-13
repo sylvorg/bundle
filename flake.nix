@@ -854,7 +854,7 @@
         };
         mkXonsh' = final: prev: pkglist: pname: let
             python3Packages = final.Python3.pkgs;
-        in (prev.xonsh.override { inherit python3Packages; }).overridePythonAttrs (old: {
+        in (prev.xonsh.override { inherit python3Packages; }).overrideAttrs (old: {
             propagatedBuildInputs = lib.j.filters.has.list [
                 pkglist
                 pname
