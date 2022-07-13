@@ -442,11 +442,11 @@
         "settings": []
       },
       "locked": {
-        "lastModified": 1657687495,
-        "narHash": "sha256-8x9BhW50ZCyeBTiy8NrNwPYJJ9QIpB5uMDuJJtqAH4c=",
+        "lastModified": 1657693136,
+        "narHash": "sha256-5r0H1bj8bClsPieL+Pi0B+zgnPthN01gJVaj9FuLI/o=",
         "owner": "syvlorg",
         "repo": "oreo",
-        "rev": "3ba84f00066419b6afee5d541884129abec4bbde",
+        "rev": "5497943c567aecf0e20e0e475794a9ddb78f4405",
         "type": "github"
       },
       "original": {
