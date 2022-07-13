@@ -38,12 +38,26 @@
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
 
-        pypkg-rich = {
+        py3pkg-rich = {
             url = github:syvlorg/rich;
             inputs.settings.follows = "";
         };
+        py3pkg-oreo = {
+            url = github:syvlorg/oreo;
+            inputs.settings.follows = "";
+        };
+
+        hy = {
+            url = github:hylang/hy/0.24.0;
+            flake = false;
+        };
+        hyrule = {
+            url = github:hylang/hyrule/0.2;
+            flake = false;
+        };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
+        lockfile = fromJSON (readFile ./flake.lock);
         channel = "nixos-22-05";
         registry = fromJSON ''
 {
@@ -403,7 +417,16 @@
                     };
                 };
             };
-
+            pyVersion' = format: string: if (format == "pyproject") then (fromTOML string).tool.poetry.version
+                                         else (pipe (splitString "\n" string) [
+                                             (filter (line: has.infix line [ "'version':" ''"version":'' ]))
+                                             head
+                                             (splitString "'")
+                                             naturalSort
+                                             head
+                                         ]);
+            pyVersion = format: src: pyVersion' format (readFile "${src}/${if (format == "pyproject") then "pyproject.toml" else "setup.py"}");
+            pyVersionSrc = src: pyVersion (if (elem "pyproject.toml" (dirCon.others src)) then "pyproject" else "setuptools") src;
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
                 map (nv: nameValuePair nv.fst nv.snd) (let hasAttrs = any isAttrs values; in zipLists (
@@ -846,20 +869,16 @@
             pythonOverlays = rec {
                 python2 = j.foldToSet [
                     (mapAttrs (pname: j.update.python.callPython.two { inherit pname; } pname) callPackages.python.two)
+                    (mapAttrs' (n: v: nameValuePair (removePrefix "py2pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "py2pkg-" n) inputs))
                 ];
                 python3 = let
                     update = j.update.python.package.three;
                 in j.foldToSet [
                     {
                         hy = final: update "hy" (old: with final.Python3.pkgs; rec {
-                            version = "0.24.0";
+                            version = lockfile.nodes.hy.original.ref;
                             HY_VERSION = version;
-                            src = final.fetchFromGitHub {
-                                owner = "hylang";
-                                repo = old.pname;
-                                rev = version;
-                                sha256 = "1s458ymd9g3s8k2ccc300jr4w66c7q3vhmhs9z3d3a4qg0xdhs9y";
-                            };
+                            src = inputs.hy;
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
                             disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
                             passthru = {
@@ -873,27 +892,26 @@
                             };
                         });
                         hyrule = final: update "hyrule" (old: rec {
-                            version = "0.2";
-                            src = final.fetchFromGitHub {
-                                owner = "hylang";
-                                repo = old.pname;
-                                rev = version;
-                                sha256 = "08w4q8s1hrnjqsqvs70adx90nqfij6iyyb4fzfffrrw2mwkf10gx";
-                            };
+                            version = lockfile.nodes.hyrule.original.ref;
+                            src = inputs.hyrule;
                             postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
                         });
                     }
                     (mapAttrs (pname: j.update.python.callPython.three { inherit pname; } pname) callPackages.python.three)
+                    (mapAttrs' (n: v: nameValuePair (removePrefix "py3pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "py3pkg-" n) inputs))
                 ];
                 python = python3;
                 xonsh = j.foldToSet [
                     (mapAttrs (pname: j.update.python.callPython.three { inherit pname; } pname) callPackages.python.xonsh)
+                    (mapAttrs' (n: v: nameValuePair (removePrefix "x3pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "x3pkg-" n) inputs))
                 ];
-                external = mapAttrs' (n: v: nameValuePair (removePrefix "pyapp-" (removePrefix "pypkg-" n)) v.overlay)
-                                     (filterAttrs (n: v: j.has.prefix n [ "pypkg-" "pyapp-" ] ) inputs);
             };
             overlays = j.foldToSet [
                 (attrValues pythonOverlays)
+                (mapAttrs' (n: v: nameValuePair (pipe n [
+                    (removePrefix "py2app-")
+                    (removePrefix "py3app-")
+                ]) v.overlay) (filterAttrs (n: v: j.has.prefix n [ "py2app-" "py3app-" ]) inputs))
                 nodeOverlays
                 calledPackages
                 (let pkgsets = {
@@ -1667,7 +1685,7 @@
             overlayset
             nixosModules
             templates
-            { inherit make lib channel registry profiles devices mkXonsh; }
+            { inherit make lib lockfile channel registry profiles devices mkXonsh; }
         ];
         make = system: overlays: with lib; rec {
             config' = rec {
