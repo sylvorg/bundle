@@ -138,7 +138,8 @@ push: commit
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    makefile = made.mkfile.general [] [] pname;
+                    makefile = made.mkfile.general [] pname;
+                    makefile-debug = made.mkdebugfile.general [] pname;
                 }
             ];
             devShell = devShells.default;

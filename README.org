@@ -1245,7 +1245,8 @@ push: commit
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    makefile = made.mkfile.general [] [] pname;
+                    makefile = made.mkfile.general [] pname;
+                    makefile-debug = made.mkdebugfile.general [] pname;
                 }
             ];
             devShell = devShells.default;
@@ -1332,6 +1333,7 @@ push: commit
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
                     makefile = made.mkfile.python3 [] [] pname;
+                    makefile-debug = made.mkdebugfile.python3 [] [] pname;
                 }
             ];
             devShell = devShells.default;

@@ -428,6 +428,13 @@
             pyVersion = format: src: pyVersion' format (readFile "${src}/${if (format == "pyproject") then "pyproject.toml" else "setup.py"}");
             pyVersionSrc = src: pyVersion (if (elem "pyproject.toml" (dirCon.others src)) then "pyproject" else "setuptools") src;
             pyVersionFlake = pname: lockfile: lockfile.nodes.${pname}.original.ref;
+            foldToShell = pkgs: envs: foldr (new: old: pkgs.mkShell {
+                buildInputs = new.buildInputs ++ old.buildInputs;
+                nativeBuildInputs = new.nativeBuildInputs ++ old.nativeBuildInputs;
+                propagatedBuildInputs = new.propagatedBuildInputs ++ old.propagatedBuildInputs;
+                propagatedNativeBuildInputs = new.propagatedNativeBuildInputs ++ old.propagatedNativeBuildInputs;
+                shellHook = new.shellHook + "\n" + old.shellHook;
+            }) (pkgs.mkShell {}) (filter isDerivation (flatten envs));
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
                 map (nv: nameValuePair nv.fst nv.snd) (let hasAttrs = any isAttrs values; in zipLists (
@@ -1737,13 +1744,8 @@
                     exit
                 '';
             };
-            mkfile = j.foldToSet [
-                {
-                    general = pkglist: pname: mkShell {
-                        buildInputs = buildInputs.makefile ++ [ pkgs.yq pkgs.${pname} ] ++ pkglist;
-                        shellHook = shellHooks.makefile;
-                    };
-                }
+            mkdebugfile = j.foldToSet [
+                { general = pkglist: pname: mkShell { buildInputs = buildInputs.makefile ++ [ pkgs.yq pkgs.${pname} ] ++ pkglist; }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
                         buildInputs.makefile
@@ -1761,6 +1763,10 @@
                     xonsh = mkXonsh pkgs;
                 })
             ];
+            mkfile = mapAttrs (n: v: j.foldToShell [
+                v
+                (pkgs.mkShell { shellHook = shellHooks.makefile; })
+            ]) mkdebugfile;
             withPackages = {
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);

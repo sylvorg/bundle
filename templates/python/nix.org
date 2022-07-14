@@ -148,6 +148,7 @@ push: commit
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
                     makefile = made.mkfile.python3 [] [] pname;
+                    makefile-debug = made.mkdebugfile.python3 [] [] pname;
                 }
             ];
             devShell = devShells.default;

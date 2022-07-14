@@ -518,6 +518,18 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
             pyVersionFlake = pname: lockfile: lockfile.nodes.${pname}.original.ref;
 #+end_src
 
+Adapted from [[https://gist.github.com/adisbladis/2a44cded73e048458a815b5822eea195][here]]:
+
+#+begin_src nix
+            foldToShell = pkgs: envs: foldr (new: old: pkgs.mkShell {
+                buildInputs = new.buildInputs ++ old.buildInputs;
+                nativeBuildInputs = new.nativeBuildInputs ++ old.nativeBuildInputs;
+                propagatedBuildInputs = new.propagatedBuildInputs ++ old.propagatedBuildInputs;
+                propagatedNativeBuildInputs = new.propagatedNativeBuildInputs ++ old.propagatedNativeBuildInputs;
+                shellHook = new.shellHook + "\n" + old.shellHook;
+            }) (pkgs.mkShell {}) (filter isDerivation (flatten envs));
+#+end_src
+
 #+begin_src nix
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
@@ -2288,13 +2300,8 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                     exit
                 '';
             };
-            mkfile = j.foldToSet [
-                {
-                    general = pkglist: pname: mkShell {
-                        buildInputs = buildInputs.makefile ++ [ pkgs.yq pkgs.${pname} ] ++ pkglist;
-                        shellHook = shellHooks.makefile;
-                    };
-                }
+            mkdebugfile = j.foldToSet [
+                { general = pkglist: pname: mkShell { buildInputs = buildInputs.makefile ++ [ pkgs.yq pkgs.${pname} ] ++ pkglist; }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
                         buildInputs.makefile
@@ -2312,6 +2319,10 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                     xonsh = mkXonsh pkgs;
                 })
             ];
+            mkfile = mapAttrs (n: v: j.foldToShell [
+                v
+                (pkgs.mkShell { shellHook = shellHooks.makefile; })
+            ]) mkdebugfile;
             withPackages = {
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
