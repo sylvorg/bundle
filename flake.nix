@@ -1726,6 +1726,14 @@
                 }
             ];
             app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name}"}"; };
+            mkPython = python: pkglist: pname: python.withPackages (j.filters.has.list [
+                pkglist
+                pname
+            ]);
+            mkHy = pkglist: pname: pkgs.Python3.pkgs.hy.withPackages (j.filters.has.list [
+                pkglist
+                pname
+            ]);
             buildInputs = with pkgs; rec {
                 envrc = [ git settings ];
                 makefile = envrc ++ [ poetry2setup ];

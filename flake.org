@@ -2286,7 +2286,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
 
 ~j.filters.has.list~ is an incomplete function; the general form of ~withPackages~ is ~(ppkgs: ...)~, filling in the ~attrs~ for ~j.filters.has.list~:
 
-#+begin_src
+#+begin_src nix
             mkPython = python: pkglist: pname: python.withPackages (j.filters.has.list [
                 pkglist
                 pname
