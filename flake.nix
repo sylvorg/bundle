@@ -778,6 +778,26 @@
                             license = lib.licenses.asl20;
                         };
                     };
+                    pytest-hylang = { lib, buildPythonPackage, fetchFromGitHub, pythonOlder, pytest, hy, py, pname }: let
+                        owner = "arjaz";
+                    in buildPythonPackage rec {
+                        preBuild = "cp ${hy.src}/conftest.py pytest_hylang/";
+                        version = "0.0.1";
+                        inherit pname;
+                        disabled = pythonOlder "3.7";
+                        src = fetchFromGitHub {
+                            inherit owner;
+                            repo = pname;
+                            rev = "fde2f326c4009844a9fe4bf1e7023d0b5b8200e5";
+                            sha256 = "0wnk7l34a6rxscpl9raxbqbpfwx50p1hafl7nzai2inq0qjffcqa";
+                        };
+                        propagatedBuildInputs = [ pytest hy py ];
+                        meta = with lib; {
+                            homepage = "https://github.com/${owner}/${pname}";
+                            description = "Pytest plugin to allow running tests written in hylang";
+                            license = licenses.mit;
+                        };
+                    };
                 };
                 xonsh = {
                     xontrib-readable-traceback = { lib, buildPythonPackage, fetchPypi, colorama, backtrace, pname }: buildPythonPackage rec {
@@ -892,6 +912,7 @@
                             HY_VERSION = version;
                             src = inputs.hy;
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
+                            disabledTests = [ "test_ellipsis" ] ++ (old.disabledTests or []);
                             disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
                             passthru = {
                                 tests.version = testers.testVersion {
@@ -1760,7 +1781,7 @@
                 })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = j.filters.has.list [ pname (mkXonsh pkgs ppkglist "yq") pkglist ] pkgs;
+                    buildInputs = j.filters.has.list [ pname (mkPython pkgs.Python3 ppkglist "yq") pkglist ] pkgs;
                 }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
@@ -1771,8 +1792,8 @@
                         ]) pname)
                     ];
                 }) {
-                    python2 = mkPython Python2;
-                    python3 = mkPython Python3;
+                    python2 = mkPython pkgs.Python2;
+                    python3 = mkPython pkgs.Python3;
                     hy = mkHy;
                     xonsh = mkXonsh pkgs;
                 })
