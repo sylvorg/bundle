@@ -429,10 +429,10 @@
             pyVersionSrc = src: pyVersion (if (elem "pyproject.toml" (dirCon.others src)) then "pyproject" else "setuptools") src;
             pyVersionFlake = pname: lockfile: lockfile.nodes.${pname}.original.ref;
             foldToShell = pkgs: envs: foldr (new: old: pkgs.mkShell {
-                buildInputs = new.buildInputs ++ old.buildInputs;
-                nativeBuildInputs = new.nativeBuildInputs ++ old.nativeBuildInputs;
-                propagatedBuildInputs = new.propagatedBuildInputs ++ old.propagatedBuildInputs;
-                propagatedNativeBuildInputs = new.propagatedNativeBuildInputs ++ old.propagatedNativeBuildInputs;
+                buildInputs = unique (flatten [ new.buildInputs old.buildInputs ]);
+                nativeBuildInputs = unique (flatten [ new.nativeBuildInputs old.nativeBuildInputs ]);
+                propagatedBuildInputs = unique (flatten [ new.propagatedBuildInputs old.propagatedBuildInputs ]);
+                propagatedNativeBuildInputs = unique (flatten [ new.propagatedNativeBuildInputs old.propagatedNativeBuildInputs ]);
                 shellHook = new.shellHook + "\n" + old.shellHook;
             }) (pkgs.mkShell {}) (filter isDerivation (flatten envs));
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
@@ -1748,14 +1748,16 @@
             };
             mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
-                (pkgs.mkShell { shellHook = shellHooks.makefile; })
+                (pkgs.mkShell {
+                    buildInputs = buildInputs.makefile;
+                    shellHook = shellHooks.makefile;
+                })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = buildInputs.makefile ++ [ pkgs.${pname} (mkXonsh pkgs ppkglist "yq") ] ++ pkglist;
+                    buildInputs = [ pkgs.${pname} (mkXonsh pkgs ppkglist "yq") ] ++ pkglist;
                 }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
-                        buildInputs.makefile-python
                         pkglist
                         (v (flatten [
                             ppkglist
