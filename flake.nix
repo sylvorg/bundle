@@ -1755,7 +1755,6 @@
                             "yq"
                         ]) pname)
                     ];
-                    shellHook = shellHooks.makefile;
                 }) {
                     python2 = mkPython Python2;
                     python3 = mkPython Python3;
