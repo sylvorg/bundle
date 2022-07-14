@@ -1739,16 +1739,23 @@
                 makefile = envrc ++ [ poetry2setup ];
             };
             shellHooks = {
-                makefile = ''
-                    echo $PATH
-                    exit
+                makefile = let
+                    input = readFile /dev/stdin;
+                in ''
+                    echo ${input}
+                    ${optionalString (input != "debug") "exit"}
                 '';
             };
-            mkdebugfile = j.foldToSet [
-                { general = pkglist: pname: mkShell { buildInputs = buildInputs.makefile ++ [ pkgs.yq pkgs.${pname} ] ++ pkglist; }; }
+            mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell [
+                (v ppkglist pkglist pname)
+                (pkgs.mkShell { shellHook = shellHooks.makefile; })
+            ]) (j.foldToSet [
+                { general = ppkglist: pkglist: pname: pkgs.mkShell {
+                    buildInputs = buildInputs.makefile ++ [ pkgs.${pname} (mkXonsh pkgs ppkglist "yq") ] ++ pkglist;
+                }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
-                        buildInputs.makefile
+                        buildInputs.makefile-python
                         pkglist
                         (v (flatten [
                             ppkglist
@@ -1761,17 +1768,7 @@
                     hy = mkHy;
                     xonsh = mkXonsh pkgs;
                 })
-            ];
-            mkfile = j.foldToSet [
-                { general = pkglist: pname: j.foldToShell [
-                    (mkdebugfile.general pkglist pname)
-                    (pkgs.mkShell { shellHook = shellHooks.makefile; })
-                ]; }
-                (mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
-                    (v ppkglist pkglist pname)
-                    (pkgs.mkShell { shellHook = shellHooks.makefile; })
-                ]) (filterAttrs (n: v: ! (elem n [ "general" ])) mkdebugfile))
-            ];
+            ]);
             withPackages = {
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);

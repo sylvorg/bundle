@@ -24,12 +24,7 @@
 #+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
 #! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
 #! nix-shell -i sh
-files="<<current-file()>>"
-if hash org-tangle 2> /dev/null; then
-    org-tangle $files
-else
-    chmod +x ./settings/bin/* && ./settings/bin/org-tangle $files || :
-fi
+org-tangle nix.org
 
 files="flake.nix"
 for file in files; do
@@ -37,50 +32,6 @@ for file in files; do
 done
 
 nix flake info &> /dev/null && use flake || use nix
-#+end_src
-
-* makefile
-:PROPERTIES:
-:header-args:makefile+: :noweb-ref makefile-12345678-1234-1234-1234-123456789abc
-:END:
-
-#+begin_src text :tangle (meq/tangle-path)
-<<makefile-12345678-1234-1234-1234-123456789abc>>
-#+end_src
-
-#+begin_src makefile
-.RECIPEPREFIX := |
-.DEFAULT_GOAL := test
-#+end_src
-
-Adapted from [[https://t-ravis.com/post/nix/nix-make/][here]]:
-
-#+begin_src makefile
-export PATH := $(shell nix-shell -E '(import ./.).devShells.$${builtins.currentSystem}.makefile' --show-trace)
-#+end_src
-
-Adapted from [[https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/][here]]:
-
-#+begin_src makefile
-mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
-mkfileDir := $(dir $(mkfilePath))
-#+end_src
-
-#+begin_src makefile
-tangle:
-|org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org $(mkfileDir)/README.org
-
-test: tangle
-|hy $(mkfileDir)/tests.hy
-
-poetry2setup:
-|poetry2setup > $(mkfileDir)/setup.py
-
-commit:
-|git -C $(mkfileDir) commit --allow-empty-message -am ""
-
-push: commit
-|git -C $(mkfileDir) push
 #+end_src
 
 * flake.nix
@@ -148,7 +99,6 @@ push: commit
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
                     makefile = made.mkfile.python3 [] [] pname;
-                    makefile-debug = made.mkdebugfile.python3 [] [] pname;
                 }
             ];
             devShell = devShells.default;
