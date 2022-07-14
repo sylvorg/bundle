@@ -1746,7 +1746,7 @@
                     ${optionalString (input != "debug") "exit"}
                 '';
             };
-            mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell [
+            mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
                 (pkgs.mkShell { shellHook = shellHooks.makefile; })
             ]) (j.foldToSet [
