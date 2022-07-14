@@ -778,22 +778,17 @@
                             license = lib.licenses.asl20;
                         };
                     };
-                    pytest-hylang = { lib, buildPythonPackage, fetchFromGitHub, pythonOlder, pytest, hy, py, pname }: let
-                        owner = "arjaz";
-                    in buildPythonPackage rec {
-                        preBuild = "cp ${hy.src}/conftest.py pytest_hylang/";
+                    pytest-hylang = { lib, buildPythonPackage, fetchPypi, pythonOlder, pytest, hy, py, pname }: buildPythonPackage rec {
                         version = "0.0.1";
                         inherit pname;
                         disabled = pythonOlder "3.7";
-                        src = fetchFromGitHub {
-                            inherit owner;
-                            repo = pname;
-                            rev = "fde2f326c4009844a9fe4bf1e7023d0b5b8200e5";
-                            sha256 = "0wnk7l34a6rxscpl9raxbqbpfwx50p1hafl7nzai2inq0qjffcqa";
+                        src = fetchPypi {
+                            inherit pname version;
+                            sha256 = "sha256-fCwOeLMm20zWrx9bXPC2MW2OqAmGhzDScalN5m/LRPs=";
                         };
-                        propagatedBuildInputs = [ pytest hy py ];
+                        buildInputs = [ pytest hy py ];
                         meta = with lib; {
-                            homepage = "https://github.com/${owner}/${pname}";
+                            homepage = "https://github.com/arjaz/${pname}";
                             description = "Pytest plugin to allow running tests written in hylang";
                             license = licenses.mit;
                         };
@@ -912,8 +907,8 @@
                             HY_VERSION = version;
                             src = inputs.hy;
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
+                            disabledTestPaths = [ "tests/resources" "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
                             disabledTests = [ "test_ellipsis" ] ++ (old.disabledTests or []);
-                            disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
                             passthru = {
                                 tests.version = testers.testVersion {
                                     package = hy;
