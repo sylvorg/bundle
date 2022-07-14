@@ -1763,7 +1763,7 @@
                     xonsh = mkXonsh pkgs;
                 })
             ];
-            mkfile = mapAttrs (n: v: j.foldToShell [
+            mkfile = mapAttrs (n: v: j.foldToShell pkgs [
                 v
                 (pkgs.mkShell { shellHook = shellHooks.makefile; })
             ]) mkdebugfile;

@@ -2319,7 +2319,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                     xonsh = mkXonsh pkgs;
                 })
             ];
-            mkfile = mapAttrs (n: v: j.foldToShell [
+            mkfile = mapAttrs (n: v: j.foldToShell pkgs [
                 v
                 (pkgs.mkShell { shellHook = shellHooks.makefile; })
             ]) mkdebugfile;
