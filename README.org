@@ -1059,8 +1059,7 @@ Adapted from [[https://www.systutorials.com/how-to-get-the-full-path-and-directo
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 
-export PATH := $(shell echo '$$PATH' |  nix-shell -E '(import ./.).devShells.$${builtins.currentSystem}.makefile' --show-trace)
-export PYTHONPATH := $(shell echo '$$PYTHONPATH' | nix-shell -E '(import ./.).devShells.$${builtins.currentSystem}.makefile' --show-trace)
+export PATH := $(shell nix-shell -E '(import ./.).devShells.$${builtins.currentSystem}.makefile' --show-trace)
 
 tangle:
 |org-tangle $(mkfileDir)/nix.org
@@ -1214,6 +1213,8 @@ nix flake info &> /dev/null && use flake || use nix
 #+begin_src makefile :tangle (meq/tangle-path)
 <<5de2420e-82fc-4925-9299-235328edd4fa>>
 
+export PYTHONPATH := $(shell nix-shell -E '(import ./.).devShells.$${builtins.currentSystem}.makefile-python' --show-trace)
+
 tangle-python: tangle
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
 
@@ -1297,7 +1298,8 @@ poetry2setup:
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    makefile = made.mkfile.python3 [] [] pname;
+                    makefile = made.mkfile.general [] [] pname;
+                    makefile-python = made.mkfile.python3 [] [] pname;
                 }
             ];
             devShell = devShells.default;

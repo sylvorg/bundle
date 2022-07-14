@@ -1739,18 +1739,24 @@
                 makefile = envrc ++ [ poetry2setup ];
             };
             shellHooks = {
-                makefile = let
-                    input = readFile /dev/stdin;
-                in ''
-                    echo ${input}
-                    ${optionalString (input != "debug") "exit"}
-                '';
+                makefile = lib.j.foldToSet [
+                    {
+                        general = ''
+                            echo $PATH
+                            exit
+                        '';
+                    }
+                    (genAttrs [ "python2" "python3" "hy" "xonsh" ] (python: ''
+                        echo $PYTHONPATH
+                        exit
+                    ''))
+                ];
             };
             mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
                 (pkgs.mkShell {
                     buildInputs = buildInputs.makefile;
-                    shellHook = shellHooks.makefile;
+                    shellHook = shellHooks.makefile.${n};
                 })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
