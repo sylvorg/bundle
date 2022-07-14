@@ -1763,10 +1763,16 @@
                     xonsh = mkXonsh pkgs;
                 })
             ];
-            mkfile = mapAttrs (n: v: j.foldToShell pkgs [
-                v
-                (pkgs.mkShell { shellHook = shellHooks.makefile; })
-            ]) mkdebugfile;
+            mkfile = j.foldToSet [
+                { general = pkglist: pname: j.foldToShell [
+                    (mkdebugfile.general pkglist pname)
+                    (pkgs.mkShell { shellHook = shellHooks.makefile; })
+                ]; }
+                (mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
+                    (v ppkglist pkglist pname)
+                    (pkgs.mkShell { shellHook = shellHooks.makefile; })
+                ]) (filterAttrs (n: v: ! (elem n [ "general" ])) mkdebugfile))
+            ];
             withPackages = {
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
