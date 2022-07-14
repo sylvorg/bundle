@@ -75,6 +75,12 @@ test: tangle
 
 poetry2setup:
 |poetry2setup > $(mkfileDir)/setup.py
+
+commit:
+|git -C $(mkfileDir) commit --allow-empty-message -am ""
+
+push: commit
+|git -C $(mkfileDir) push
 #+end_src
 
 * flake.nix
@@ -132,7 +138,7 @@ poetry2setup:
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) settings.buildInputs)
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    inherit (settings.devShells.${system}) makefile;
+                    makefile = made.mkfile.general [] [] pname;
                 }
             ];
             devShell = devShells.default;

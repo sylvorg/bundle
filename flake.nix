@@ -1727,6 +1727,37 @@
                 pkglist
                 pname
             ]);
+            buildInputs = with pkgs; rec {
+                envrc = [ git settings ];
+                makefile = envrc ++ [ poetry2setup yq ];
+            };
+            shellHooks = {
+                makefile = ''
+                    echo $PATH
+                    exit
+                '';
+            };
+            mkfile = j.foldToSet [
+                {
+                    general = pkglist: pname: mkShell {
+                        buildInputs = buildInputs.makefile ++ [ pkgs.${pname} ] ++ pkglist;
+                        shellHook = shellHooks.makefile;
+                    };
+                }
+                (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
+                    buildInputs = flatten [
+                        buildInputs.makefile
+                        pkglist
+                        (v ppkglist pname)
+                    ];
+                    shellHook = shellHooks.makefile;
+                }) {
+                    python2 = mkPython Python2;
+                    python3 = mkPython Python3;
+                    hy = mkHy;
+                    xonsh = mkXonsh pkgs;
+                })
+            ];
             withPackages = {
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
@@ -1769,22 +1800,12 @@
             apps = mapAttrs (n: made.app) packages;
             app = apps.default;
             defaultApp = app;
-            buildInputs = with pkgs; {
-                envrc = [ git settings ];
-            };
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) buildInputs)
                 (with pkgs; {
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
-                    makefile = mkShell {
-                        buildInputs = buildInputs.envrc ++ [ poetry2setup yq ];
-                        shellHook = ''
-                            echo $PATH
-                            exit
-                        '';
-                    };
                 })
             ];
             devShell = devShells.default;
