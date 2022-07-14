@@ -2280,7 +2280,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
             ]);
             buildInputs = with pkgs; rec {
                 envrc = [ git settings ];
-                makefile = envrc ++ [ poetry2setup yq ];
+                makefile = envrc ++ [ poetry2setup ];
             };
             shellHooks = {
                 makefile = ''
@@ -2291,7 +2291,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
             mkfile = j.foldToSet [
                 {
                     general = pkglist: pname: mkShell {
-                        buildInputs = buildInputs.makefile ++ [ pkgs.${pname} ] ++ pkglist;
+                        buildInputs = buildInputs.makefile ++ [ pkgs.yq pkgs.${pname} ] ++ pkglist;
                         shellHook = shellHooks.makefile;
                     };
                 }
@@ -2299,7 +2299,10 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                     buildInputs = flatten [
                         buildInputs.makefile
                         pkglist
-                        (v ppkglist pname)
+                        (v (flatten [
+                            ppkglist
+                            "yq"
+                        ]) pname)
                     ];
                     shellHook = shellHooks.makefile;
                 }) {

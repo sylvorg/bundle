@@ -1242,7 +1242,7 @@ push: commit
             defaultApp = app;
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) settings.buildInputs)
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
                     makefile = made.mkfile.general [] [] pname;
@@ -1328,7 +1328,7 @@ push: commit
             defaultApp = app;
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) settings.buildInputs)
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
                     makefile = made.mkfile.python3 [] [] pname;

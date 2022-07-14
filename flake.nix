@@ -1729,7 +1729,7 @@
             ]);
             buildInputs = with pkgs; rec {
                 envrc = [ git settings ];
-                makefile = envrc ++ [ poetry2setup yq ];
+                makefile = envrc ++ [ poetry2setup ];
             };
             shellHooks = {
                 makefile = ''
@@ -1740,7 +1740,7 @@
             mkfile = j.foldToSet [
                 {
                     general = pkglist: pname: mkShell {
-                        buildInputs = buildInputs.makefile ++ [ pkgs.${pname} ] ++ pkglist;
+                        buildInputs = buildInputs.makefile ++ [ pkgs.yq pkgs.${pname} ] ++ pkglist;
                         shellHook = shellHooks.makefile;
                     };
                 }
@@ -1748,7 +1748,10 @@
                     buildInputs = flatten [
                         buildInputs.makefile
                         pkglist
-                        (v ppkglist pname)
+                        (v (flatten [
+                            ppkglist
+                            "yq"
+                        ]) pname)
                     ];
                     shellHook = shellHooks.makefile;
                 }) {
