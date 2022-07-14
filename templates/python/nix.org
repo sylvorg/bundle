@@ -98,7 +98,7 @@ nix flake info &> /dev/null && use flake || use nix
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
                 {
                     default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    makefile = made.mkfile.general [] [] pname;
+                    makefile = made.mkfile.general [] [] null;
                     makefile-python = made.mkfile.python3 [] [] pname;
                 }
             ];

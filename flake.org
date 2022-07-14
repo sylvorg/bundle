@@ -2282,6 +2282,11 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 }
             ];
             app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name}"}"; };
+#+end_src
+
+~j.filters.has.list~ is an incomplete function; the general form of ~withPackages~ is ~(ppkgs: ...)~, filling in the ~attrs~ for ~j.filters.has.list~:
+
+#+begin_src
             mkPython = python: pkglist: pname: python.withPackages (j.filters.has.list [
                 pkglist
                 pname
@@ -2290,6 +2295,9 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 pkglist
                 pname
             ]);
+#+end_src
+
+#+begin_src nix
             buildInputs = with pkgs; rec {
                 envrc = [ git settings ];
                 makefile = envrc ++ [ poetry2setup ];
@@ -2316,7 +2324,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = [ pkgs.${pname} (mkXonsh pkgs ppkglist "yq") ] ++ pkglist;
+                    buildInputs = j.filters.has.list [ pname (mkXonsh pkgs ppkglist "yq") pkglist ] pkgs;
                 }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [

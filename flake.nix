@@ -1726,14 +1726,6 @@
                 }
             ];
             app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name}"}"; };
-            mkPython = python: pkglist: pname: python.withPackages (j.filters.has.list [
-                pkglist
-                pname
-            ]);
-            mkHy = pkglist: pname: pkgs.Python3.pkgs.hy.withPackages (j.filters.has.list [
-                pkglist
-                pname
-            ]);
             buildInputs = with pkgs; rec {
                 envrc = [ git settings ];
                 makefile = envrc ++ [ poetry2setup ];
@@ -1760,7 +1752,7 @@
                 })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = [ pkgs.${pname} (mkXonsh pkgs ppkglist "yq") ] ++ pkglist;
+                    buildInputs = j.filters.has.list [ pname (mkXonsh pkgs ppkglist "yq") pkglist ] pkgs;
                 }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [

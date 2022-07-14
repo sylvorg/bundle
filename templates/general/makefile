@@ -3,8 +3,9 @@
 
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
+realfileDir := $(realpath $(mkfileDir))
 
-export PATH := $(shell nix-shell -E '(import ./.).devShells.$${builtins.currentSystem}.makefile' --show-trace)
+export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace)
 
 tangle:
 |org-tangle $(mkfileDir)/nix.org
