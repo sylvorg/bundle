@@ -1774,7 +1774,7 @@
                 (pkgs.mkShell { buildInputs = buildInputs.makefile; })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = j.filters.has.list [ pname (mkPython pkgs.Python3 ppkglist buildInputs.makefile-python) pkglist ] pkgs;
+                    buildInputs = j.filters.has.list [ pname (mkPython pkgs.Python3 [ ppkglist buildInputs.makefile-python ] null) pkglist ] pkgs;
                 }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
