@@ -908,7 +908,7 @@
                             src = inputs.hy;
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
                             disabledTestPaths = [ "tests/resources" "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
-                            disabledTests = [ "test_ellipsis" ] ++ (old.disabledTests or []);
+                            disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
                             passthru = {
                                 tests.version = testers.testVersion {
                                     package = hy;
