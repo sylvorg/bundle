@@ -1753,6 +1753,7 @@
             buildInputs = with pkgs; rec {
                 envrc = [ git settings ];
                 makefile = envrc ++ [ poetry2setup ];
+                makefile-python = [ "yq" "pytest" "pytest-hylang" "pytest-randomly" ];
             };
             shellHooks = {
                 makefile = lib.j.foldToSet [
@@ -1768,22 +1769,19 @@
                     ''))
                 ];
             };
-            mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
+            mkshellfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
-                (pkgs.mkShell {
-                    buildInputs = buildInputs.makefile;
-                    shellHook = shellHooks.makefile.${n};
-                })
+                (pkgs.mkShell { buildInputs = buildInputs.makefile; })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = j.filters.has.list [ pname (mkPython pkgs.Python3 ppkglist "yq") pkglist ] pkgs;
+                    buildInputs = j.filters.has.list [ pname (mkPython pkgs.Python3 ppkglist buildInputs.makefile-python) pkglist ] pkgs;
                 }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
                         pkglist
                         (v (flatten [
                             ppkglist
-                            "yq"
+                            buildInputs.makefile-python
                         ]) pname)
                     ];
                 }) {
@@ -1793,6 +1791,14 @@
                     xonsh = mkXonsh pkgs;
                 })
             ]);
+            mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
+                (v ppkglist pkglist pname)
+                (pkgs.mkShell { shellHook = shellHooks.makefile.${n}; })
+            ]) mkshellfile;
+            mkboth = type: ppkglist: pkglist: pname: {
+                makefile = mkfile.${type} ppkglist pkglist pname;
+                makeshell = mkshellfile.${type} ppkglist pkglist pname;
+            };
             withPackages = {
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);

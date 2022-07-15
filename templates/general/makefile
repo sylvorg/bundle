@@ -10,7 +10,10 @@ export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builti
 tangle:
 |org-tangle $(mkfileDir)/nix.org
 
-commit:
+add:
+|git add .
+
+commit: add
 |git -C $(mkfileDir) commit --allow-empty-message -am ""
 
 push: commit

@@ -10,7 +10,10 @@ export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builti
 tangle:
 |org-tangle $(mkfileDir)/nix.org
 
-commit:
+add:
+|git add .
+
+commit: add
 |git -C $(mkfileDir) commit --allow-empty-message -am ""
 
 push: commit
@@ -22,7 +25,7 @@ tangle-python: tangle
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
 
 test: tangle-python
-|hy $(mkfileDir)/tests.hy
+|pytest $(mkfileDir)
 
 poetry2setup:
 |poetry2setup > $(mkfileDir)/setup.py

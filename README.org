@@ -1047,6 +1047,15 @@ close TAG;
 
 * templates
 ** general
+*** .envrc
+
+#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
+#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
+#! nix-shell -i sh
+make tangle add
+nix flake info &> /dev/null && use flake || use nix
+#+end_src
+
 *** makefile
 
 Adapted from [[https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/][here]] and [[https://t-ravis.com/post/nix/nix-make/][here]]:
@@ -1065,7 +1074,10 @@ export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builti
 tangle:
 |org-tangle $(mkfileDir)/nix.org
 
-commit:
+add:
+|git add .
+
+commit: add
 |git -C $(mkfileDir) commit --allow-empty-message -am ""
 
 push: commit
@@ -1076,7 +1088,6 @@ push: commit
 :PROPERTIES:
 :header-args:nix+: :noweb-ref 8cafdd99-97cb-4714-8c18-36fcf8c7f319
 :header-args:org+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
-:header-args:shell+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
 :END:
 
 #+begin_src text :tangle (meq/tangle-path)
@@ -1115,22 +1126,6 @@ push: commit
   )
   { src = ./.; }
 ).defaultNix
-,#+end_src
-
-,* .envrc
-
-,#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#+end_src
-
-#+begin_src shell
-#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
-#! nix-shell -i sh
-org-tangle nix.org
-git add .
-nix flake info &> /dev/null && use flake || use nix
-#+end_src
-
-#+begin_src org
 ,#+end_src
 
 ,* flake.nix
@@ -1189,10 +1184,8 @@ nix flake info &> /dev/null && use flake || use nix
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                {
-                    default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    makefile = made.mkfile.general [] [] pname;
-                }
+                (made.mkboth general [] [] pname)
+                { default = pkgs.mkShell { buildInputs = attrValues packages; }; }
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
@@ -1204,6 +1197,15 @@ nix flake info &> /dev/null && use flake || use nix
 #+end_src
 
 ** python
+*** .envrc
+
+#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
+#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
+#! nix-shell -i sh
+make tangle-python add
+nix flake info &> /dev/null && use flake || use nix
+#+end_src
+
 *** makefile
 
 #+begin_src makefile :tangle (meq/tangle-path)
@@ -1215,7 +1217,7 @@ tangle-python: tangle
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
 
 test: tangle-python
-|hy $(mkfileDir)/tests.hy
+|pytest $(mkfileDir)
 
 poetry2setup:
 |poetry2setup > $(mkfileDir)/setup.py
@@ -1292,11 +1294,9 @@ poetry2setup:
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                {
-                    default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    makefile = made.mkfile.general [] [] null;
-                    makefile-python = made.mkfile.python3 [] [] pname;
-                }
+                (made.mkboth general [] [] pname)
+                (made.mkboth python3 [] [] pname)
+                { default = pkgs.mkShell { buildInputs = attrValues packages; }; }
             ];
             devShell = devShells.default;
             defaultdevShell = devShell;
