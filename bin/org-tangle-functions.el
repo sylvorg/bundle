@@ -32,11 +32,16 @@ arguments and pop open the results in a preview buffer."
     (if (called-interactively-p 'any)
         (org-edit-src-code expanded (concat "*Org-Babel Preview " (buffer-name) "[ " lang " ]*"))
         expanded)))
+(defun meq/org-babel-expand (&optional _arg datum info params)
+    (condition-case nil
+        (meq/org-babel-expand-src-block _arg datum info params)
+    (error (org-babel-expand-noweb-references))))
+
 (defun meq/get-header nil (interactive) (nth 4 (org-heading-components)))
 (defun meq/get-theme-from-header nil (interactive) (s-chop-suffix "-theme.el" (meq/get-header)))
 
 (defun meq/tangle-multi (dont-check-car &rest paths) (interactive)
-    (let* ((body (meq/org-babel-expand-src-block)))
+    (let* ((body (meq/org-babel-expand)))
         (mapc (lambda (path) (let* ((path (f-expand (substitute-in-file-name path)))
                                     (exists (f-exists? path)))
                                 (if exists
@@ -51,7 +56,7 @@ arguments and pop open the results in a preview buffer."
     (let* ((path (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) (meq/get-header))))
             (exists (f-exists? path)))
         (if exists
-            (if (string= (meq/org-babel-expand-src-block) (s-trim (f-read path))) "no" path)
+            (if (string= (meq/org-babel-expand) (s-trim (f-read path))) "no" path)
             path)))
 (defun meq/tangle-multipath (&rest paths) (interactive) (apply #'meq/tangle-multi t (add-to-list 'paths (meq/tangle-path))))
 (defun get-README (&optional return-link) (interactive)

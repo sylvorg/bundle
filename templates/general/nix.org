@@ -25,12 +25,7 @@
 #! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
 #! nix-shell -i sh
 org-tangle nix.org
-
-files="flake.nix"
-for file in files; do
-    [ -f "$file" ] && git add "$file" || :
-done
-
+git add .
 nix flake info &> /dev/null && use flake || use nix
 #+end_src
 
