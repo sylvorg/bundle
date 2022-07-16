@@ -30,7 +30,23 @@
       "original": {
         "owner": "nir0s",
         "repo": "backtrace",
-        "rev": "a1f75c956f669a6175088693802d5392e6bd7e51",
+        "type": "github"
+      }
+    },
+    "caddy": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1651854331,
+        "narHash": "sha256-Y4GAx/8XcW7+6eXCQ6k4e/3WZ/6MkTr5za1AXp6El9o=",
+        "owner": "caddyserver",
+        "repo": "caddy",
+        "rev": "f7be0ee10131f25620a2f64af7e3ded43eae2049",
+        "type": "github"
+      },
+      "original": {
+        "owner": "caddyserver",
+        "ref": "v2.5.1",
+        "repo": "caddy",
         "type": "github"
       }
     },
@@ -40,11 +56,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1657910668,
-        "narHash": "sha256-tIduaZblWdveLsvzaAJ8hAGe1xPVWan4OMHV6uACLZw=",
+        "lastModified": 1657966905,
+        "narHash": "sha256-hx93a72CpMs+Bdag02m9qpw0fwcekbu3Icf6v3c4rU4=",
         "owner": "nix-community",
         "repo": "emacs-overlay",
-        "rev": "adf225036341945726878b2fc3a761fcb38637db",
+        "rev": "91804f38a4d3c41914d579ac1cb6a35785405c14",
         "type": "github"
       },
       "original": {
@@ -224,7 +240,23 @@
       "original": {
         "owner": "frmdstryr",
         "repo": "magicattr",
-        "rev": "15ae93def3693661066624c9d760b26f6e205199",
+        "type": "github"
+      }
+    },
+    "mdsh": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1569109868,
+        "narHash": "sha256-l03BHDHjlhwRepVDW9FnKCAXZ8AC6pgHQdQJtYOP5fE=",
+        "owner": "bashup",
+        "repo": "mdsh",
+        "rev": "7e7af618a341eebd50e7825b062bc192079ad5fc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bashup",
+        "repo": "mdsh",
+        "rev": "7e7af618a341eebd50e7825b062bc192079ad5fc",
         "type": "github"
       }
     },
@@ -314,11 +346,11 @@
     },
     "nixos-master": {
       "locked": {
-        "lastModified": 1657956393,
-        "narHash": "sha256-SWiUfAOkH3tasFh69am+gul+HEDRDHbdCKO53c1rWJg=",
+        "lastModified": 1657993900,
+        "narHash": "sha256-Cdnb/YME+Z0kLwYDOFlsf/eZe5cvGajwhfpJqaZzRfU=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "38ca74efcb43772220850d0f6887dc611ec73172",
+        "rev": "79b472a984850fc540fbf74c0010df144c75b4e8",
         "type": "github"
       },
       "original": {
@@ -472,11 +504,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1657950073,
-        "narHash": "sha256-kB/0dVTYodZPc1zgkCNPtpnOz+eLFAF3TbCDN4sbyLM=",
+        "lastModified": 1657994331,
+        "narHash": "sha256-i5qotV+x5YqcngXD9ToZ1p3P314+aLissoDz5nAINNw=",
         "owner": "nix-community",
         "repo": "nur",
-        "rev": "e1ec899ce6527aef788dc7bbe11270f2e844aa4d",
+        "rev": "f6c60267e0434fde003f38fc9aab00ca5f73e3c3",
         "type": "github"
       },
       "original": {
@@ -499,6 +531,22 @@
         "owner": "icy",
         "ref": "v3.0.7",
         "repo": "pacapt",
+        "type": "github"
+      }
+    },
+    "poetry2setup": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1611423821,
+        "narHash": "sha256-JNqOBTEMxV2lvJFvIbgigBdx+R0u8Hs6hPwMOaM55x8=",
+        "owner": "abersheeran",
+        "repo": "poetry2setup",
+        "rev": "6d3345f488fda4d0f6eed1bd3438ea6207e55e3a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "abersheeran",
+        "repo": "poetry2setup",
         "type": "github"
       }
     },
@@ -548,12 +596,14 @@
       "inputs": {
         "autoslot": "autoslot",
         "backtrace": "backtrace",
+        "caddy": "caddy",
         "emacs": "emacs",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils_2",
         "hy": "hy",
         "hyrule": "hyrule",
         "magicattr": "magicattr",
+        "mdsh": "mdsh",
         "nix": "nix",
         "nixos-21-11": "nixos-21-11",
         "nixos-21-11-small": "nixos-21-11-small",
@@ -566,6 +616,7 @@
         "node2nix": "node2nix",
         "nur": "nur",
         "pacapt": "pacapt",
+        "poetry2setup": "poetry2setup",
         "py3pkg-oreo": "py3pkg-oreo",
         "py3pkg-rich": "py3pkg-rich",
         "sysget": "sysget"

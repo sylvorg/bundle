@@ -72,11 +72,23 @@
             flake = false;
         };
         magicattr = {
-            url = github:frmdstryr/magicattr/15ae93def3693661066624c9d760b26f6e205199;
+            url = github:frmdstryr/magicattr;
             flake = false;
         };
         backtrace = {
-            url = github:nir0s/backtrace/a1f75c956f669a6175088693802d5392e6bd7e51;
+            url = github:nir0s/backtrace;
+            flake = false;
+        };
+        mdsh = {
+            url = github:bashup/mdsh/7e7af618a341eebd50e7825b062bc192079ad5fc;
+            flake = false;
+        };
+        caddy = {
+            url = github:caddyserver/caddy/v2.5.1;
+            flake = false;
+        };
+        poetry2setup = {
+            url = github:abersheeran/poetry2setup;
             flake = false;
         };
     };
@@ -489,9 +501,10 @@
             };
             pyVersion' = format: string: if (format == "pyproject") then (fromTOML string).tool.poetry.version
                                          else (pipe (splitString "\n" string) [
-                                             (filter (line: has.infix line [ "'version':" ''"version":'' ]))
+                                             (filter (line: has.infix line [ "'version':" ''"version":'' "version=" "version =" ]))
                                              head
                                              (splitString "'")
+                                             (splitString "\"")
                                              naturalSort
                                              head
                                          ]);
@@ -578,11 +591,9 @@
                 '';
                 meta.mainprogram = "org-tangle";
             };
-            sysget = { stdenv, fetchFromGitHub, installShellFiles, pname }: let
-                owner = "emilengler";
-            in stdenv.mkDerivation rec {
+            sysget = { stdenv, fetchFromGitHub, installShellFiles, pname }: stdenv.mkDerivation rec {
                 inherit pname;
-                version = j.inputVersion pname lockfile;
+                inherit (Inputs.${pname}) version;
                 src = inputs.sysget;
                 buildInputs = [ installShellFiles ];
                 nativeBuildInputs = buildInputs;
@@ -594,15 +605,13 @@
                 '';
                 meta = {
                     description = "One package manager to rule them all";
-                    homepage = "https://github.com/${owner}/${pname}";
+                    homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                     license = licenses.gpl3;
                 };
             };
-            pacapt = { stdenv, fetchFromGitHub, pname }: let
-                owner = "icy";
-            in stdenv.mkDerivation rec {
+            pacapt = { stdenv, fetchFromGitHub, pname }: stdenv.mkDerivation rec {
                 inherit pname;
-                version = inputVersion pname lockfile;
+                inherit (Inputs.${pname}) version;
                 src = inputs.pacapt;
                 installPhase = ''
                     mkdir --parents $out/bin
@@ -611,7 +620,7 @@
                 '';
                 meta = {
                     description = "An ArchLinux's pacman-like shell wrapper for many package managers. 56KB and run anywhere.";
-                    homepage = "https://github.com/${owner}/${pname}";
+                    homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                 };
             };
             flk = { stdenv, fetchgit, pname }: let
@@ -640,59 +649,49 @@
             in stdenv.mkDerivation rec {
                 inherit pname;
                 version = "1.0.0.0";
-                src = fetchFromGitHub {
-                    inherit owner;
-                    repo = pname;
-                    rev = "7e7af618a341eebd50e7825b062bc192079ad5fc";
-                    sha256 = "1wg5iy1va2fl843rish2q1kif818cz8mnhwmg88ir5p364fc2kcp";
-                };
+                src = inputs.mdsh;
                 installPhase = ''
                     mkdir --parents $out/bin
                     cp $src/bin/${pname} $out/bin/
                 '';
                 meta = {
                     description = "Multi-lingual, Markdown-based Literate Programming... in run-anywhere bash";
-                    homepage = "https://github.com/${owner}/${pname}";
+                    homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                     license = licenses.mit;
                 };
             };
             caddy = { fetchFromGitHub, buildGoModule, pname }: let
                 imports = concatMapStrings (pkg: "\t\t\t_ \"${pkg}\"\n") [
-                    "github.com/mholt/caddy-l4@latest"
-                    "github.com/abiosoft/caddy-yaml@latest"
-                    "github.com/caddy-dns/cloudflare@latest"
+                    "github.com/mholt/${pname}-l4@latest"
+                    "github.com/abiosoft/${pname}-yaml@latest"
+                    "github.com/${pname}-dns/cloudflare@latest"
                 ];
                 main = ''
                     package main
 
                     import (
-                        caddycmd "github.com/caddyserver/caddy/v2/cmd"
-                        _ "github.com/caddyserver/caddy/v2/modules/standard"
+                        ${pname}cmd "github.com/caddyserver/${pname}/v2/cmd"
+                        _ "github.com/caddyserver/${pname}/v2/modules/standard"
                         ${imports}
                     )
 
                     func main() {
-                        caddycmd.Main()
+                        ${pname}cmd.Main()
                     }
                 '';
             in buildGoModule rec {
                 inherit pname;
-                version = "2.5.1";
+                inherit (Inputs.${pname}) version;
                 proxyVendor = true;
                 subPackages = [ "cmd/caddy" ];
-                src = fetchFromGitHub {
-                    owner = "caddyserver";
-                    repo = pname;
-                    rev = "v${version}";
-                    sha256 = "1nlphjg5wh5drpwkm4cczrkxdzbv72ll7hp5x7z6ww8pzz3q10b3";
-                };
+                src = inputs.caddy;
                 doCheck = false;
                 vendorSha256 = "sha256-xu3klc9yb4Ws8fvXRV286IDhi/zQVN1PKCiFKb8VJBo=";
                 overrideModAttrs = (_: {
-                    preBuild    = "echo '${main}' > cmd/caddy/main.go";
+                    preBuild    = "echo '${main}' > cmd/${pname}/main.go";
                     postInstall = "cp go.sum go.mod $out/";
                 });
-                postPatch = "echo '${main}' > cmd/caddy/main.go";
+                postPatch = "echo '${main}' > cmd/${pname}/main.go";
                 postConfigure = ''
                     cp vendor/go.sum ./
                     cp vendor/go.mod ./
@@ -708,12 +707,12 @@
                 inherit pname;
                 version = "1.0.0";
                 src = fetchurl {
-                url = "https://ftp.gnu.org/gnu/guix/guix-binary-${version}.${stdenv.targetPlatform.system}.tar.xz";
-                sha256 = {
-                    "x86_64-linux" = "11y9nnicd3ah8dhi51mfrjmi8ahxgvx1mhpjvsvdzaz07iq56333";
-                    "i686-linux" = "14qkz12nsw0cm673jqx0q6ls4m2bsig022iqr0rblpfrgzx20f0i";
-                    "aarch64-linux" = "0qzlpvdkiwz4w08xvwlqdhz35mjfmf1v3q8mv7fy09bk0y3cwzqs";
-                    }."${stdenv.targetPlatform.system}";
+                    url = "https://ftp.gnu.org/gnu/guix/guix-binary-${version}.${stdenv.targetPlatform.system}.tar.xz";
+                    sha256 = {
+                        "x86_64-linux" = "11y9nnicd3ah8dhi51mfrjmi8ahxgvx1mhpjvsvdzaz07iq56333";
+                        "i686-linux" = "14qkz12nsw0cm673jqx0q6ls4m2bsig022iqr0rblpfrgzx20f0i";
+                        "aarch64-linux" = "0qzlpvdkiwz4w08xvwlqdhz35mjfmf1v3q8mv7fy09bk0y3cwzqs";
+                        }."${stdenv.targetPlatform.system}";
                 };
                 sourceRoot = ".";
                 outputs = [ "out" "store" "var" ];
@@ -742,20 +741,11 @@
             };
             poetry2setup = { lib, Python, fetchFromGitHub, gawk, pname }: Python.pkgs.buildPythonApplication rec {
                 inherit pname;
-                version = "1.0.0";
+                version = j.pyVersion format src;
                 format = "pyproject";
-
-                src = fetchFromGitHub {
-                    owner = "abersheeran";
-                    repo = pname;
-                    rev = "6d3345f488fda4d0f6eed1bd3438ea6207e55e3a";
-                    sha256 = "07z776ikj37whhx7pw1f3pwp25w04aw22vwipjjmvi8c642qxni4";
-                };
-
+                src = inputs.poetry2setup;
                 propagatedBuildInputs = with Python.pkgs; [ poetry-core ];
-
                 buildInputs = with Python.pkgs; [ poetry-core ];
-
                 installPhase = ''
                     mkdir --parents $out/bin
                     cp $src/${pname}.py $out/bin/${pname}
@@ -764,12 +754,10 @@
                 '';
 
                 postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-
                 makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${Python.pkgs.python.libPrefix}/site-packages" ];
-
                 meta = {
                     description = "Convert python-poetry(pyproject.toml) to setup.py.";
-                    homepage = "https://github.com/abersheeran/${pname}";
+                    homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                     license = licenses.mit;
                 };
             };
@@ -818,7 +806,7 @@
                     };
                     magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, pname }: buildPythonPackage rec {
                         inherit pname;
-                        version = "0.1.6";
+                        version = j.pyVersionSrc src;
                         src = inputs.${pname};
                         doCheck = false;
                         pythonImportsCheck = [ pname ];
@@ -830,7 +818,7 @@
                     };
                     backtrace = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, colorama, pname }: buildPythonPackage rec {
                         inherit pname;
-                        version = "0.2.1";
+                        version = j.pyVersionSrc src;
                         src = inputs.${pname};
                         propagatedBuildInputs = [ colorama ];
                         checkInputs = [ pytestCheckHook ];
@@ -953,7 +941,7 @@
                 in j.foldToSet [
                     {
                         hy = final: update "hy" (old: rec {
-                            version = j.inputVersion "hy" lockfile;
+                            inherit (Inputs.${pname}) version;
                             HY_VERSION = version;
                             src = inputs.hy;
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
@@ -971,7 +959,7 @@
                             };
                         });
                         hyrule = final: update "hyrule" (old: rec {
-                            version = j.inputVersion "hyrule" lockfile;
+                            inherit (Inputs.${pname}) version;
                             src = inputs.hyrule;
                             postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
                         });
