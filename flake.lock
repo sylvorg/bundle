@@ -626,11 +626,11 @@
         "settings": []
       },
       "locked": {
-        "lastModified": 1658010922,
-        "narHash": "sha256-1yJPTw45pP7QPEmlu44Yre44t1B+9S8D+4v7XPUnPTY=",
+        "lastModified": 1658011092,
+        "narHash": "sha256-6cPJa6KeFfRU3uL6FFY2EJY8JtMaiEHNzQXw5o66xic=",
         "owner": "syvlorg",
         "repo": "pytest-hy",
-        "rev": "060b424e6912f5aafee5196195ba76a8268ebf2e",
+        "rev": "4ae300b53376ec87c350b5d007c039dddc48904d",
         "type": "github"
       },
       "original": {
@@ -647,11 +647,11 @@
         "settings": []
       },
       "locked": {
-        "lastModified": 1658010173,
-        "narHash": "sha256-VkKsdtg6dlfEWNI9wH/Y+KTVCflzWcGZ1YEbqEelzRM=",
+        "lastModified": 1658011404,
+        "narHash": "sha256-rD7C65yj9lQPojBRB3O+/efwUgCNC5FYlASO0fPfvSw=",
         "owner": "syvlorg",
         "repo": "rich",
-        "rev": "597ac8756dfc691704c0eb458db6145103b0f4e3",
+        "rev": "d64fd22725695090f9d01d29a776c08f6bbcd6ad",
         "type": "github"
       },
       "original": {
