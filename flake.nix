@@ -38,14 +38,14 @@
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
 
-        # py3pkg-rich = {
-        #     url = github:syvlorg/rich;
-        #     inputs.settings.follows = "";
-        # };
-        # py3pkg-oreo = {
-        #     url = github:syvlorg/oreo;
-        #     inputs.settings.follows = "";
-        # };
+        py3pkg-rich = {
+            url = github:syvlorg/rich;
+            inputs.settings.follows = "";
+        };
+        py3pkg-oreo = {
+            url = github:syvlorg/oreo;
+            inputs.settings.follows = "";
+        };
         py3pkg-pytest-hy = {
             url = github:syvlorg/pytest-hy;
             inputs.settings.follows = "";
