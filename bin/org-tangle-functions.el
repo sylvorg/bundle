@@ -61,7 +61,7 @@ arguments and pop open the results in a preview buffer."
 (defun meq/tangle-multipath (&rest paths) (interactive) (apply #'meq/tangle-multi t (add-to-list 'paths (meq/tangle-path))))
 (defun get-README (&optional return-link) (interactive)
     (let* ((README (f-join "settings" "README.org"))
-        (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"(import ./.).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
+        (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"with builtins; ((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
         (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
         (repo-README (f-expand README))
         (home-README (f-expand (f-join "~" README)))

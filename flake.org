@@ -83,7 +83,18 @@
             url = github:icy/pacapt/v3.0.7;
             flake = false;
         };
-
+        autoslot = {
+            url = github:cjrh/autoslot/v2021.10.1;
+            flake = false;
+        };
+        magicattr = {
+            url = github:frmdstryr/magicattr/15ae93def3693661066624c9d760b26f6e205199;
+            flake = false;
+        };
+        backtrace = {
+            url = github:nir0s/backtrace/a1f75c956f669a6175088693802d5392e6bd7e51;
+            flake = false;
+        };
     };
 #+end_src
 
@@ -145,30 +156,54 @@
         '';
 #+end_src
 
-** Patch Nixpkgs Function
+** J
 
 #+begin_src nix
-        patch = {
-            nixpkgs = let
-                patches' = with patches; [ bcachefs-module ];
-            in {
-                default = src: config: (import src config).applyPatches {
-                    name = "defaultPatches";
-                    inherit src;
-                    patches = patches';
+        J = with inputs.nixpkgs.lib; {
+            patch = {
+                nixpkgs = let
+                    patches' = with patches; [ bcachefs-module ];
+                in {
+                    default = src: config: (import src config).applyPatches {
+                        name = "defaultPatches";
+                        inherit src;
+                        patches = patches';
+                    };
+                    extras = src: config: patches: (import src config).applyPatches { name = "extraPatches"; inherit src patches; };
+                    both = src: config: patches: (import src config).applyPatches {
+                        name = "bothPatches";
+                        inherit src;
+                        patches = patches' ++ patches;
+                    };
                 };
-                extras = src: config: patches: (import src config).applyPatches { name = "extraPatches"; inherit src patches; };
-                both = src: config: patches: (import src config).applyPatches {
-                    name = "bothPatches";
-                    inherit src;
-                    patches = patches' ++ patches;
+                pkgs = {
+                    default = src: config: import (J.patch.nixpkgs.default src config) config;
+                    extras = src: config: patches: import (J.patch.nixpkgs.extras src config patches) config;
                 };
             };
-            pkgs = {
-                default = src: config: import (patch.nixpkgs.default src config) config;
-                extras = src: config: patches: import (patch.nixpkgs.extras src config patches) config;
+            foldToSet = list: foldr (new: old: new // old) {} (filter isAttrs (flatten list));
+            foldToSet' = list: foldr (new: old: recursiveUpdate new old) {} (filter isAttrs (flatten list));
+            fpipe = pipe-list: flip pipe (flatten pipe-list);
+            remove = rec {
+                base = func: fixes: J.fpipe (map func (sort (a: b: (length a) > (length b)) fixes));
+                prefix = base removePrefix;
+                suffix = base removeSuffix;
+                infix = base removeInfix;
             };
+            extendInputs = inputs': lockfile': (makeExtensible (_: inputs')).extend (final: prev: recursiveUpdate prev (mapAttrs (n: v: let
+                vo = v.original or { ref = null; };
+            in J.foldToSet [
+                (v.locked or {})
+                vo
+                { version = J.remove.prefix [ "v" ] vo.ref; }
+            ]) lockfile'.nodes));
         };
+#+end_src
+
+** Extending inputs
+
+#+begin_src nix
+        Inputs = J.extendInputs inputs lockfile;
 #+end_src
 
 ** Lib
@@ -176,7 +211,7 @@
 With help from [[Henrik Lissner / hlissner][https://github.com/hlissner/dotfiles]]:
 
 #+begin_src nix
-        lib = inputs.nixpkgs.lib.extend (final: prev: { j = with final; makeExtensible (self: rec {
+        lib = inputs.nixpkgs.lib.extend (final: prev: { j = with final; makeExtensible (self: J // (rec {
 #+end_src
 
 Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/lib/attrsets.nix#L406][here]]:
@@ -210,8 +245,6 @@ These are kept separately so that they're easier to debug:
                 False = a: b: if (a != null) then b else false;
             };
             mapNullId = mapNullable id;
-            foldToSet = list: foldr (new: old: new // old) {} (filter isAttrs (flatten list));
-            foldToSet' = list: foldr (new: old: recursiveUpdate new old) {} (filter isAttrs (flatten list));
             readDirExists = dir: optionalAttrs (pathExists dir) (readDir dir);
             dirCon = let
                 ord = func: dir: filterAttrs func (if (isAttrs dir) then dir else (readDirExists dir));
@@ -238,7 +271,7 @@ These are kept separately so that they're easier to debug:
                 has = {
                     attrs = list: attrs: let
                         l = unique (flatten list);
-                    in foldToSet [
+                    in self.foldToSet [
                         (filterAttrs (n: v: elem n l) attrs)
                         (genAttrNames (filter isDerivation l) (drv: drv.pname or drv.name))
                     ];
@@ -352,7 +385,7 @@ These are kept separately so that they're easier to debug:
                     base-file = baseNameOf (toString file);
                 in if (isInt suffix) then (let
                     hidden = hasPrefix "." base-file;
-                    split-file = lib.remove "" (splitString "." base-file);
+                    split-file = remove "" (splitString "." base-file);
                 in if (hidden && ((length split-file) == 1)) then base-file
                 else concatStringsSep "." (take ((length split-file) - suffix) split-file)) else (removeSuffix suffix base-file);
                 list = args@{
@@ -411,19 +444,19 @@ These are kept separately so that they're easier to debug:
                         pipe-list = flatten [
                             (mapAttrNames (n: v: pipe "${removePrefix stringyDir stringDir}/${n}" [
                                 (splitString "/")
-                                (lib.remove "")
+                                (remove "")
                                 (concatStringsSep "/")
                             ]))
                             pre-orders
                         ];
                         items = let
-                            filtered-others = pipe (dirCon.attrs.others dir) pipe-list;
-                            filtered-dirs = pipe (dirCon.attrs.dirs dir) (flatten [
+                            filtered-others = self.fpipe pipe-list (dirCon.attrs.others dir);
+                            filtered-dirs = self.fpipe [
                                 pipe-list
                                 (optionals recursive (mapAttrsToList (n: v: list (args // { dir = "${stringyDir}/${n}"; inherit idir; iter = iter + 1; }))))
-                            ]);
-                        in foldToSet [ filtered-others filtered-dirs ];
-                        process = s: pipe s (flatten [
+                            ] (dirCon.attrs.dirs dir);
+                        in self.foldToSet [ filtered-others filtered-dirs ];
+                        process = self.fpipe [
                             pipe-list
                             orders
                             (if names then (mapAttrNames (file: v: name { inherit suffix file; })) else [
@@ -435,7 +468,7 @@ These are kept separately so that they're easier to debug:
                                 (mapAttrNames (n: v: (file.prefix.post or "") + n + (file.suffix or "")))
                             ])
                             attrNames
-                        ]);
+                        ];
                     in if (iter == 0) then (process items) else items;
                 in flatten (map func (toList dir));
                 set = args@{
@@ -486,7 +519,7 @@ Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/53
                             packageOverrides = composeExtensions (super.packageOverrides or (_: _: {})) (new: old: pattrs);
                         }); };
                         python2 = base attrs.versions.python.python2;
-                        pytohn3 = base attrs.versions.python.python3;
+                        python3 = base attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
                         xonsh = python3;
@@ -572,15 +605,6 @@ Adapted from [[https://gist.github.com/adisbladis/2a44cded73e048458a815b5822eea1
 #+end_src
 
 #+begin_src nix
-            remove = rec {
-                base = func: fixes: flip pipe (map func (sort (a: b: (length a) > (length b)) fixes));
-                prefix = base removePrefix;
-                suffix = base removeSuffix;
-                infix = base removeInfix;
-            };
-            inputVersion = pname: lockfile: let
-                inherit (lockfile.nodes.${pname}.original) ref;
-            in remove.prefix [ "v" ] ref;
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
                 map (nv: nameValuePair nv.fst nv.snd) (let hasAttrs = any isAttrs values; in zipLists (
@@ -626,9 +650,7 @@ Adapted from [[https://gist.github.com/adisbladis/2a44cded73e048458a815b5822eea1
                 };
                 versionNames = mapAttrs (n: v: attrNames v) versions;
             };
-
-            inherit patch;
-        }); });
+        })); });
 #+end_src
 
 ** callPackages
@@ -960,7 +982,7 @@ All of these package derivations were generated by [[https://github.com/svanderb
 *** Python
 
 #+begin_src nix
-            python = {
+            python = rec {
 #+end_src
 
 **** Two
@@ -984,25 +1006,18 @@ All of these package derivations were generated by [[https://github.com/svanderb
 ***** autoslot
 
 #+begin_src nix
-                    autoslot = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit, pname }: let
-                        owner = "cjrh";
-                    in buildPythonPackage rec {
+                    autoslot = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit, pname }: buildPythonPackage rec {
                         inherit pname;
-                        version = "2021.10.1";
+                        inherit (Inputs.${pname}) version;
                         format = "pyproject";
-                        src = fetchFromGitHub {
-                            inherit owner;
-                            repo = pname;
-                            rev = "a36ea378136bc7dfdc11f3f950186f6ed8bee8c5";
-                            sha256 = "1dds9dwf5bqxi84s1fzcdykiqgcc1iq3rh6p76wjz6h7cb451h08";
-                        };
+                        src = inputs.${pname};
                         buildInputs = [ flit ];
                         nativeBuildInputs = buildInputs;
                         checkInputs = [ pytestCheckHook ];
                         pythonImportsCheck = [ pname ];
                         meta = {
                             description = "Automatic __slots__ for your Python classes";
-                            homepage = "https://github.com/${owner}/${pname}";
+                            homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                             license = lib.licenses.asl20;
                         };
                     };
@@ -1011,22 +1026,15 @@ All of these package derivations were generated by [[https://github.com/svanderb
 ***** magicattr
 
 #+begin_src nix
-                    magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, pname }: let
-                        owner = "frmdstryr";
-                    in buildPythonPackage rec {
+                    magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = "0.1.6";
-                        src = fetchFromGitHub {
-                            inherit owner;
-                            repo = pname;
-                            rev = "15ae93def3693661066624c9d760b26f6e205199";
-                            sha256 = "1pq1xrlaadkdic9xlig8rv97zkymqgbikparfrdpdfifj19md6ql";
-                        };
+                        src = inputs.${pname};
                         doCheck = false;
                         pythonImportsCheck = [ pname ];
                         meta = {
                             description = "A getattr and setattr that works on nested objects, lists, dicts, and any combination thereof without resorting to eval";
-                            homepage = "https://github.com/${owner}/${pname}";
+                            homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                             license = lib.licenses.mit;
                         };
                     };
@@ -1035,23 +1043,16 @@ All of these package derivations were generated by [[https://github.com/svanderb
 ***** backtrace
 
 #+begin_src nix
-                    backtrace = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, colorama, pname }: let
-                        owner = "nir0s";
-                    in buildPythonPackage rec {
+                    backtrace = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, colorama, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = "0.2.1";
-                        src = fetchFromGitHub {
-                            inherit owner;
-                            repo = pname;
-                            rev = "a1f75c956f669a6175088693802d5392e6bd7e51";
-                            sha256 = "1i3xj04zxz9vi57gbkmnnyh9cypf3bm966ic685s162p1xhnz2qp";
-                        };
+                        src = inputs.${pname};
                         propagatedBuildInputs = [ colorama ];
                         checkInputs = [ pytestCheckHook ];
                         pythonImportsCheck = [ pname ];
                         meta = {
                             description = "Makes Python tracebacks human friendly";
-                            homepage = "https://github.com/${owner}/${pname}";
+                            homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                             license = lib.licenses.asl20;
                         };
                     };
@@ -2294,7 +2295,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
             overlayset
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs; }
+            { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs Inputs; }
         ];
 #+end_src
 
@@ -2321,7 +2322,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 inherit (made) legacyPackages pkgs nixpkgs;
                 inherit made;
                 packages = flattenTree (if pythonTemplate then (j.foldToSet [
-                    (mapAttrNames (n: v: "${n}-${pname}") pythons)
+                    (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
                     { "${pname}" = pythons.${python}; default = pythons.${python}; }
                 ]) else {
                     default = pkgs.${pname};
@@ -2357,14 +2358,14 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 overlayed = default // { inherit overlays; };
             };
             nixpkgs' = {
-                base = patch.nixpkgs.default inputs.nixpkgs config'.base;
-                default = patch.nixpkgs.default inputs.nixpkgs config'.default;
-                overlayed = patch.nixpkgs.default inputs.nixpkgs config'.overlayed;
+                base = j.patch.nixpkgs.default inputs.nixpkgs config'.base;
+                default = j.patch.nixpkgs.default inputs.nixpkgs config'.default;
+                overlayed = j.patch.nixpkgs.default inputs.nixpkgs config'.overlayed;
             };
             pkgs' = {
-                base = patch.pkgs.default inputs.nixpkgs config'.base;
-                default = patch.pkgs.default inputs.nixpkgs config'.default;
-                overlayed = patch.pkgs.default inputs.nixpkgs config'.overlayed;
+                base = j.patch.pkgs.default inputs.nixpkgs config'.base;
+                default = j.patch.pkgs.default inputs.nixpkgs config'.default;
+                overlayed = j.patch.pkgs.default inputs.nixpkgs config'.overlayed;
             };
             pkgs = pkgs'.overlayed;
             legacyPackages = pkgs;
