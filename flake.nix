@@ -38,18 +38,18 @@
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
 
-        py3pkg-rich = {
-            url = github:syvlorg/rich;
-            inputs.settings.follows = "";
-        };
-        py3pkg-oreo = {
-            url = github:syvlorg/oreo;
-            inputs.settings.follows = "";
-        };
-        # py3pkg-pytest-hy = {
-        #     url = github:syvlorg/pytest-hy;
+        # py3pkg-rich = {
+        #     url = github:syvlorg/rich;
         #     inputs.settings.follows = "";
         # };
+        # py3pkg-oreo = {
+        #     url = github:syvlorg/oreo;
+        #     inputs.settings.follows = "";
+        # };
+        py3pkg-pytest-hy = {
+            url = github:syvlorg/pytest-hy;
+            inputs.settings.follows = "";
+        };
 
         hy = {
             url = github:hylang/hy/0.24.0;
@@ -458,7 +458,6 @@
                         python = python3;
                         hy = python3;
                         xonsh = python3;
-
                     };
                     callPython = rec {
                         base = pv: extrargs: name: pkg: final: update.python.python.base pv { "${name}" = final.${pv}.pkgs.callPackage pkg extrargs; };
@@ -499,12 +498,13 @@
                     };
                 };
             };
+            multiSplitString = splits: string: if splits == [] then string
+                                               else (remove "" (flatten (map (multiSplitString (init splits)) (splitString (last splits) string))));
             pyVersion' = format: string: if (format == "pyproject") then (fromTOML string).tool.poetry.version
                                          else (pipe (splitString "\n" string) [
                                              (filter (line: has.infix line [ "'version':" ''"version":'' "version=" "version =" ]))
                                              head
-                                             (splitString "'")
-                                             (splitString "\"")
+                                             (multiSplitString [ "'" "\"" ])
                                              naturalSort
                                              head
                                          ]);
@@ -1757,17 +1757,18 @@
             templates
             { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs Inputs; }
         ];
-        mkOutputs = with lib; { pname, callPackage ? null, python ? null, ... }: let
+        mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, python ? null, ... }: let
             pythonTemplate = let
                 mknames = j.attrs.versionNames.python;
             in j.mifNotNull.False python ((elem python mknames) || (abort "Sorry; the python names can only be of values [ ${concatStringsSep ", " mknames} ]!"));
             overlayset = let
-                default = if pythonTemplate then (j.update.python.callPython.${python} { inherit pname; } pname callPackage)
+                default = if (overlay != null) then overlay else
+                          if pythonTemplate then (j.update.python.callPython.${python} { inherit pname; } pname callPackage)
                           else (final: prev: { "${pname}" = final.callPackage callPackage {}; });
-            in rec {
+            in {
                 overlays = self.overlays // { inherit default; "${pname}" = default; };
-                overlay = overlays.default;
-                defaultOverlay = overlay;
+                overlay = default;
+                defaultOverlay = default;
             };
         in j.foldToSet [
             (eachSystem allSystems (system: let

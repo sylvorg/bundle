@@ -1050,7 +1050,7 @@ close TAG;
 *** .envrc
 
 #+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#! nix-shell -E "with builtins; ((builtins.getFlake or import) (toString ./.)).devShells.${currentSystem}.envrc"
+#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
 #! nix-shell -i sh
 make tangle add
 nix flake info &> /dev/null && use flake || use nix
@@ -1069,7 +1069,7 @@ mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
 
-export PATH := $(shell nix-shell -E 'with builtins; ((builtins.getFlake or import) (toString $(realfileDir))).devShells.$${currentSystem}.makefile' --show-trace)
+export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace)
 
 tangle:
 |org-tangle $(mkfileDir)/nix.org
@@ -1110,22 +1110,21 @@ push: commit
 ,* shell.nix
 
 ,#+begin_src nix :tangle (meq/tangle-path)
-with builtins; ((builtins.getFlake or import) (toString ./.)).devShell.${currentSystem}
+(import ./.).devShell.${builtins.currentSystem}
 ,#+end_src
 
 ,* default.nix
 
+Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
+
 ,#+begin_src nix :tangle (meq/tangle-path)
-(import
-  (
-    let lock = builtins.fromJSON (builtins.readFile ./flake.lock); in
-    fetchTarball {
-      url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
-      sha256 = lock.nodes.flake-compat.locked.narHash;
-    }
-  )
-  { src = ./.; }
-).defaultNix
+with builtins; if (builtins ? getFlake) then (getFlake (toString ./.)) else (import fetchTarball (let
+    lockExists = pathExists ./flake.lock;
+    lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.flake-compat.locked.rev = "master"; };
+in {
+    url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
+    ${if lockExists then "sha256" else null} = lock.nodes.flake-compat.locked.narHash;
+}) { src = ./.; }).defaultNix
 ,#+end_src
 
 ,* flake.nix
@@ -1172,7 +1171,7 @@ with builtins; ((builtins.getFlake or import) (toString ./.)).devShell.${current
 
 #+name: 911ea68f-c7d0-41d5-8a6d-c958290ec76d
 #+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#! nix-shell -E "with builtins; ((builtins.getFlake or import) (toString ./.)).devShells.${currentSystem}.envrc"
+#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
 #! nix-shell -i sh
 make tangle-python add
 nix flake info &> /dev/null && use flake || use nix
@@ -1184,7 +1183,7 @@ nix flake info &> /dev/null && use flake || use nix
 #+begin_src makefile :tangle (meq/tangle-path)
 <<5de2420e-82fc-4925-9299-235328edd4fa>>
 
-export PYTHONPATH := $(shell nix-shell -E 'with builtins; ((builtins.getFlake or import) (toString $(realfileDir))).devShells.$${currentSystem}.makefile-python' --show-trace)
+export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace)
 
 tangle-python: tangle
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
@@ -1302,25 +1301,22 @@ poetry2setup:
 
 * default.nix
 
-Taken from [[https://github.com/edolstra/flake-compat#usage][here]]:
+Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 
 #+begin_src nix :tangle (meq/tangle-path)
-(import
-  (
-    let lock = builtins.fromJSON (builtins.readFile ./flake.lock); in
-    fetchTarball {
-      url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
-      sha256 = lock.nodes.flake-compat.locked.narHash;
-    }
-  )
-  { src = ./.; }
-).defaultNix
+with builtins; if (builtins ? getFlake) then (getFlake (toString ./.)) else (import fetchTarball (let
+    lockExists = pathExists ./flake.lock;
+    lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.flake-compat.locked.rev = "master"; };
+in {
+    url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
+    ${if lockExists then "sha256" else null} = lock.nodes.flake-compat.locked.narHash;
+}) { src = ./.; }).defaultNix
 #+end_src
 
 * shell.nix
 
 #+begin_src nix :tangle (meq/tangle-path)
-with builtins; ((builtins.getFlake or import) (toString ./.)).devShell.${currentSystem}
+(import ./.).devShell.${builtins.currentSystem}
 #+end_src
 
 * .gitignore
@@ -1337,7 +1333,7 @@ package.json
 * .envrc
 
 #+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#! nix-shell -E "with builtins; ((builtins.getFlake or import) (toString ./.)).devShells.${currentSystem}.envrc"
+#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
 #! nix-shell -i sh
 org-tangle README.org flake.org
 git add .
@@ -8494,7 +8490,7 @@ arguments and pop open the results in a preview buffer."
 #+begin_src emacs-lisp
 (defun get-README (&optional return-link) (interactive)
     (let* ((README (f-join "settings" "README.org"))
-        (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"with builtins; ((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
+        (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
         (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
         (repo-README (f-expand README))
         (home-README (f-expand (f-join "~" README)))

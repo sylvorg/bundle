@@ -101,22 +101,6 @@
         "type": "github"
       }
     },
-    "flake-compat_3": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1650374568,
-        "narHash": "sha256-Z+s0J8/r907g149rllvwhb4pKi8Wam5ij0st8PwAh+E=",
-        "owner": "edolstra",
-        "repo": "flake-compat",
-        "rev": "b4a34015c698c7793d592d66adbab377907a2be8",
-        "type": "github"
-      },
-      "original": {
-        "owner": "edolstra",
-        "repo": "flake-compat",
-        "type": "github"
-      }
-    },
     "flake-utils": {
       "locked": {
         "lastModified": 1656928814,
@@ -148,21 +132,6 @@
       }
     },
     "flake-utils_3": {
-      "locked": {
-        "lastModified": 1656928814,
-        "narHash": "sha256-RIFfgBuKz6Hp89yRr7+NR5tzIAbn52h8vT6vXkYjZoM=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "7e2a3b3dfd9af950a856d66b0a7d01e3c18aa249",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "flake-utils_4": {
       "locked": {
         "lastModified": 1656928814,
         "narHash": "sha256-RIFfgBuKz6Hp89yRr7+NR5tzIAbn52h8vT6vXkYjZoM=",
@@ -346,11 +315,11 @@
     },
     "nixos-master": {
       "locked": {
-        "lastModified": 1657998488,
-        "narHash": "sha256-BmenAkiAm32yQP5MrVDCTRDsYvFNNGjB0q/i2jShADY=",
+        "lastModified": 1658010285,
+        "narHash": "sha256-fntrIGmtvPuwQi3t8ePLMGnmqWWyLX0QQgoeGjGE5sQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "feeb878d42ed911c15da3e6031d8ef9b554cd259",
+        "rev": "099062bd368098303e3eebcb6d90bfc38c92372e",
         "type": "github"
       },
       "original": {
@@ -470,22 +439,6 @@
         "type": "github"
       }
     },
-    "nixpkgs_5": {
-      "locked": {
-        "lastModified": 1657815135,
-        "narHash": "sha256-+5Jby1ayRjtSgsM5IpRNeUgdcIutCKQWR6sypRtd1RE=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "c06d5fa9c605d143b15cafdbbb61c7c95388d76e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-22.05",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "node2nix": {
       "flake": false,
       "locked": {
@@ -504,11 +457,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1657995870,
-        "narHash": "sha256-2/fUvm6LsxTc8TVKrtmK8OKD7+vyZXVbRhhXVXdY7Os=",
+        "lastModified": 1658008283,
+        "narHash": "sha256-586jxQCYvDEhJP/FSxcN3JzEOe6/uUDauYQmnTbbX2Q=",
         "owner": "nix-community",
         "repo": "nur",
-        "rev": "abac27d496c6b3e62497351cc54c6d1df1ad6353",
+        "rev": "0080fd66c6f9aa9e40ecf7b854f1af8db7a15bff",
         "type": "github"
       },
       "original": {
@@ -550,7 +503,7 @@
         "type": "github"
       }
     },
-    "py3pkg-oreo": {
+    "py3pkg-pytest-hy": {
       "inputs": {
         "flake-compat": "flake-compat_2",
         "flake-utils": "flake-utils_3",
@@ -558,37 +511,16 @@
         "settings": []
       },
       "locked": {
-        "lastModified": 1657923094,
-        "narHash": "sha256-emIP+0Oz3JmvfqUzlMTzd8XSk8hPq0JAW1fjVbedbjU=",
+        "lastModified": 1658000780,
+        "narHash": "sha256-Ph/djM6JEdUCiP6B1Bbzn966XtsKY5y9T2HLzaERYBQ=",
         "owner": "syvlorg",
-        "repo": "oreo",
-        "rev": "9385c82cb07d6eea98006ceb892c7b96b46cc49a",
+        "repo": "pytest-hy",
+        "rev": "f1f6c2a6b0b5f69b70333650eefb33f0cce8a79b",
         "type": "github"
       },
       "original": {
         "owner": "syvlorg",
-        "repo": "oreo",
-        "type": "github"
-      }
-    },
-    "py3pkg-rich": {
-      "inputs": {
-        "flake-compat": "flake-compat_3",
-        "flake-utils": "flake-utils_4",
-        "nixpkgs": "nixpkgs_5",
-        "settings": []
-      },
-      "locked": {
-        "lastModified": 1657923106,
-        "narHash": "sha256-EO1GKqLWPy5NuAW7pnYEEwMMt6Ow9019oPJI1MENaJQ=",
-        "owner": "syvlorg",
-        "repo": "rich",
-        "rev": "ed8ce898a23a3838f048b387c9ba5b3a9d4c2223",
-        "type": "github"
-      },
-      "original": {
-        "owner": "syvlorg",
-        "repo": "rich",
+        "repo": "pytest-hy",
         "type": "github"
       }
     },
@@ -617,8 +549,7 @@
         "nur": "nur",
         "pacapt": "pacapt",
         "poetry2setup": "poetry2setup",
-        "py3pkg-oreo": "py3pkg-oreo",
-        "py3pkg-rich": "py3pkg-rich",
+        "py3pkg-pytest-hy": "py3pkg-pytest-hy",
         "sysget": "sysget"
       }
     },
