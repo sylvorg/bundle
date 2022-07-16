@@ -46,6 +46,10 @@
             url = github:syvlorg/oreo;
             inputs.settings.follows = "";
         };
+        # py3pkg-pytest-hy = {
+        #     url = github:syvlorg/pytest-hy;
+        #     inputs.settings.follows = "";
+        # };
 
         hy = {
             url = github:hylang/hy/0.24.0;
@@ -55,6 +59,15 @@
             url = github:hylang/hyrule/0.2;
             flake = false;
         };
+        sysget = {
+            url = github:emilengler/sysget/v2.3;
+            flake = false;
+        };
+        pacapt = {
+            url = github:icy/pacapt/v3.0.7;
+            flake = false;
+        };
+
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
@@ -119,10 +132,23 @@
                 num = condition: value: if condition then value else 0;
                 null = condition: value: if condition then value else null;
                 str = optionalString;
+                True = condition: value: if condition then value else true;
+                False = condition: value: if condition then value else false;
             };
+            mifNotNull = {
+                list = a: optionals (a != null);
+                list' = a: optional (a != null);
+                set = a: optionalAttrs (a != null);
+                num = a: b: if (a != null) then b else 0;
+                null = a: b: if (a != null) then b else null;
+                str = a: optionalString (a != null);
+                True = a: b: if (a != null) then b else true;
+                False = a: b: if (a != null) then b else false;
+            };
+            mapNullId = mapNullable id;
             foldToSet = list: foldr (new: old: new // old) {} (filter isAttrs (flatten list));
             foldToSet' = list: foldr (new: old: recursiveUpdate new old) {} (filter isAttrs (flatten list));
-            readDirExists = dir: mif.set (pathExists dir) (readDir dir);
+            readDirExists = dir: optionalAttrs (pathExists dir) (readDir dir);
             dirCon = let
                 ord = func: dir: filterAttrs func (if (isAttrs dir) then dir else (readDirExists dir));
             in rec {
@@ -262,7 +288,7 @@
                     base-file = baseNameOf (toString file);
                 in if (isInt suffix) then (let
                     hidden = hasPrefix "." base-file;
-                    split-file = remove "" (splitString "." base-file);
+                    split-file = lib.remove "" (splitString "." base-file);
                 in if (hidden && ((length split-file) == 1)) then base-file
                 else concatStringsSep "." (take ((length split-file) - suffix) split-file)) else (removeSuffix suffix base-file);
                 list = args@{
@@ -321,7 +347,7 @@
                         pipe-list = flatten [
                             (mapAttrNames (n: v: pipe "${removePrefix stringyDir stringDir}/${n}" [
                                 (splitString "/")
-                                (remove "")
+                                (lib.remove "")
                                 (concatStringsSep "/")
                             ]))
                             pre-orders
@@ -382,33 +408,49 @@
                 ) (list (filterAttrs (n: v: ! (elem n [ "call" "extrargs" "func" ])) (recursiveUpdate args { ignores.dirs = true; }))));
             };
             update = {
-                python = rec {
+                python = {
                     python = rec {
                         base = pv: pattrs: prev: { "${pv}" = prev.${pv}.override (super: {
                             packageOverrides = composeExtensions (super.packageOverrides or (_: _: {})) (new: old: pattrs);
                         }); };
-                        two = base attrs.versions.python.two;
-                        three = base attrs.versions.python.three;
+                        python2 = base attrs.versions.python.python2;
+                        pytohn3 = base attrs.versions.python.python3;
+                        python = python3;
+                        hy = python3;
+                        xonsh = python3;
+
                     };
                     callPython = rec {
-                        base = pv: extrargs: name: pkg: final: python.base pv { "${name}" = final.${pv}.pkgs.callPackage pkg extrargs; };
-                        two = base attrs.versions.python.two;
-                        three = base attrs.versions.python.three;
+                        base = pv: extrargs: name: pkg: final: update.python.python.base pv { "${name}" = final.${pv}.pkgs.callPackage pkg extrargs; };
+                        python2 = base attrs.versions.python.python2;
+                        python3 = base attrs.versions.python.python3;
+                        python = python3;
+                        hy = python3;
+                        xonsh = python3;
                     };
                     callPython' = rec {
-                        base = pv: extrargs: file: final: python.base pv { "${imports.name { inherit file; }}" = final.${pv}.pkgs.callPackage file extrargs; };
-                        two = base attrs.versions.python.two;
-                        three = base attrs.versions.python.three;
+                        base = pv: extrargs: file: final: update.python.python.base pv { "${imports.name { inherit file; }}" = final.${pv}.pkgs.callPackage file extrargs; };
+                        python2 = base attrs.versions.python.python2;
+                        python3 = base attrs.versions.python.python3;
+                        python = python3;
+                        hy = python3;
+                        xonsh = python3;
                     };
                     package = rec {
-                        base = pv: pkg: func: prev: python.base pv { "${pkg}" = prev.${pv}.pkgs.${pkg}.overridePythonAttrs func; } prev;
-                        two = base attrs.versions.python.two;
-                        three = base attrs.versions.python.three;
+                        base = pv: pkg: func: prev: update.python.python.base pv { "${pkg}" = prev.${pv}.pkgs.${pkg}.overridePythonAttrs func; } prev;
+                        python2 = base attrs.versions.python.python2;
+                        python3 = base attrs.versions.python.python3;
+                        python = python3;
+                        hy = python3;
+                        xonsh = python3;
                     };
                     packages = rec {
-                        base = pv: dir: final: python.base pv (imports.set { call = final.${pv}.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; });
-                        two = base attrs.versions.python.two;
-                        three = base attrs.versions.python.three;
+                        base = pv: dir: final: update.python.python.base pv (imports.set { call = final.${pv}.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; });
+                        python2 = base attrs.versions.python.python2;
+                        python3 = base attrs.versions.python.python3;
+                        python = python3;
+                        hy = python3;
+                        xonsh = python3;
                     };
                 };
                 node = {
@@ -427,7 +469,6 @@
                                          ]);
             pyVersion = format: src: pyVersion' format (readFile "${src}/${if (format == "pyproject") then "pyproject.toml" else "setup.py"}");
             pyVersionSrc = src: pyVersion (if (elem "pyproject.toml" (dirCon.others src)) then "pyproject" else "setuptools") src;
-            pyVersionFlake = pname: lockfile: lockfile.nodes.${pname}.original.ref;
             foldToShell = pkgs: envs: foldr (new: old: pkgs.mkShell {
                 buildInputs = unique (flatten [ new.buildInputs old.buildInputs ]);
                 nativeBuildInputs = unique (flatten [ new.nativeBuildInputs old.nativeBuildInputs ]);
@@ -435,6 +476,15 @@
                 propagatedNativeBuildInputs = unique (flatten [ new.propagatedNativeBuildInputs old.propagatedNativeBuildInputs ]);
                 shellHook = new.shellHook + "\n" + old.shellHook;
             }) (pkgs.mkShell {}) (filter isDerivation (flatten envs));
+            remove = rec {
+                base = func: fixes: flip pipe (map func (sort (a: b: (length a) > (length b)) fixes));
+                prefix = base removePrefix;
+                suffix = base removeSuffix;
+                infix = base removeInfix;
+            };
+            inputVersion = pname: lockfile: let
+                inherit (lockfile.nodes.${pname}.original) ref;
+            in remove.prefix [ "v" ] ref;
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
                 map (nv: nameValuePair nv.fst nv.snd) (let hasAttrs = any isAttrs values; in zipLists (
@@ -471,19 +521,21 @@
                 };
                 versions = {
                     python = rec {
-                        two' = "7";
-                        three' = "10";
-                        two = "python2${two'}";
-                        three = "python3${three'}";
+                        python2 = "python27";
+                        python3 = "python310";
+                        python = python3;
+                        hy = python;
+                        xonsh = python;
                     };
                 };
+                versionNames = mapAttrs (n: v: attrNames v) versions;
             };
 
             inherit patch;
         }); });
         callPackages = with lib; {
-            strapper = { Python }: Python.pkgs.buildPythonApplication rec {
-                pname = "strapper";
+            strapper = { Python, pname }: Python.pkgs.buildPythonApplication rec {
+                inherit pname;
                 version = "1.0.0.0";
                 src = ./strapper;
                 propagatedBuildInputs = with Python.pkgs; [ bakery ];
@@ -497,8 +549,8 @@
                 postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
                 makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${Python.pkgs.python.libPrefix}/site-packages" ];
             };
-            settings = { stdenv }: stdenv.mkDerivation rec {
-                pname = "settings";
+            settings = { stdenv, pname }: stdenv.mkDerivation rec {
+                inherit pname;
                 version = "1.0.0.0";
                 src = ./.;
                 phases = [ "installPhase" ];
@@ -509,17 +561,32 @@
                 '';
                 meta.mainprogram = "org-tangle";
             };
-            pacapt = { stdenv, fetchFromGitHub }: let
+            sysget = { stdenv, fetchFromGitHub, installShellFiles, pname }: let
+                owner = "emilengler";
+            in stdenv.mkDerivation rec {
+                inherit pname;
+                version = j.inputVersion pname lockfile;
+                src = inputs.sysget;
+                buildInputs = [ installShellFiles ];
+                nativeBuildInputs = buildInputs;
+                installPhase = ''
+                    mkdir -p $out/bin
+                    cp ${pname} $out/bin/
+                    installManPage contrib/man/${pname}.8
+                    installShellCompletion --bash contrib/${pname}.bash-completion
+                '';
+                meta = {
+                    description = "One package manager to rule them all";
+                    homepage = "https://github.com/${owner}/${pname}";
+                    license = licenses.gpl3;
+                };
+            };
+            pacapt = { stdenv, fetchFromGitHub, pname }: let
                 owner = "icy";
             in stdenv.mkDerivation rec {
-                pname = "pacapt";
-                version = "3.0.7";
-                src = fetchFromGitHub {
-                    inherit owner;
-                    repo = pname;
-                    rev = "v${version}";
-                    sha256 = "07zjdhn21rnacv2i59h91q4ykbqvsab4pmgqv8c952fzi3m5gjk4";
-                };
+                inherit pname;
+                version = inputVersion pname lockfile;
+                src = inputs.pacapt;
                 installPhase = ''
                     mkdir --parents $out/bin
                     cp $src/${pname} $out/bin/
@@ -530,10 +597,10 @@
                     homepage = "https://github.com/${owner}/${pname}";
                 };
             };
-            flk = { stdenv, fetchgit }: let
+            flk = { stdenv, fetchgit, pname }: let
                 owner = "chr15m";
             in stdenv.mkDerivation rec {
-                pname = "flk";
+                inherit pname;
                 version = "1.0.0.0";
                 src = fetchgit {
                     url = "https://github.com/${owner}/${pname}.git";
@@ -551,10 +618,10 @@
                     license = licenses.mpl20;
                 };
             };
-            mdsh = { stdenv, fetchFromGitHub }: let
+            mdsh = { stdenv, fetchFromGitHub, pname }: let
                 owner = "bashup";
             in stdenv.mkDerivation rec {
-                pname = "mdsh";
+                inherit pname;
                 version = "1.0.0.0";
                 src = fetchFromGitHub {
                     inherit owner;
@@ -572,7 +639,7 @@
                     license = licenses.mit;
                 };
             };
-            caddy = { fetchFromGitHub, buildGoModule }: let
+            caddy = { fetchFromGitHub, buildGoModule, pname }: let
                 imports = concatMapStrings (pkg: "\t\t\t_ \"${pkg}\"\n") [
                     "github.com/mholt/caddy-l4@latest"
                     "github.com/abiosoft/caddy-yaml@latest"
@@ -592,7 +659,7 @@
                     }
                 '';
             in buildGoModule rec {
-                pname = "caddy";
+                inherit pname;
                 version = "2.5.1";
                 proxyVendor = true;
                 subPackages = [ "cmd/caddy" ];
@@ -620,8 +687,8 @@
                     maintainers = with maintainers; [ Br1ght0ne ];
                 };
             };
-            guix = { stdenv, fetchurl }: stdenv.mkDerivation rec {
-                pname = "guix";
+            guix = { stdenv, fetchurl, pname }: stdenv.mkDerivation rec {
+                inherit pname;
                 version = "1.0.0";
                 src = fetchurl {
                 url = "https://ftp.gnu.org/gnu/guix/guix-binary-${version}.${stdenv.targetPlatform.system}.tar.xz";
@@ -656,8 +723,8 @@
                     platforms = [ "aarch64-linux" "i686-linux" "x86_64-linux" ];
                 };
             };
-            poetry2setup = { lib, Python, fetchFromGitHub, gawk }: Python.pkgs.buildPythonApplication rec {
-                pname = "poetry2setup";
+            poetry2setup = { lib, Python, fetchFromGitHub, gawk, pname }: Python.pkgs.buildPythonApplication rec {
+                inherit pname;
                 version = "1.0.0";
                 format = "pyproject";
 
@@ -714,9 +781,9 @@
                 };
             };
             python = {
-                two = {
+                python2 = {
                 };
-                three = {
+                python3 = {
                     autoslot = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit, pname }: let
                         owner = "cjrh";
                     in buildPythonPackage rec {
@@ -778,22 +845,9 @@
                             license = lib.licenses.asl20;
                         };
                     };
-                    pytest-hylang = { lib, buildPythonPackage, fetchPypi, pythonOlder, pytest, hy, py, pname }: buildPythonPackage rec {
-                        version = "0.0.1";
-                        inherit pname;
-                        disabled = pythonOlder "3.7";
-                        src = fetchPypi {
-                            inherit pname version;
-                            sha256 = "sha256-fCwOeLMm20zWrx9bXPC2MW2OqAmGhzDScalN5m/LRPs=";
-                        };
-                        buildInputs = [ pytest hy py ];
-                        meta = with lib; {
-                            homepage = "https://github.com/arjaz/${pname}";
-                            description = "Pytest plugin to allow running tests written in hylang";
-                            license = licenses.mit;
-                        };
-                    };
                 };
+                python = python3;
+                hy = python3;
                 xonsh = {
                     xontrib-readable-traceback = { lib, buildPythonPackage, fetchPypi, colorama, backtrace, pname }: buildPythonPackage rec {
                         inherit pname;
@@ -889,57 +943,58 @@
         });
         mkXonsh = pkgs: mkXonsh' pkgs pkgs;
         overlayset = with lib; let
-            calledPackages = mapAttrs (n: v: final: prev: { "${n}" = final.callPackage v {}; }) (filterAttrs (n: v: isFunction v) callPackages);
+            calledPackages = mapAttrs (pname: v: final: prev: { "${pname}" = final.callPackage v { inherit pname; }; }) (filterAttrs (n: v: isFunction v) callPackages);
             overlay = final: prev: { inherit (calledPackages) settings; };
         in rec {
             nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.nodejs;
             pythonOverlays = rec {
                 python2 = j.foldToSet [
-                    (mapAttrs (pname: j.update.python.callPython.two { inherit pname; } pname) callPackages.python.two)
+                    (mapAttrs (pname: j.update.python.callPython.python2 { inherit pname; } pname) callPackages.python.python2)
                     (mapAttrs' (n: v: nameValuePair (removePrefix "py2pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "py2pkg-" n) inputs))
                 ];
                 python3 = let
-                    update = j.update.python.package.three;
+                    update = j.update.python.package.python3;
                 in j.foldToSet [
                     {
-                        hy = final: update "hy" (old: with final.Python3.pkgs; rec {
-                            version = j.pyVersionFlake "hy" lockfile;
+                        hy = final: update "hy" (old: rec {
+                            version = j.inputVersion "hy" lockfile;
                             HY_VERSION = version;
                             src = inputs.hy;
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
-                            disabledTestPaths = [ "tests/resources" "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
-                            disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
+                            disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
+                            # disabledTestPaths = [ "tests/resources" "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
+                            # disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
                             passthru = {
                                 tests.version = testers.testVersion {
-                                    package = hy;
+                                    package = final.Python3.pkgs.hy;
                                     command = "hy -v";
                                 };
-                                withPackages = python-packages: (toPythonApplication hy).overrideAttrs (old: {
+                                withPackages = python-packages: (final.Python3.pkgs.toPythonApplication final.Python3.pkgs.hy).overrideAttrs (old: {
                                     propagatedBuildInputs = python-packages final.Python3.pkgs ++ (old.propagatedBuildInputs or []);
                                 });
                             };
                         });
                         hyrule = final: update "hyrule" (old: rec {
-                            version = j.pyVersionFlake "hyrule" lockfile;
+                            version = j.inputVersion "hyrule" lockfile;
                             src = inputs.hyrule;
                             postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
                         });
                     }
-                    (mapAttrs (pname: j.update.python.callPython.three { inherit pname; } pname) callPackages.python.three)
+                    (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.python3)
                     (mapAttrs' (n: v: nameValuePair (removePrefix "py3pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "py3pkg-" n) inputs))
                 ];
                 python = python3;
+                hy = python3;
                 xonsh = j.foldToSet [
-                    (mapAttrs (pname: j.update.python.callPython.three { inherit pname; } pname) callPackages.python.xonsh)
+                    (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.xonsh)
                     (mapAttrs' (n: v: nameValuePair (removePrefix "x3pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "x3pkg-" n) inputs))
                 ];
             };
-            overlays = j.foldToSet [
+            overlays = let
+                pyapps = [ "py2app-" "py3app-" ];
+            in j.foldToSet [
                 (attrValues pythonOverlays)
-                (mapAttrs' (n: v: nameValuePair (pipe n [
-                    (removePrefix "py2app-")
-                    (removePrefix "py3app-")
-                ]) v.overlay) (filterAttrs (n: v: j.has.prefix n [ "py2app-" "py3app-" ]) inputs))
+                (mapAttrs' (n: v: nameValuePair (j.remove.prefix pyapps) v.overlay) (filterAttrs (n: v: j.has.prefix n pyapps) inputs))
                 nodeOverlays
                 calledPackages
                 (let pkgsets = {
@@ -989,9 +1044,9 @@
                     lib = final: prev: { inherit lib; };
                     default = overlay;
                     Python = final: prev: rec {
-                        Python2 = final.${j.attrs.versions.python.two};
+                        Python2 = final.${j.attrs.versions.python.python2};
                         Python2Packages = Python2.pkgs;
-                        Python3 = final.${j.attrs.versions.python.three};
+                        Python3 = final.${j.attrs.versions.python.python3};
                         Python3Packages = Python3.pkgs;
                         Python = Python3;
                         PythonPackages = Python3Packages;
@@ -1704,7 +1759,7 @@
                 });
             in j.foldToSet [
                 allTemplates
-                { default = allTemplates.python; }
+                { default = allTemplates.python-package; }
             ];
             template = templates.default;
             defaultTemplate = template;
@@ -1713,7 +1768,51 @@
             overlayset
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh; }
+            { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs; }
+        ];
+        mkOutputs = with lib; { pname, callPackage ? null, python ? null, ... }: let
+            pythonTemplate = let
+                mknames = j.attrs.versionNames.python;
+            in j.mifNotNull.False python ((elem python mknames) || (abort "Sorry; the python names can only be of values [ ${concatStringsSep ", " mknames} ]!"));
+            overlayset = let
+                default = if pythonTemplate then (j.update.python.callPython.${python} { inherit pname; } pname callPackage)
+                          else (final: prev: { "${pname}" = final.callPackage callPackage {}; });
+            in rec {
+                overlays = self.overlays // { inherit default; "${pname}" = default; };
+                overlay = overlays.default;
+                defaultOverlay = overlay;
+            };
+        in j.foldToSet [
+            (eachSystem allSystems (system: let
+                made = make system (attrValues overlayset.overlays);
+                pythons = optionalAttrs pythonTemplate (mapAttrs (n: v: v [] pname) made.mkpythons);
+            in rec {
+                inherit (made) legacyPackages pkgs nixpkgs;
+                inherit made;
+                packages = flattenTree (if pythonTemplate then (j.foldToSet [
+                    (mapAttrNames (n: v: "${n}-${pname}") pythons)
+                    { "${pname}" = pythons.${python}; default = pythons.${python}; }
+                ]) else {
+                    default = pkgs.${pname};
+                    "${pname}" = pkgs.${pname};
+                });
+                package = packages.default;
+                defaultPackage = package;
+                apps = mapAttrs (n: made.app) packages;
+                app = apps.default;
+                defaultApp = app;
+                devShells = j.foldToSet [
+                    (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                    (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
+                    (made.mkboth "general" [] [] pname)
+                    (optionalAttrs pythonTemplate (made.mkboth python [] [] pname))
+                    { default = pkgs.mkShell { buildInputs = attrValues packages; }; }
+                ];
+                devShell = devShells.default;
+                defaultdevShell = devShell;
+            }))
+            overlayset
+            { inherit pname callPackage; }
         ];
         make = system: overlays: with lib; rec {
             config' = rec {
@@ -1753,7 +1852,14 @@
             buildInputs = with pkgs; rec {
                 envrc = [ git settings ];
                 makefile = envrc ++ [ poetry2setup ];
-                makefile-python = [ "yq" "pytest" "pytest-hylang" "pytest-randomly" ];
+                makefile-python = [ "yq" "pytest" "pytest-hy" "pytest-randomly" ];
+            };
+            mkpythons = {
+                python2 = mkPython pkgs.Python2;
+                python3 = mkPython pkgs.Python3;
+                python = mkPython pkgs.Python;
+                hy = mkHy;
+                xonsh = mkXonsh pkgs;
             };
             shellHooks = {
                 makefile = lib.j.foldToSet [
@@ -1763,7 +1869,7 @@
                             exit
                         '';
                     }
-                    (genAttrs [ "python2" "python3" "hy" "xonsh" ] (python: ''
+                    (genAttrs (attrNames mkpythons) (python: ''
                         echo $PYTHONPATH
                         exit
                     ''))
@@ -1784,12 +1890,7 @@
                             buildInputs.makefile-python
                         ]) pname)
                     ];
-                }) {
-                    python2 = mkPython pkgs.Python2;
-                    python3 = mkPython pkgs.Python3;
-                    hy = mkHy;
-                    xonsh = mkXonsh pkgs;
-                })
+                }) mkpythons)
             ]);
             mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)

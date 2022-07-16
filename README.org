@@ -1147,58 +1147,30 @@ push: commit
             inputs.pname.follows = "";
 
         };
-        nixpkgs.follows = "settings/nixpkgs";
+        # nixpkgs.follows = "settings/nixpkgs";
+        nixpkgs.url = github:nixos/nixpkgs/<<channel(dotted='t)>>;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = "github:edolstra/flake-compat";
             flake = false;
         };
     };
-    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
 
         # TODO: Change this!
         pname = "";
 
         # TODO: Change this!
         callPackage = {}: {};
-
-        overlayset = let
-            overlay = final: prev: { "${pname}" = final.callPackage callPackage {}; };
-        in rec {
-            overlays = settings.overlays // { default = overlay; "${pname}" = overlay; };
-            overlay = overlays.default;
-            defaultOverlay = overlay;
-        };
-    in j.foldToSet [
-        (eachSystem allSystems (system: let
-            made = make system (attrValues overlayset.overlays);
-        in rec {
-            inherit (made) legacyPackages pkgs nixpkgs;
-            inherit made;
-            packages = flattenTree { default = pkgs.${pname}; "${pname}" = pkgs.${pname}; };
-            package = packages.default;
-            defaultPackage = package;
-            apps = mapAttrs (n: made.app) packages;
-            app = apps.default;
-            defaultApp = app;
-            devShells = j.foldToSet [
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                (made.mkboth general [] [] pname)
-                { default = pkgs.mkShell { buildInputs = attrValues packages; }; }
-            ];
-            devShell = devShells.default;
-            defaultdevShell = devShell;
-        }))
-        overlayset
-        { inherit pname callPackage; }
-    ];
+        
+    };
 }
 #+end_src
 
-** python
+** python-app
 *** .envrc
 
+#+name: 911ea68f-c7d0-41d5-8a6d-c958290ec76d
 #+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
 #! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
 #! nix-shell -i sh
@@ -1208,6 +1180,7 @@ nix flake info &> /dev/null && use flake || use nix
 
 *** makefile
 
+#+name: c858c534-578b-43c6-983c-b390526e6a73
 #+begin_src makefile :tangle (meq/tangle-path)
 <<5de2420e-82fc-4925-9299-235328edd4fa>>
 
@@ -1245,17 +1218,18 @@ poetry2setup:
             url = github:sylvorg/settings;
 
             # TODO: Change the PNAME ONLY!
-            inputs.pypkg-PNAME.follows = "";
+            inputs.py3app-PNAME.follows = "";
 
         };
-        nixpkgs.follows = "settings/nixpkgs";
+        # nixpkgs.follows = "settings/nixpkgs";
+        nixpkgs.url = github:nixos/nixpkgs/<<channel(dotted='t)>>;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = "github:edolstra/flake-compat";
             flake = false;
         };
     };
-    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; let
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
 
         # TODO: Change the pname!
         pname = "";
@@ -1263,47 +1237,66 @@ poetry2setup:
         # TODO: Change the callPackage!
         callPackage = {}: {};
 
-        overlayset = let
-            overlay = j.update.python.callPython.three { inherit pname; } pname callPackage;
-        in rec {
-            overlays = settings.overlays // { default = overlay; "${pname}" = overlay; };
-            inherit overlay;
-            defaultOverlay = overlay;
+    };
+}
+#+end_src
+
+** python-package
+*** .envrc
+
+#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
+<<911ea68f-c7d0-41d5-8a6d-c958290ec76d>>
+#+end_src
+
+*** makefile
+
+#+begin_src makefile :tangle (meq/tangle-path)
+<<c858c534-578b-43c6-983c-b390526e6a73>>
+#+end_src
+
+*** nix.org
+:PROPERTIES:
+:header-args:nix+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
+:END:
+
+#+begin_src text :tangle (meq/tangle-path)
+<<074ce005-3299-46ab-b259-b988558203b5>>
+<<42b96823-24f3-4924-becd-721155468419>>
+,#+end_src
+#+end_src
+
+#+begin_src nix
+{
+
+    # TODO: Change the description!
+    description = "";
+
+    inputs = rec {
+        settings = {
+            url = github:sylvorg/settings;
+
+            # TODO: Change the PNAME ONLY!
+            inputs.py3pkg-PNAME.follows = "";
+
         };
-    in j.foldToSet [
-        (eachSystem allSystems (system: let
-            made = settings.make system (attrValues overlayset.overlays);
-            python = made.mkPython made.pkgs.Python3 [] pname;
-            xonsh = settings.mkXonsh made.pkgs [] pname;
-            hy = made.mkHy [] pname;
-        in rec {
-            inherit (made) legacyPackages pkgs nixpkgs;
-            packages = flattenTree {
-                inherit python xonsh hy;
-                "python-${pname}" = python;
-                "xonsh-${pname}" = xonsh;
-                "hy-${pname}" = hy;
-                "${pname}" = python;
-                default = python;
-            };
-            package = packages.default;
-            defaultPackage = package;
-            apps = mapAttrs (n: made.app) packages;
-            app = apps.default;
-            defaultApp = app;
-            devShells = j.foldToSet [
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                (made.mkboth general [] [] pname)
-                (made.mkboth python3 [] [] pname)
-                { default = pkgs.mkShell { buildInputs = attrValues packages; }; }
-            ];
-            devShell = devShells.default;
-            defaultdevShell = devShell;
-        }))
-        overlayset
-        { inherit pname callPackage; }
-    ];
+        # nixpkgs.follows = "settings/nixpkgs";
+        nixpkgs.url = github:nixos/nixpkgs/<<channel(dotted='t)>>;
+        flake-utils.url = github:numtide/flake-utils;
+        flake-compat = {
+            url = "github:edolstra/flake-compat";
+            flake = false;
+        };
+    };
+    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
+
+        # TODO: Change the pname!
+        pname = "";
+
+        # TODO: Change the callPackage!
+        callPackage = {}: {};
+
+        python = "hy";
+    };
 }
 #+end_src
 
@@ -1346,18 +1339,8 @@ package.json
 #+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
 #! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
 #! nix-shell -i sh
-files="<<current-file()>> flake.org"
-if hash org-tangle 2> /dev/null; then
-    org-tangle $files
-else
-    chmod +x ./bin/* && ./bin/org-tangle $files || :
-fi
-
-files="flake.nix patches templates"
-for file in files; do
-    [ -f "$file" ] && git add "$file" || :
-done
-
+org-tangle README.org flake.org
+git add .
 nix flake info &> /dev/null && use flake || use nix
 #+end_src
 
