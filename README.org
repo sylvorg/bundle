@@ -1062,7 +1062,7 @@ Adapted from the following places:
 In addition to the ~SHELL~ export below, the following can also be used:
 
 #+begin_src makefile :noweb-ref no
-export SHELL := $(shell env PATH=$$(nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile-python' --show-trace):$(PATH) which sh)
+export SHELL := $(shell env PATH=$$(nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PATH) which sh)
 #+end_src
 
 #+name: d7d92d0b-396c-4615-9f8f-4bdad4d89787
@@ -1286,7 +1286,7 @@ nix flake info &> /dev/null && use flake || use nix
 #+begin_src makefile :tangle (meq/tangle-path)
 <<5de2420e-82fc-4925-9299-235328edd4fa>>
 
-export PYTHONPATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PYTHONPATH)
+export PYTHONPATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile-python' --show-trace):$(PYTHONPATH)
 
 tangle-python:
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
@@ -1297,7 +1297,7 @@ test: tangle-python
 poetry2setup:
 |poetry2setup > $(mkfileDir)/setup.py
 
-super-python: update tangle-python test push
+super-python: update test push
 #+end_src
 
 *** nix.org

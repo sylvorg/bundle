@@ -1837,9 +1837,13 @@
                 pkglist
                 pname
             ]);
-            buildInputs = with pkgs; rec {
+            buildInputs = with pkgs; {
                 envrc = [ git settings ];
                 makefile = envrc ++ [ poetry2setup ];
+                makefile-python = [ "yq" "pytest" "pytest-hy" "pytest-randomly" ];
+            };
+            mkbuildinputs = with pkgs; {
+                makefile = buildInputs.envrc ++ [ poetry2setup ];
                 makefile-python = [ "yq" "pytest" "pytest-hy" "pytest-randomly" ];
             };
             mkpythons = {
@@ -1865,17 +1869,17 @@
             };
             mkshellfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
-                (pkgs.mkShell { buildInputs = buildInputs.makefile; })
+                (pkgs.mkShell { buildInputs = mkbuildinputs.makefile; })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = j.filters.has.list [ pname (mkPython pkgs.Python3 [ ppkglist buildInputs.makefile-python ] null) pkglist ] pkgs;
+                    buildInputs = j.filters.has.list [ pname (mkPython pkgs.Python3 [ ppkglist mkbuildinputs.makefile-python ] null) pkglist ] pkgs;
                 }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
                         pkglist
                         (v (flatten [
                             ppkglist
-                            buildInputs.makefile-python
+                            mkbuildinputs.makefile-python
                         ]) pname)
                     ];
                 }) mkpythons)
@@ -1885,8 +1889,8 @@
                 (pkgs.mkShell { shellHook = shellHooks.makefile.${n}; })
             ]) mkshellfile;
             mkboth = type: ppkglist: pkglist: pname: {
-                makefile = mkfile.${type} ppkglist pkglist pname;
-                makeshell = mkshellfile.${type} ppkglist pkglist pname;
+                ${if (elem type (attrNames mkpythons)) then "makefile-python" else "makefile"} = mkfile.${type} ppkglist pkglist pname;
+                ${if (elem type (attrNames mkpythons)) then "makeshell-python" else "makeshell"} = mkshellfile.${type} ppkglist pkglist pname;
             };
             withPackages = {
                 python = let

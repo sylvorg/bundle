@@ -25,7 +25,7 @@ update: tangle
 
 super: update push
 
-export PYTHONPATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PYTHONPATH)
+export PYTHONPATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile-python' --show-trace):$(PYTHONPATH)
 
 tangle-python:
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
@@ -36,4 +36,4 @@ test: tangle-python
 poetry2setup:
 |poetry2setup > $(mkfileDir)/setup.py
 
-super-python: update tangle-python test push
+super-python: update test push
