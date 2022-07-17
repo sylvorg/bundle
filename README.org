@@ -1045,23 +1045,28 @@ open TAG, ">>/var/NIXOS";
 close TAG;
 #+end_src
 
-* templates
-** general
-*** .envrc
+* makefile
+:PROPERTIES:
+:header-args:makefile+: :noweb-ref f2c9ac4d-47c9-4b5f-bac8-ac0e937157e5
+:END:
 
-#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
-#! nix-shell -i sh
-make tangle add
-nix flake info &> /dev/null && use flake || use nix
+#+begin_src text :tangle (meq/tangle-path)
+<<f2c9ac4d-47c9-4b5f-bac8-ac0e937157e5>>
 #+end_src
 
-*** makefile
+Adapted from the following places:
+- https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/
+- https://t-ravis.com/post/nix/nix-make/
+- [[https://stackoverflow.com/a/50754044/10827766][this answer]] by [[https://stackoverflow.com/users/1296044/arielf][arielf]]
 
-Adapted from [[https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/][here]] and [[https://t-ravis.com/post/nix/nix-make/][here]]:
+In addition to the ~SHELL~ export below, the following can also be used:
 
-#+name: 5de2420e-82fc-4925-9299-235328edd4fa
-#+begin_src makefile :tangle (meq/tangle-path)
+#+begin_src makefile :noweb-ref no
+export SHELL := $(shell env PATH=$$(nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile-python' --show-trace):$(PATH) which sh)
+#+end_src
+
+#+name: d7d92d0b-396c-4615-9f8f-4bdad4d89787
+#+begin_src makefile
 .RECIPEPREFIX := |
 .DEFAULT_GOAL := tangle
 
@@ -1069,19 +1074,61 @@ mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
 
-export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace)
-
-tangle:
-|org-tangle $(mkfileDir)/nix.org
+export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PATH)
+export SHELL := $(shell which sh)
 
 add:
-|git add .
+|git -C $(mkfileDir) add .
 
 commit: add
 |git -C $(mkfileDir) commit --allow-empty-message -am ""
 
 push: commit
 |git -C $(mkfileDir) push
+
+update: tangle
+|nix flake update $(mkfileDir)
+
+super: update push
+#+end_src
+
+#+begin_src makefile
+
+tangle-README:
+|org-tangle $(mkfileDir)/README.org
+
+tangle-flake:
+|org-tangle $(mkfileDir)/flake.org
+
+tangle: tangle-README tangle-flake
+#+end_src
+
+* .envrc
+
+#+name: 89ba6ea2-f0d6-4676-885e-f0b4c2b92ed9
+#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
+#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
+#! nix-shell -i sh
+make tangle add
+nix flake info &> /dev/null && use flake || use nix
+#+end_src
+
+* templates
+** general
+*** .envrc
+
+#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
+<<89ba6ea2-f0d6-4676-885e-f0b4c2b92ed9>>
+#+end_src
+
+*** makefile
+
+#+name: 5de2420e-82fc-4925-9299-235328edd4fa
+#+begin_src makefile :tangle (meq/tangle-path)
+<<d7d92d0b-396c-4615-9f8f-4bdad4d89787>>
+
+tangle:
+|org-tangle $(mkfileDir)/nix.org
 #+end_src
 
 *** nix.org
@@ -1169,30 +1216,14 @@ in {
 ** python-app
 *** .envrc
 
-#+name: 911ea68f-c7d0-41d5-8a6d-c958290ec76d
 #+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
-#! nix-shell -i sh
-make tangle-python add
-nix flake info &> /dev/null && use flake || use nix
+<<89ba6ea2-f0d6-4676-885e-f0b4c2b92ed9>>
 #+end_src
 
 *** makefile
 
-#+name: c858c534-578b-43c6-983c-b390526e6a73
-#+begin_src makefile :tangle (meq/tangle-path)
+#+begin_src makefile
 <<5de2420e-82fc-4925-9299-235328edd4fa>>
-
-export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace)
-
-tangle-python: tangle
-|org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
-
-test: tangle-python
-|pytest $(mkfileDir)
-
-poetry2setup:
-|poetry2setup > $(mkfileDir)/setup.py
 #+end_src
 
 *** nix.org
@@ -1244,13 +1275,29 @@ poetry2setup:
 *** .envrc
 
 #+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-<<911ea68f-c7d0-41d5-8a6d-c958290ec76d>>
+#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
+#! nix-shell -i sh
+make tangle-python add
+nix flake info &> /dev/null && use flake || use nix
 #+end_src
 
 *** makefile
 
 #+begin_src makefile :tangle (meq/tangle-path)
-<<c858c534-578b-43c6-983c-b390526e6a73>>
+<<5de2420e-82fc-4925-9299-235328edd4fa>>
+
+export PYTHONPATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PYTHONPATH)
+
+tangle-python:
+|org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
+
+test: tangle-python
+|pytest $(mkfileDir)
+
+poetry2setup:
+|poetry2setup > $(mkfileDir)/setup.py
+
+super-python: update tangle-python test push
 #+end_src
 
 *** nix.org
@@ -1328,16 +1375,6 @@ in {
 node_modules/
 package-lock.json
 package.json
-#+end_src
-
-* .envrc
-
-#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
-#! nix-shell -i sh
-org-tangle README.org flake.org
-git add .
-nix flake info &> /dev/null && use flake || use nix
 #+end_src
 
 * strapper
@@ -1421,7 +1458,7 @@ if __name__ == "__main__":
 
 *** Requires
 
-#+begin_src hy :noweb-ref no
+#+begin_src hy
 (require hyrule [-> assoc])
 #+end_src
 
@@ -1495,28 +1532,12 @@ reserved
             homes        (D (.loads json (.strip #[[
                                 <<homes>>
                          ]]))))
-
-      #_(assoc datasets host (D { "datasets" { "jails" { "datasets" { "base" (dict)}}}
+      (assoc datasets host (D { "datasets" { "jails" { "datasets" { "base" (dict)}}}
                                      "options" [ ml ]}))
-
-      (setv (. datasets [host]) (D { "datasets" { "jails" { "datasets" { "base" (dict)}}}
-                                     "options" [ ml ]}))
-
       (for [user (.values users)]
-
-           #_(assoc (. datasets [s] [d] home [d]) user (dict))
-           
-           (setv (. datasets [s] [d] home [d] [user]) (dict))
-
-           #_(assoc (. datasets [s] [d] persist [d]) user (dict))
-
-           (setv (. datasets [s] [d] persist [d] [user]) (dict))
-
-           #_(assoc (. datasets virt [d] podman [d]) user (dict))
-
-           (setv (. datasets virt [d] podman [d] [user]) (dict))
-
-           )
+           (assoc (. datasets [s] [d] home [d]) user (dict))
+           (assoc (. datasets [s] [d] persist [d]) user (dict))
+           (assoc (. datasets virt [d] podman [d]) user (dict)))
       (if reserved-only
           (.create zfs (+ host "/" reserved) :o "mountpoint=none")
           (do (with [dnix (open (+ resources "/datasets.nix") "w")]
@@ -1531,110 +1552,98 @@ reserved
                           recurse/real-dataset (.replace recurse/dataset "${host}" host)
                           cloning              (and (!= dname "base")
                                                     (and encrypted deduplicated))
-                          prefixes             (, "system"
-                                                  "system/root"
-                                                  "swap"
-                                                  "base"
-                                                  "omniverse"
-                                                  reserved ))
+                          prefixes             #("system"
+                                                 "system/root"
+                                                 "swap"
+                                                 "base"
+                                                 "omniverse"
+                                                 reserved))
                     (if cloning
                         (setv clone-or-create  "clone"
                               snapshot-or-none (+ host "/base@root"))
                         (setv clone-or-create  "create"
                               snapshot-or-none ""))
-                    (if (not (in recurse/real-dataset (lfor prefix prefixes (+ host "/" prefix))))
-                        (do (if (setx recurse/mountpoint (.get ddict "mountpoint" ""))
-                                (setv mountpoint recurse/mountpoint)
-                                (if mountpoint
-                                    (setv mountpoint (+ mountpoint "/" dname)
-                                          recurse/mountpoint mountpoint)
-                                    (do (setv recurse/mountpoint (.removeprefix recurse/dataset (+ "${host}" "/")))
-                                        (for [prefix prefixes]
-                                             (setv recurse/mountpoint (.removeprefix recurse/mountpoint (+ prefix "/"))))
-                                        (setv recurse/mountpoint (+ "/" recurse/mountpoint)))))
-                            (if (and (.startswith recurse/real-dataset (+ host "/" primary-user))
-                                     (not (= recurse/real-dataset (+ host "/" primary-user))))
-                                (.write dnix (+ "\t\""
-                                                recurse/dataset
-                                                "\" = [ "
-                                                (.join " " (gfor user (.keys users) (+ "\"" (get homes user) "/" dname "\"")))
-                                                " ];\n"))
-                                #_(for [user (.keys users)]
-                                     (.write dnix (+ "\t\""
-                                                     recurse/dataset
-                                                     "\" = \""
-                                                     (+ (get homes user) "/" dname)
-                                                     "\";\n")))
-                                (.write dnix (+ "\t\""
-                                                recurse/dataset
-                                                "\" = \""
-                                                recurse/mountpoint
-                                                "\";\n")))))
-                    (if (and pool (not (in recurse/real-dataset recurse/datasets)))
-                        (do (zfs :m/subcommand clone-or-create
-                                 :o { "repeat-with-values" (.get ddict "options" []) }
-                                 snapshot-or-none
-                                 recurse/real-dataset)
-                            (.snapshot zfs :r True (+ recurse/real-dataset "@blank"))
-                            (.hold zfs :r True "blank" (+ recurse/real-dataset "@blank"))))
+                    (when (not (in recurse/real-dataset (lfor prefix prefixes (+ host "/" prefix))))
+                          (if (setx recurse/mountpoint (.get ddict "mountpoint" ""))
+                              (setv mountpoint recurse/mountpoint)
+                              (if mountpoint
+                                  (setv mountpoint (+ mountpoint "/" dname)
+                                        recurse/mountpoint mountpoint)
+                                  (do (setv recurse/mountpoint (.removeprefix recurse/dataset (+ "${host}" "/")))
+                                      (for [prefix prefixes]
+                                           (setv recurse/mountpoint (.removeprefix recurse/mountpoint (+ prefix "/"))))
+                                      (setv recurse/mountpoint (+ "/" recurse/mountpoint)))))
+                          (if (and (.startswith recurse/real-dataset (+ host "/" primary-user))
+                                   (not (= recurse/real-dataset (+ host "/" primary-user))))
+                              (.write dnix (+ "\t\""
+                                              recurse/dataset
+                                              "\" = [ "
+                                              (.join " " (gfor user (.keys users) (+ "\"" (get homes user) "/" dname "\"")))
+                                              " ];\n"))
+
+                              ;; TODO: What does this do? Mind that this sits in the middle of an if statement
+                              #_(for [user (.keys users)]
+                                   (.write dnix (+ "\t\""
+                                                   recurse/dataset
+                                                   "\" = \""
+                                                   (+ (get homes user) "/" dname)
+                                                   "\";\n")))
+
+                              (.write dnix (+ "\t\""
+                                              recurse/dataset
+                                              "\" = \""
+                                              recurse/mountpoint
+                                              "\";\n"))))
+                    (when (and pool (not (in recurse/real-dataset recurse/datasets)))
+                          (zfs :m/subcommand clone-or-create
+                               :o { "repeat-with-values" (.get ddict "options" []) }
+                               snapshot-or-none
+                               recurse/real-dataset)
+                          (.snapshot zfs :r True (+ recurse/real-dataset "@blank"))
+                          (.hold zfs :r True "blank" (+ recurse/real-dataset "@blank")))
                     (for [[key value] (.items (.get ddict d (D {  })))]
                          (recurse value key recurse/dataset mountpoint)))
               (for [[key value] (.items datasets)]
                    (recurse value key "${host}"))
               (.write dnix "}"))))
-      (if (or pool reserved-only)
-          (let [pool-size-plus-metric (get (.get zpool :H True "size" host :m/list True :m/split True) 2)
-#+end_src
+      (when (or pool reserved-only)
+            (let [pool-size-plus-metric (get (.get zpool :H True "size" host :m/list True :m/split True) 2)
+                  pool-size             (-> pool-size-plus-metric
+                                            (cut 0 -1)
+                                            float
+                                            (round 2))
+                  pool-metric           (last pool-size-plus-metric)]
+                 (defn pool-percentage-value [percentage]
+                       (-> percentage
+                           float
+                           (/ 100)
+                           (round 2)
+                           str
+                           (+ pool-metric)
+                           return))
+                 (.set zfs
+                       (+ "refreservation=" (pool-percentage-value 15))
+                       (+ host "/" reserved))
 
-#+begin_src hy :noweb-ref no
-                pool-size             (-> pool-size-plus-metric
-                                          (cut 0 -1)
-                                          float
-                                          (round 2))
-#+end_src
+                 ;; Apparently, if python internal keywords exist in the argument, such as "set", etc.
+                 ;; the command errors out; perhaps something to raise an issue of.
+                 ;; This seems to work as an alternative.
+                 ;; run(f"zfs set refreservation={pool_percentage_value(15)} {args.Pool}/{reserved}", shell = True)
 
-#+begin_src hy
-                pool-size             (round (float (cut pool-size-plus-metric 0 -1)) 2)
-#+end_src
-
-#+begin_src hy
-                pool-metric           (last pool-size-plus-metric)]
-               (defn pool-percentage-value [percentage]
-                     #_(-> percentage
-                         float
-                         (/ 100)
-                         (round 2)
-                         str
-                         (+ pool-metric)
-                         return)
-
-                     (return (+ (str (round (/ (float percentage) 100) 2)) pool-metric))
-
-                         )
-               (.set zfs
-                     (+ "refreservation=" (pool-percentage-value 15))
-                     (+ host "/" reserved))
-
-               ;; Apparently, if python internal keywords exist in the argument, such as "set", etc.
-               ;; the command errors out; perhaps something to raise an issue of.
-               ;; This seems to work as an alternative.
-               ;; run(f"zfs set refreservation={pool_percentage_value(15)} {args.Pool}/{reserved}", shell = True)
-
-               (if (not reserved-only)
-                   (do (if swap
-                           (let [swoptions [ "com.sun:auto-snapshot=false"
-                                             "compression=zle"
-                                             "logbias=throughput"
-                                             "primarycache=metadata"
-                                             "secondarycache=none"
-                                             "sync=standard" ]
-                                 page-size (getconf "PAGESIZE" :m/str True)]
-                                (.create zfs
-                                         :V (+ (str swap) "G")
-                                         :b page-size
-                                         :o { "repeat-with-values" swoptions }
-                                         (+ host "/swap"))
-                                (mkswap (+ "/dev/zvol" host "/swap")))))))))
+                 (when (and (not reserved-only) swap)
+                       (let [swoptions [ "com.sun:auto-snapshot=false"
+                                         "compression=zle"
+                                         "logbias=throughput"
+                                         "primarycache=metadata"
+                                         "secondarycache=none"
+                                         "sync=standard" ]
+                             page-size (getconf "PAGESIZE" :m/str True)]
+                            (.create zfs
+                                     :V (+ (str swap) "G")
+                                     :b page-size
+                                     :o { "repeat-with-values" swoptions }
+                                     (+ host "/swap"))
+                            (mkswap (+ "/dev/zvol" host "/swap")))))))
 #+end_src
 
 *** Click
@@ -1650,15 +1659,15 @@ reserved
    (.option click "-r" "--resources-dir")
    click.pass-context
    (defn strapper [ ctx dazzle host inspect print-run print resources-dir ]
-         (if (!= (.geteuid os) 0)
-             (raise (SystemError "Sorry; this program needs to be run as root!")))
+         (when (!= (.geteuid os) 0)
+               (raise (SystemError "Sorry; this program needs to be run as root!")))
          (.ensure-object ctx dict)
          (if resources-dir
              (setv ctx.obj.resources resources-dir)
              (do (setv ctx.obj.resources (/ cwd nixos-dir))
                  (let [ cwd (.cwd Path)
                         nixos-dir (Path "etc/nixos/") ]
-                      (if (= (cut cwd.parts -2 None) (, "etc" "nixos"))
+                      (if (= (cut cwd.parts -2 None) #("etc" "nixos"))
                           (setv ctx.obj.resources cwd)
                           (while (not (.exists ctx.obj.resources))
                                  (setv cwd (.joinpath (Path (get cwd.parts 0)) #* (cut cwd.parts -1))
@@ -1698,25 +1707,23 @@ This can't use a default value, as that would trigger a rebuild all the time.
              (do (.bake-all- getconf :m/sudo True :m/run True)
                  (setv copy-partial (partial rsync :a True :v { "repeat" 2 } :c True :z { "repeat" 2 } f"{ctx.obj.resources}/"))
                  (if rebuild
-                     (do (if copy
-                             (copy-partial "/etc/nixos/"))
+                     (do (when copy (copy-partial "/etc/nixos/"))
                          (nixos-rebuild rebuild #* ctx.args :show-trace True))
-                     (do (if (or copy all)
-                             (do (update-datasets ctx)
-                                 (copy-partial "/mnt/etc/nixos/")))
-                         (if (or generate all)
-                             (nixos-generate-config :root "/mnt"))
-                         (if (or replace all)
-                             (if ctx.obj.host
-                                 (do (sd "./hardware-configuration.nix"
-                                         (+ "(import ./.).nixosConfigurations.${pkgs.stdenv.targetPlatform.system}.mini-" ctx.obj.host)
-                                         "/mnt/etc/nixos/configuration.nix")
-                                     (sd "'device = \"\"'"
-                                         "'device = \"!\"'"
-                                         "/mnt/etc/nixos/hardware-configuration.nix"))
-                                 (raise (NameError no-host-error-message))))
-                         (if (or install all)
-                             (let [ options [
+                     (do (when (or copy all)
+                               (update-datasets ctx)
+                               (copy-partial "/mnt/etc/nixos/"))
+                         (when (or generate all) (nixos-generate-config :root "/mnt"))
+                         (when (or replace all)
+                               (if ctx.obj.host
+                                   (do (sd "./hardware-configuration.nix"
+                                           (+ "(import ./.).nixosConfigurations.${pkgs.stdenv.targetPlatform.system}.mini-" ctx.obj.host)
+                                           "/mnt/etc/nixos/configuration.nix")
+                                       (sd "'device = \"\"'"
+                                           "'device = \"!\"'"
+                                           "/mnt/etc/nixos/hardware-configuration.nix"))
+                                   (raise (NameError no-host-error-message))))
+                         (when (or install all)
+                               (let [ options [
 #+end_src
 
 From [[https://github.com/NixOS/nix/issues/2293#issuecomment-405339738][here]], and documented [[https://nixos.org/manual/nix/stable/expressions/builtins.html#:~:text=The%20fetched%20tarball%20is%20cached%20for%20a%20certain%20amount%20of%20time%20(1%20hour%20by%20default)%20in%20~/.cache/nix/tarballs/.%20You%20can%20change%20the%20cache%20timeout%20either%20on%20the%20command%20line%20with%20%2D%2Dtarball%2Dttl%20number%2Dof%2Dseconds%20or%20in%20the%20Nix%20configuration%20file%20by%20adding%20the%20line%20tarball%2Dttl%20%3D%20number%2Dof%2Dseconds.][here]]:
@@ -1730,33 +1737,33 @@ or in the Nix configuration file by adding the line tarball-ttl = number-of-seco
 Because I'm using the ~flakes nixosConfigurations~ output, I don't need this any more:
 
 #+begin_src hy :noweb-ref no
-                                        "tarball-ttl 0"
+                                          "tarball-ttl 0"
 #+end_src
 
 Adapted from [[https://github.com/NixOS/nix/issues/807#issuecomment-209895935][here]]:
 
 #+begin_src hy
-                                        "build-fallback true"
+                                          "build-fallback true"
 #+end_src
 
 #+begin_src hy
-                                  ] ]
-                                  (nixos-install #* ctx.args
+                                    ] ]
+                                    (nixos-install #* ctx.args
 #+end_src
 
 Because I'm using the ~flakes nixosConfigurations~ output, I don't need this any more:
 
 #+begin_src nix :noweb-ref no
-                                             ;; :I (with [f (open (+ ctx.obj.resources "/flake.lock"))]
-                                             ;;          #[f[nixpkgs=https://github.com/nixos/nixpkgs/archive/{(. (.load json f) ["nodes"] ["<<channel()>>"] ["original"] ["ref"])}.tar.gz]f])
-                                             :I #[f[nixpkgs={(.strip (.eval nix :impure True :expr "(import ./etc/nixos).inputs.nixpkgs.outPath" :m/run False) "\"")}]f]
+                                               ;; :I (with [f (open (+ ctx.obj.resources "/flake.lock"))]
+                                               ;;          #[f[nixpkgs=https://github.com/nixos/nixpkgs/archive/{(. (.load json f) ["nodes"] ["<<channel()>>"] ["original"] ["ref"])}.tar.gz]f])
+                                               :I #[f[nixpkgs={(.strip (.eval nix :impure True :expr "(import ./etc/nixos).inputs.nixpkgs.outPath" :m/run False) "\"")}]f]
 #+end_src
 
 #+begin_src nix
-                                             :m/run True
-                                             :show-trace True
-                                             :install-bootloader install-bootloader
-                                             :option { "repeat-with-values" options }))))))
+                                               :m/run True
+                                               :show-trace True
+                                               :install-bootloader install-bootloader
+                                               :option { "repeat-with-values" options }))))))
              (raise (NameError no-host-error-message)))))
 #+end_src
 
@@ -1764,7 +1771,7 @@ Because I'm using the ~flakes nixosConfigurations~ output, I don't need this any
 
 #+begin_src hy
 #@((.command strapper :no-args-is-help True)
-   (.option click "-B" "--boot-device" :type (, str int))
+   (.option click "-B" "--boot-device" :type #(str int))
    (.option click "-c" "--copies" :type int :default 1)
    (.option click "-d" "--deduplicated" :is-flag True)
    (.option click "-e" "--encrypted" :is-flag True)
@@ -1783,7 +1790,7 @@ a second `-P' sets up the swap space similarly, and subsequent invocations sets 
 The final partition will be the ZFS partition, and does not need to be specified.")
    (.option click "-p" "--pool-only" :is-flag True)
    (.option click "-r" "--raid" :cls oreo.Option :xor [ "partition" ])
-   (.option click "-S" "--swap-device" :type (, str int))
+   (.option click "-S" "--swap-device" :type #(str int))
    (.option click "-s" "--swap" :type int :default 0)
    (.option click "-z" "--zfs-devices" :required True :multiple True)
    click.pass-context
@@ -1812,49 +1819,40 @@ The final partition will be the ZFS partition, and does not need to be specified
                                         (if raid
                                             #[f[{raid} {(.join " " zfs-devices)}]f]
                                             (raise (NameError no-raid-error-message))))]
-                           (if (or partition boot-device)
-                               (.bake- parted :m/sudo True :s True :a "optimal" "--"))
-                           (if partition
-                               (do (setv zfs-name ctx.obj.host)
-                                   (parted zfs-device "mklabel" "gpt")
-                                   (for [[i p] (enumerate partition)]
-                                        (parted zfs-device
-                                                "mkpart"
-                                                "primary"
-
-                                                #_(if i (get partition (dec i)) "0%")
-
-                                                (if i (get partition (- i 1)) "0%")
-
-                                                p))
-                                   (parted zfs-device "mkpart" "primary" (get partition -1) "100%")
-                                   (parted zfs-device "name" (if (> (len partition) 1) 3 2) zfs-name)))
-                           (if (or partition boot-device)
-                               (if boot-device
-                                   (let [ device (get boot-device 0)
-                                          index  (get boot-device 1) ]
-                                        (parted device "mkfs" index "fat32")
-                                        (parted device "set" index "boot" "on")
-                                        (parted device "set" index "esp" "on"))
-                                   (do (parted zfs-device "name" 1 (+ ctx.obj.host "-boot"))
-                                       (parted zfs-device "mkfs" 1 "fat32")
-                                       (parted zfs-device "set" 1 "boot" "on")
-                                       (parted zfs-device "set" 1 "esp" "on"))))
-                           (if (or (> (len partition) 1) swap-device)
-                               (if swap-device
-                                   (parted (get swap-device 0) "mkfs" (get swap-device 1) "linux-swap")
-                                   (do (parted zfs-device "name" 2 (+ ctx.obj.host "-swap"))
-                                       (parted zfs-device "mkfs" 2 "linux-swap"))))
+                           (when (or partition boot-device) (.bake- parted :m/sudo True :s True :a "optimal" "--"))
+                           (when partition
+                                 (setv zfs-name ctx.obj.host)
+                                 (parted zfs-device "mklabel" "gpt")
+                                 (for [[i p] (enumerate partition)]
+                                      (parted zfs-device
+                                              "mkpart"
+                                              "primary"
+                                              (if i (get partition (dec i)) "0%")
+                                              p))
+                                 (parted zfs-device "mkpart" "primary" (get partition -1) "100%")
+                                 (parted zfs-device "name" (if (> (len partition) 1) 3 2) zfs-name))
+                           (when (or partition boot-device)
+                                 (if boot-device
+                                     (let [ device (get boot-device 0)
+                                            index  (get boot-device 1) ]
+                                          (parted device "mkfs" index "fat32")
+                                          (parted device "set" index "boot" "on")
+                                          (parted device "set" index "esp" "on"))
+                                     (do (parted zfs-device "name" 1 (+ ctx.obj.host "-boot"))
+                                         (parted zfs-device "mkfs" 1 "fat32")
+                                         (parted zfs-device "set" 1 "boot" "on")
+                                         (parted zfs-device "set" 1 "esp" "on"))))
+                           (when (or (> (len partition) 1) swap-device)
+                                 (if swap-device
+                                     (parted (get swap-device 0) "mkfs" (get swap-device 1) "linux-swap")
+                                     (do (parted zfs-device "name" 2 (+ ctx.obj.host "-swap"))
+                                         (parted zfs-device "mkfs" 2 "linux-swap"))))
                            (for [dataset (.list zfs :r True :H True :m/list True :m/split True)]
-                                (if (in ctx.obj.host dataset)
-                                    (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
-                           (if encrypted
-                               (setv dataset-options-dict.encryption "aes-256-gcm"
-                                     dataset-options-dict.keyformat  "passphrase"))
-                           (if deduplicated
-                               (setv dataset-options-dict.dedup "edonr,verify"))
-                           (if (.ismount os.path "/mnt")
-                               (umount :R True "/mnt"))
+                                (when (in ctx.obj.host dataset) (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
+                           (when encrypted (setv dataset-options-dict.encryption "aes-256-gcm"
+                                                 dataset-options-dict.keyformat  "passphrase"))
+                           (when deduplicated (setv dataset-options-dict.dedup "edonr,verify"))
+                           (when (.ismount os.path "/mnt") (umount :R True "/mnt"))
                            (.export zpool :f True ctx.obj.host :m/ignore-stderr True)
                            (.update dataset-options-dict (dfor item pool-options :setv kv (.split item "=") [(get kv 0) (get kv 1)]))
                            (.update pool-options-dict (dfor item dataset-options :setv kv (.split item "=") [(get kv 0) (get kv 1)]))
@@ -1885,15 +1883,12 @@ The final partition will be the ZFS partition, and does not need to be specified
          (if ctx.obj.host
              (do (update-datasets ctx :root-device root-device :encrypted encrypted :deduplicated deduplicated :swap swap)
                  (for [dataset (.list zfs :r True :H True :m/list True :m/split True)]
-                      (if (in ctx.obj.host dataset)
-                          (break))
+                      (when (in ctx.obj.host dataset) (break))
                       (else (.import zpool :f True ctx.obj.host)))
-                 (if encrypted
-                     (.load-key zfs ctx.obj.host))
+                 (when encrypted (.load-key zfs ctx.obj.host))
                  (try (.mkdir (Path "/mnt"))
                       (except [FileExistsError]
-                              (if (.ismount os.path "/mnt")
-                                  (umount :R True "/mnt"))))
+                              (when (.ismount os.path "/mnt") (umount :R True "/mnt"))))
                  (if root-device
                      (Mount root-device "/mnt")
                      (Mount :t "zfs" (+ ctx.obj.host "/system/root") "/mnt"))
@@ -1904,8 +1899,7 @@ Taken from [[https://github.com/NixOS/nixpkgs/issues/73404#issuecomment-10114854
 #+begin_src hy
                  (try (.mkdir (Path "/mnt/mnt"))
                       (except [FileExistsError]
-                              (if (.ismount os.path "/mnt/mnt")
-                                  (umount :R True "/mnt/mnt"))))
+                              (when (.ismount os.path "/mnt/mnt") (umount :R True "/mnt/mnt"))))
                  (Mount :bind True "/mnt" "/mnt/mnt")
 #+end_src
 
@@ -1918,14 +1912,12 @@ Taken from [[https://github.com/NixOS/nixpkgs/issues/73404#issuecomment-10114854
                  (.mkdir (Path "/mnt/persist") :parents True :exist-ok True)
                  (Mount :t "zfs" (+ ctx.obj.host "/system/persist") "/mnt/persist")
 
-                 (if boot-device
-                     (let [boot "/mnt/boot/efi"]
-                          (.mkdir (Path boot) :parents True :exist-ok True)
-                          (Mount boot-device boot)))
-                 (if swap
-                     (swapon (+ "/dev/zvol/" ctx.obj.host "/swap" :m/run True)))
-                 (if swap-device
-                     (swapon swap-device :m/run True))
+                 (when boot-device
+                       (let [boot "/mnt/boot/efi"]
+                            (.mkdir (Path boot) :parents True :exist-ok True)
+                            (Mount boot-device boot)))
+                 (when swap (swapon (+ "/dev/zvol/" ctx.obj.host "/swap" :m/run True)))
+                 (when swap-device (swapon swap-device :m/run True))
 
                  (.mkdir (Path "/tmp") :parents True :exist-ok True)
                  (Mount :t "zfs" (+ ctx.obj.host "/system/tmp") "/tmp" :m/run True)
@@ -1936,8 +1928,7 @@ Taken from [[https://github.com/NixOS/nixpkgs/issues/73404#issuecomment-10114854
                  ;; (rsync :a True :v { "repeat" 2 } :c True :z { "repeat" 2 } :delete True "/nix/" "/tmp/nix/")
                  ;; (Mount :t "zfs" (+ ctx.obj.host "/system/tmp/nix") "/nix" :m/run True)
 
-                 (if (or install install-bootloader)
-                     (.invoke ctx main :all True :install-bootloader install-bootloader)))
+                 (when (or install install-bootloader) (.invoke ctx main :all True :install-bootloader install-bootloader)))
              (raise (NameError no-host-error-message)))))
 #+end_src
 
@@ -1955,9 +1946,9 @@ Taken from [[https://github.com/NixOS/nixpkgs/issues/73404#issuecomment-10114854
    (defn update [ ctx deduplicated encrypted files pool root-device swap ]
          (if ctx.obj.host
              (try (setv ud (partial update-datasets ctx :swap swap :encrypted encrypted :deduplicated deduplicated :root-device root-device))
-                  (cond [files (ud)]
-                        [pool (ud :pool True)]
-                        [True (ud)])
+                  (cond files (ud)
+                        pool (ud :pool True)
+                        True (ud))
                   (finally (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
              (raise (NameError no-host-error-message)))))
 #+end_src
@@ -1965,8 +1956,7 @@ Taken from [[https://github.com/NixOS/nixpkgs/issues/73404#issuecomment-10114854
 *** End of strapper
 
 #+begin_src hy :noweb-ref no
-(if (= __name__ "__main__")
-    (strapper :obj (D {})))
+(when (= __name__ "__main__") (strapper :obj (D {})))
 #+end_src
 
 * bin
@@ -8653,58 +8643,6 @@ Source [[https://github.com/bzg/org-mode/blob/main/lisp/ob-core.el#L1258][here]]
 
 #+begin_src emacs-lisp
         (org-babel-execute-buffer)))
-#+end_src
-
-* makefile
-
-#+begin_src makefile :tangle (meq/tangle-path)
-.RECIPEPREFIX := |
-.DEFAULT_GOAL := super-push
-
-# Adapted From: https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/
-mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
-mkfileDir := $(dir $(mkfilePath))
-chmodBin := chmod +x $(mkfileDir)/bin/*
-
-pre-init:
-|-fd . $(mkfileDir)/.. -HIt d -t e -x rm -rf
-
-tangle-setup:
-|cp $(mkfileDir)/bin/org-tangle $(mkfileDir)/bin/backup-tangle
-|$(chmodBin)
-
-tangle: tangle-setup
-|yes yes | fd . $(mkfileDir)/.. \
-    -HId 1 -e org \
-    -x $(mkfileDir)/bin/backup-tangle
-|$(chmodBin)
-
-pull: subinit
-|git -C $(mkfileDir)/.. pull
-
-add:
-|git -C $(mkfileDir)/.. add .
-
-commit:
-|-git -C $(mkfileDir)/.. commit --allow-empty-message -am ""
-
-cammit: pre-init add commit
-
-push: cammit
-|-git -C $(mkfileDir)/.. remote set-url --push origin git@github.com:<<username>>/$$(basename `git -C $(mkfileDir)/.. config --get remote.origin.url`)
-|-git -C $(mkfileDir)/.. push 2>/dev/null || git -C $(mkfileDir)/.. push origin HEAD:$$(git -C $(mkfileDir)/.. remote show origin | grep "HEAD branch" | sed 's/.*: //')
-
-push-me: tangle-setup
-|yes yes | fd . $(mkfileDir) \
-    -HId 1 -e org \
-    -x $(mkfileDir)/bin/backup-tangle.sh
-|-fd . $(mkfileDir) -HIt d -t e -x rm -rf
-|git -C $(mkfileDir) add .
-|-git -C $(mkfileDir) commit --allow-empty-message -am ""
-|-git -C $(mkfileDir) remote set-url --push origin git@github.com:<<username>>/$$(basename `git -C $(mkfileDir) config --get remote.origin.url`)
-|-git -C $(mkfileDir) push 2>/dev/null || git -C $(mkfileDir) push origin HEAD:$$(git -C $(mkfileDir) remote show origin | grep "HEAD branch" | sed 's/.*: //')
-
-super-push: tangle push
 #+end_src
 
 * Addendum

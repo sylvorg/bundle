@@ -1923,7 +1923,6 @@
                     (attrNames overlayset.overlays)
                 ] pkgs)
                 pythonPackages
-                { default = pythonPackages.xonsh; }
             ]);
             package = packages.default;
             defaultPackage = package;
@@ -1932,7 +1931,8 @@
             defaultApp = app;
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) buildInputs)
+                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
+                (made.mkboth "general" [] [] "settings")
                 (with pkgs; {
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
