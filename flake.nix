@@ -1882,7 +1882,7 @@
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = j.filters.has.list [
-                        (if (pname == null) then pname else (pkgs.${pname}.override func))
+                        (if (pname == null) then pname else (pkgs.${pname}.overrideAttrs func))
                         (mkPython pkgs.Python3 [ ppkglist mkbuildinputs.makefile-python ] null)
                         pkglist
                     ] pkgs;
