@@ -17,10 +17,7 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
-update: tangle
-|nix flake update $(mkfileDir)
-
-super: update push
+super: push
 
 tangle-README:
 |org-tangle $(mkfileDir)/README.org

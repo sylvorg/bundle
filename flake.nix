@@ -1792,7 +1792,7 @@
                 devShells = j.foldToSet [
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                    (made.mkboth "general" [] [] pname)
+                    (made.mkboth "general" [] [] (if pythonTemplate then null else pname))
                     (optionalAttrs pythonTemplate (made.mkboth python [] [] pname))
                     { default = pkgs.mkShell { buildInputs = attrValues packages; }; }
                 ];
@@ -1846,12 +1846,19 @@
                 makefile = buildInputs.envrc ++ [ poetry2setup ];
                 makefile-python = [ "yq" "pytest" "pytest-hy" "pytest-randomly" ];
             };
-            mkpythons = {
-                python2 = mkPython pkgs.Python2;
-                python3 = mkPython pkgs.Python3;
-                python = mkPython pkgs.Python;
+            mkpythons' = {
+                python2 = pkgs.Python2;
+                python3 = pkgs.Python3;
+                python = pkgs.Python;
+                hy = null;
+                xonsh = pkgs;
+            };
+            mkpythons = mapAttrs (n: v: if (mkpythons'.${n} == null) then v else (v mkpythons'.${n})) {
+                python2 = mkPython;
+                python3 = mkPython;
+                python = mkPython;
                 hy = mkHy;
-                xonsh = mkXonsh pkgs;
+                xonsh = mkXonsh;
             };
             shellHooks = {
                 makefile = lib.j.foldToSet [
@@ -1867,12 +1874,18 @@
                     ''))
                 ];
             };
-            mkshellfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
+            mkshellfile = let
+                func = old: { doCheck = false; };
+            in mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
                 (pkgs.mkShell { buildInputs = mkbuildinputs.makefile; })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = j.filters.has.list [ pname (mkPython pkgs.Python3 [ ppkglist mkbuildinputs.makefile-python ] null) pkglist ] pkgs;
+                    buildInputs = j.filters.has.list [
+                        (if (pname == null) then pname else (pkgs.${pname}.override func))
+                        (mkPython pkgs.Python3 [ ppkglist mkbuildinputs.makefile-python ] null)
+                        pkglist
+                    ] pkgs;
                 }; }
                 (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = flatten [
@@ -1880,7 +1893,8 @@
                         (v (flatten [
                             ppkglist
                             mkbuildinputs.makefile-python
-                        ]) pname)
+                        ]) (if (isDerivation mkpythons'.${n}) then (mkpythons'.${n}.pkgs.${pname}.overridePythonAttrs func)
+                            else (pkgs.Python3.pkgs.${pname}.overridePythonAttrs func)))
                     ];
                 }) mkpythons)
             ]);

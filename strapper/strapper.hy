@@ -202,230 +202,237 @@
                                      (+ host "/swap"))
                             (mkswap (+ "/dev/zvol" host "/swap")))))))
 (setv no-host-error-message "Sorry! The host needs to be set; do this with the main command while running the subcommand!")
-#@((.group click :no-args-is-help True)
-   (.option click "-d" "--dazzle" :is-flag True)
-   (.option click "-H" "--host")
-   (.option click "-i" "--inspect" :is-flag True)
-   (.option click "-P" "--print-run" :is-flag True :cls oreo.Option :xor [ "print" ])
-   (.option click "-p" "--print" :is-flag True :cls oreo.Option :xor [ "print-run" ])
-   (.option click "-r" "--resources-dir")
-   click.pass-context
-   (defn strapper [ ctx dazzle host inspect print-run print resources-dir ]
-         (when (!= (.geteuid os) 0)
-               (raise (SystemError "Sorry; this program needs to be run as root!")))
-         (.ensure-object ctx dict)
-         (if resources-dir
-             (setv ctx.obj.resources resources-dir)
-             (do (setv ctx.obj.resources (/ cwd nixos-dir))
-                 (let [ cwd (.cwd Path)
-                        nixos-dir (Path "etc/nixos/") ]
-                      (if (= (cut cwd.parts -2 None) #("etc" "nixos"))
-                          (setv ctx.obj.resources cwd)
-                          (while (not (.exists ctx.obj.resources))
-                                 (setv cwd (.joinpath (Path (get cwd.parts 0)) #* (cut cwd.parts -1))
-                                       ctx.obj.resources (/ cwd nixos-dir))
-                                 (else (setv ctx.obj.resources (if (.exists (setx mnt-nixos-dir (/ "/mnt" nixos-dir)))
-                                                                   mnt-nixos-dir
-                                                                   (/ "/" nixos-dir)))))))))
-         (setv ctx.obj.host host)
-         (.bake-all- getconf :m/dazzle dazzle :m/print-command-and-run print-run :m/print-command print :m/debug inspect)))
-#@((.command strapper :no-args-is-help True
-                      :context-settings { "ignore_unknown_options" True
-                                          "allow_extra_args"       True })
-   (.argument click "program-arguments" :nargs -1)
-   (.option click "-a" "--all" :is-flag True)
-   (.option click "-c" "--copy" :is-flag True)
-   (.option click "-g" "--generate" :is-flag True)
-   (.option click "-i" "--install" :is-flag True)
-   (.option click "-b" "--install-bootloader" :is-flag True :cls oreo.Option :req-one-of [ "install" "all" ])
-   (.option click "-r" "--replace" :is-flag True)
-   (.option click "-R" "--rebuild")
-   click.pass-context
-   (defn main [ ctx all copy generate install program-arguments rebuild replace install-bootloader ]
-         (if ctx.obj.host
-             (do (.bake-all- getconf :m/sudo True :m/run True)
-                 (setv copy-partial (partial rsync :a True :v { "repeat" 2 } :c True :z { "repeat" 2 } f"{ctx.obj.resources}/"))
-                 (if rebuild
-                     (do (when copy (copy-partial "/etc/nixos/"))
-                         (nixos-rebuild rebuild #* ctx.args :show-trace True))
-                     (do (when (or copy all)
-                               (update-datasets ctx)
-                               (copy-partial "/mnt/etc/nixos/"))
-                         (when (or generate all) (nixos-generate-config :root "/mnt"))
-                         (when (or replace all)
-                               (if ctx.obj.host
-                                   (do (sd "./hardware-configuration.nix"
-                                           (+ "(import ./.).nixosConfigurations.${pkgs.stdenv.targetPlatform.system}.mini-" ctx.obj.host)
-                                           "/mnt/etc/nixos/configuration.nix")
-                                       (sd "'device = \"\"'"
-                                           "'device = \"!\"'"
-                                           "/mnt/etc/nixos/hardware-configuration.nix"))
-                                   (raise (NameError no-host-error-message))))
-                         (when (or install all)
-                               (let [ options [
-                                          "build-fallback true"
-                                    ] ]
-                                    (nixos-install #* ctx.args
-#@((.command strapper :no-args-is-help True)
-   (.option click "-B" "--boot-device" :type #(str int))
-   (.option click "-c" "--copies" :type int :default 1)
-   (.option click "-d" "--deduplicated" :is-flag True)
-   (.option click "-e" "--encrypted" :is-flag True)
-   (.option click "-M" "--host-mountpoint" :help "Use the hostname as the mountpoint" :is-flag True :cls oreo.Option :xor [ "mountpoint" ])
-   (.option click "-m" "--mountpoint" :cls oreo.Option :xor [ "host-mountpoint" ])
-   (.option click "-o" "--pool-options" :multiple True)
-   (.option click "-O" "--dataset-options" :multiple True)
-   (.option click
-            "-P"
-            "--partition"
-            :multiple True
-            :cls oreo.Option
-            :xor [ "raid" ]
-            :help "Set up an entire disk; a single `-P' sets up the boot partition with the size as the value passed in (with the unit, such as `2G' for 2 gibibytes),
+(defn [ (.group click :no-args-is-help True)
+        (.option click "-d" "--dazzle" :is-flag True)
+        (.option click "-H" "--host")
+        (.option click "-i" "--inspect" :is-flag True)
+        (.option click "-P" "--print-run" :is-flag True :cls oreo.Option :xor [ "print" ])
+        (.option click "-p" "--print" :is-flag True :cls oreo.Option :xor [ "print-run" ])
+        (.option click "-r" "--resources-dir")
+        click.pass-context ]
+      strapper [ ctx dazzle host inspect print-run print resources-dir ]
+               (when (!= (.geteuid os) 0)
+                     (raise (SystemError "Sorry; this program needs to be run as root!")))
+               (.ensure-object ctx dict)
+               (if resources-dir
+                   (setv ctx.obj.resources resources-dir)
+                   (let [ cwd (.cwd Path)
+                          nds "etc/nixos"
+                          nd (Path "etc/nixos/")
+                          eds (+ "/" nds)
+                          ed (Path eds) ]
+                        (setv ctx.obj.resources (/ cwd nd))
+                        (if (.match ctx.obj.resources (+ "*" eds))
+                            (setv ctx.obj.resources cwd)
+                            (while (not (.exists ctx.obj.resources))
+                                   (setv cwd cwd.parent
+                                         ctx.obj.resources (/ cwd nd))
+                                   (else (when (and (= resources ed)
+                                                    (.exists (setx mnt-dir (/ "/mnt" nd))))
+                                               (setv ctx.obj.resources mnt-dir)))))))
+               (setv ctx.obj.host host)
+               (.bake-all- getconf :m/dazzle dazzle :m/print-command-and-run print-run :m/print-command print :m/debug inspect))
+(defn [ (.command strapper :no-args-is-help True
+                           :context-settings { "ignore_unknown_options" True
+                                               "allow_extra_args"       True })
+        (.argument click "program-arguments" :nargs -1)
+        (.option click "-a" "--all" :is-flag True)
+        (.option click "-c" "--copy" :is-flag True)
+        (.option click "-g" "--generate" :is-flag True)
+        (.option click "-i" "--install" :is-flag True)
+        (.option click "-b" "--install-bootloader" :is-flag True :cls oreo.Option :req-one-of [ "install" "all" ])
+        (.option click "-r" "--replace" :is-flag True)
+        (.option click "-R" "--rebuild")
+        click.pass-context ]
+      main [ ctx all copy generate install program-arguments rebuild replace install-bootloader ]
+           (if ctx.obj.host
+               (do (.bake-all- getconf :m/sudo True :m/run True)
+                   (setv copy-partial (partial rsync :a True :v { "repeat" 2 } :c True :z { "repeat" 2 } f"{ctx.obj.resources}/"))
+                   (if rebuild
+                       (do (when copy (copy-partial "/etc/nixos/"))
+                           (nixos-rebuild rebuild #* ctx.args :show-trace True))
+                       (do (when (or copy all)
+                                 (update-datasets ctx)
+                                 (copy-partial "/mnt/etc/nixos/"))
+                           (when (or generate all) (nixos-generate-config :root "/mnt"))
+                           (when (or replace all)
+                                 (if ctx.obj.host
+                                     (do (sd "./hardware-configuration.nix"
+                                             (+ "(import ./.).nixosConfigurations.${pkgs.stdenv.targetPlatform.system}.mini-" ctx.obj.host)
+                                             "/mnt/etc/nixos/configuration.nix")
+                                         (sd "'device = \"\"'"
+                                             "'device = \"!\"'"
+                                             "/mnt/etc/nixos/hardware-configuration.nix"))
+                                     (raise (NameError no-host-error-message))))
+                           (when (or install all)
+                                 (let [ options [
+                                            "build-fallback true"
+                                      ] ]
+                                      (nixos-install #* ctx.args
+                                                 :m/run True
+                                                 :show-trace True
+                                                 :install-bootloader install-bootloader
+                                                 :option { "repeat-with-values" options }))))))
+               (raise (NameError no-host-error-message))))
+(defn [ (.command strapper :no-args-is-help True)
+        (.option click "-B" "--boot-device" :type #(str int))
+        (.option click "-c" "--copies" :type int :default 1)
+        (.option click "-d" "--deduplicated" :is-flag True)
+        (.option click "-e" "--encrypted" :is-flag True)
+        (.option click "-M" "--host-mountpoint" :help "Use the hostname as the mountpoint" :is-flag True :cls oreo.Option :xor [ "mountpoint" ])
+        (.option click "-m" "--mountpoint" :cls oreo.Option :xor [ "host-mountpoint" ])
+        (.option click "-o" "--pool-options" :multiple True)
+        (.option click "-O" "--dataset-options" :multiple True)
+        (.option click "-P"
+                       "--partition"
+                       :multiple True
+                       :cls oreo.Option
+                       :xor [ "raid" ]
+                       :help "Set up an entire disk; a single `-P' sets up the boot partition with the size as the value passed in (with the unit, such as `2G' for 2 gibibytes),
 a second `-P' sets up the swap space similarly, and subsequent invocations sets up further unformatted partitions.
 The final partition will be the ZFS partition, and does not need to be specified.")
-   (.option click "-p" "--pool-only" :is-flag True)
-   (.option click "-r" "--raid" :cls oreo.Option :xor [ "partition" ])
-   (.option click "-S" "--swap-device" :type #(str int))
-   (.option click "-s" "--swap" :type int :default 0)
-   (.option click "-z" "--zfs-devices" :required True :multiple True)
-   click.pass-context
-   (defn create [ ctx boot-device copies deduplicated encrypted host-mountpoint mountpoint dataset-options pool-options partition pool-only raid swap-device swap zfs-devices ]
-         (if ctx.obj.host
-             (try (if (= (input "THIS WILL DELETE ALL DATA ON THE SELECTED DEVICE / PARTITION! TO CONTINUE, TYPE IN 'ZFS CREATE'!\n\t") "ZFS CREATE")
-                      (let [dataset-options-dict (D { "xattr"      "sa"
-                                                      "acltype"    "posixacl"
-                                                      "mountpoint"  (if host-mountpoint
-                                                                        (+ "/" ctx.obj.host)
-                                                                        (or mountpoint "none"))
-                                                      "compression" "zstd-19"
-                                                      "checksum"    "edonr"
-                                                      "atime"       "off"
-                                                      "relatime"    "off"
-                                                      "copies"      copies })
-                            pool-options-dict (D { "autotrim" "on"
-                                                   "altroot" "/mnt"
-                                                   "autoexpand" "on" })
-                            command (partial zpool.create :f True :m/run True)
-                            no-raid-error-message "Sorry! For multiple zfs devices a raid configuration must be provided using `-r / --raid'!"
-                            zfs-device (if (= (len zfs-devices) 1)
-                                        (if raid
-                                            (raise (NameError no-raid-error-message))
-                                            (get zfs-devices 0))
-                                        (if raid
-                                            #[f[{raid} {(.join " " zfs-devices)}]f]
-                                            (raise (NameError no-raid-error-message))))]
-                           (when (or partition boot-device) (.bake- parted :m/sudo True :s True :a "optimal" "--"))
-                           (when partition
-                                 (setv zfs-name ctx.obj.host)
-                                 (parted zfs-device "mklabel" "gpt")
-                                 (for [[i p] (enumerate partition)]
-                                      (parted zfs-device
-                                              "mkpart"
-                                              "primary"
-                                              (if i (get partition (dec i)) "0%")
-                                              p))
-                                 (parted zfs-device "mkpart" "primary" (get partition -1) "100%")
-                                 (parted zfs-device "name" (if (> (len partition) 1) 3 2) zfs-name))
-                           (when (or partition boot-device)
-                                 (if boot-device
-                                     (let [ device (get boot-device 0)
-                                            index  (get boot-device 1) ]
-                                          (parted device "mkfs" index "fat32")
-                                          (parted device "set" index "boot" "on")
-                                          (parted device "set" index "esp" "on"))
-                                     (do (parted zfs-device "name" 1 (+ ctx.obj.host "-boot"))
-                                         (parted zfs-device "mkfs" 1 "fat32")
-                                         (parted zfs-device "set" 1 "boot" "on")
-                                         (parted zfs-device "set" 1 "esp" "on"))))
-                           (when (or (> (len partition) 1) swap-device)
-                                 (if swap-device
-                                     (parted (get swap-device 0) "mkfs" (get swap-device 1) "linux-swap")
-                                     (do (parted zfs-device "name" 2 (+ ctx.obj.host "-swap"))
-                                         (parted zfs-device "mkfs" 2 "linux-swap"))))
-                           (for [dataset (.list zfs :r True :H True :m/list True :m/split True)]
-                                (when (in ctx.obj.host dataset) (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
-                           (when encrypted (setv dataset-options-dict.encryption "aes-256-gcm"
-                                                 dataset-options-dict.keyformat  "passphrase"))
-                           (when deduplicated (setv dataset-options-dict.dedup "edonr,verify"))
-                           (when (.ismount os.path "/mnt") (umount :R True "/mnt"))
-                           (.export zpool :f True ctx.obj.host :m/ignore-stderr True)
-                           (.update dataset-options-dict (dfor item pool-options :setv kv (.split item "=") [(get kv 0) (get kv 1)]))
-                           (.update pool-options-dict (dfor item dataset-options :setv kv (.split item "=") [(get kv 0) (get kv 1)]))
-                           (command :O { "repeat-with-values" (gfor [k v] (.items dataset-options-dict) f"{k}={v}") }
-                                    :o { "repeat-with-values" (gfor [k v] (.items pool-options-dict) f"{k}={v}") }
-                                    ctx.obj.host
-                                    (if partition (+ "/dev/disk/by-label/" zfs-name) zfs-device))
-                           (update-datasets ctx :swap swap :encrypted encrypted :deduplicated deduplicated :pool True :reserved-only pool-only))
-                      (print "Sorry; not continuing!\n\n"))
-                  (finally (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
-             (raise (NameError no-host-error-message)))))
-#@((.command strapper :no-args-is-help True)
-   (.option click "-b" "--boot-device")
-   (.option click "-d" "--deduplicated" :is-flag True)
-   (.option click "-e" "--encrypted" :is-flag True)
-   (.option click "-r" "--root-device")
-   (.option click "-s" "--swap" :cls oreo.Option :xor [ "swap-device" ] :is-flag True)
-   (.option click "-S" "--swap-device" :cls oreo.Option :xor [ "swap" ])
-   (.option click "-i" "--install" :is-flag True)
-   (.option click "-I" "--install-bootloader" :is-flag True)
-   click.pass-context
-   (defn mount [ ctx boot-device deduplicated encrypted root-device swap swap-device install install-bootloader ]
-         (if ctx.obj.host
-             (do (update-datasets ctx :root-device root-device :encrypted encrypted :deduplicated deduplicated :swap swap)
-                 (for [dataset (.list zfs :r True :H True :m/list True :m/split True)]
-                      (when (in ctx.obj.host dataset) (break))
-                      (else (.import zpool :f True ctx.obj.host)))
-                 (when encrypted (.load-key zfs ctx.obj.host))
-                 (try (.mkdir (Path "/mnt"))
-                      (except [FileExistsError]
-                              (when (.ismount os.path "/mnt") (umount :R True "/mnt"))))
-                 (if root-device
-                     (Mount root-device "/mnt")
-                     (Mount :t "zfs" (+ ctx.obj.host "/system/root") "/mnt"))
-                 (try (.mkdir (Path "/mnt/mnt"))
-                      (except [FileExistsError]
-                              (when (.ismount os.path "/mnt/mnt") (umount :R True "/mnt/mnt"))))
-                 (Mount :bind True "/mnt" "/mnt/mnt")
-                 (.mkdir (Path "/mnt/etc/nixos") :parents True :exist-ok True)
+        (.option click "-p" "--pool-only" :is-flag True)
+        (.option click "-r" "--raid" :cls oreo.Option :xor [ "partition" ])
+        (.option click "-S" "--swap-device" :type #(str int))
+        (.option click "-s" "--swap" :type int :default 0)
+        (.option click "-z" "--zfs-devices" :required True :multiple True)
+        click.pass-context ]
+      create [ ctx boot-device copies deduplicated encrypted host-mountpoint mountpoint dataset-options pool-options partition pool-only raid swap-device swap zfs-devices ]
+             (if ctx.obj.host
+                 (try (if (= (input "THIS WILL DELETE ALL DATA ON THE SELECTED DEVICE / PARTITION! TO CONTINUE, TYPE IN 'ZFS CREATE'!\n\t") "ZFS CREATE")
+                          (let [ dataset-options-dict (D { "xattr"      "sa"
+                                                           "acltype"    "posixacl"
+                                                           "mountpoint"  (if host-mountpoint
+                                                                             (+ "/" ctx.obj.host)
+                                                                             (or mountpoint "none"))
+                                                           "compression" "zstd-19"
+                                                           "checksum"    "edonr"
+                                                           "atime"       "off"
+                                                           "relatime"    "off"
+                                                           "copies"      copies })
+                                 pool-options-dict (D { "autotrim" "on"
+                                                        "altroot" "/mnt"
+                                                        "autoexpand" "on" })
+                                 command (partial zpool.create :f True :m/run True)
+                                 no-raid-error-message "Sorry! For multiple zfs devices a raid configuration must be provided using `-r / --raid'!"
+                                 zfs-device (if (= (len zfs-devices) 1)
+                                                (if raid
+                                                    (raise (NameError no-raid-error-message))
+                                                    (get zfs-devices 0))
+                                                (if raid
+                                                    #[f[{raid} {(.join " " zfs-devices)}]f]
+                                                    (raise (NameError no-raid-error-message)))) ]
+                               (when (or partition boot-device) (.bake- parted :m/sudo True :s True :a "optimal" "--"))
+                               (when partition
+                                     (setv zfs-name ctx.obj.host)
+                                     (parted zfs-device "mklabel" "gpt")
+                                     (for [[i p] (enumerate partition)]
+                                          (parted zfs-device
+                                                  "mkpart"
+                                                  "primary"
+                                                  (if i (get partition (dec i)) "0%")
+                                                  p))
+                                     (parted zfs-device "mkpart" "primary" (get partition -1) "100%")
+                                     (parted zfs-device "name" (if (> (len partition) 1) 3 2) zfs-name))
+                               (when (or partition boot-device)
+                                     (if boot-device
+                                         (let [ device (get boot-device 0)
+                                                index  (get boot-device 1) ]
+                                              (parted device "mkfs" index "fat32")
+                                              (parted device "set" index "boot" "on")
+                                              (parted device "set" index "esp" "on"))
+                                         (do (parted zfs-device "name" 1 (+ ctx.obj.host "-boot"))
+                                             (parted zfs-device "mkfs" 1 "fat32")
+                                             (parted zfs-device "set" 1 "boot" "on")
+                                             (parted zfs-device "set" 1 "esp" "on"))))
+                               (when (or (> (len partition) 1) swap-device)
+                                     (if swap-device
+                                         (parted (get swap-device 0) "mkfs" (get swap-device 1) "linux-swap")
+                                         (do (parted zfs-device "name" 2 (+ ctx.obj.host "-swap"))
+                                             (parted zfs-device "mkfs" 2 "linux-swap"))))
+                               (for [dataset (.list zfs :r True :H True :m/list True :m/split True)]
+                                    (when (in ctx.obj.host dataset) (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
+                               (when encrypted (setv dataset-options-dict.encryption "aes-256-gcm"
+                                                     dataset-options-dict.keyformat  "passphrase"))
+                               (when deduplicated (setv dataset-options-dict.dedup "edonr,verify"))
+                               (when (.ismount os.path "/mnt") (umount :R True "/mnt"))
+                               (.export zpool :f True ctx.obj.host :m/ignore-stderr True)
+                               (.update dataset-options-dict (dfor item pool-options :setv kv (.split item "=") [(get kv 0) (get kv 1)]))
+                               (.update pool-options-dict (dfor item dataset-options :setv kv (.split item "=") [(get kv 0) (get kv 1)]))
+                               (command :O { "repeat-with-values" (gfor [k v] (.items dataset-options-dict) f"{k}={v}") }
+                                        :o { "repeat-with-values" (gfor [k v] (.items pool-options-dict) f"{k}={v}") }
+                                        ctx.obj.host
+                                        (if partition (+ "/dev/disk/by-label/" zfs-name) zfs-device))
+                               (update-datasets ctx :swap swap :encrypted encrypted :deduplicated deduplicated :pool True :reserved-only pool-only))
+                          (print "Sorry; not continuing!\n\n"))
+                      (finally (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
+                 (raise (NameError no-host-error-message))))
+(defn [ (.command strapper :no-args-is-help True)
+        (.option click "-b" "--boot-device")
+        (.option click "-d" "--deduplicated" :is-flag True)
+        (.option click "-e" "--encrypted" :is-flag True)
+        (.option click "-r" "--root-device")
+        (.option click "-s" "--swap" :cls oreo.Option :xor [ "swap-device" ] :is-flag True)
+        (.option click "-S" "--swap-device" :cls oreo.Option :xor [ "swap" ])
+        (.option click "-i" "--install" :is-flag True)
+        (.option click "-I" "--install-bootloader" :is-flag True)
+        click.pass-context ]
+      mount [ ctx boot-device deduplicated encrypted root-device swap swap-device install install-bootloader ]
+            (if ctx.obj.host
+                (do (update-datasets ctx :root-device root-device :encrypted encrypted :deduplicated deduplicated :swap swap)
+                    (for [dataset (.list zfs :r True :H True :m/list True :m/split True)]
+                         (when (in ctx.obj.host dataset) (break))
+                         (else (.import zpool :f True ctx.obj.host)))
+                    (when encrypted (.load-key zfs ctx.obj.host))
+                    (try (.mkdir (Path "/mnt"))
+                         (except [FileExistsError]
+                                 (when (.ismount os.path "/mnt") (umount :R True "/mnt"))))
+                    (if root-device
+                        (Mount root-device "/mnt")
+                        (Mount :t "zfs" (+ ctx.obj.host "/system/root") "/mnt"))
+                    (try (.mkdir (Path "/mnt/mnt"))
+                         (except [FileExistsError]
+                                 (when (.ismount os.path "/mnt/mnt") (umount :R True "/mnt/mnt"))))
+                    (Mount :bind True "/mnt" "/mnt/mnt")
+                    (.mkdir (Path "/mnt/etc/nixos") :parents True :exist-ok True)
 
-                 (.mkdir (Path "/mnt/nix") :parents True :exist-ok True)
-                 (Mount :t "zfs" (+ ctx.obj.host "/system/nix") "/mnt/nix")
+                    (.mkdir (Path "/mnt/nix") :parents True :exist-ok True)
+                    (Mount :t "zfs" (+ ctx.obj.host "/system/nix") "/mnt/nix")
 
-                 (.mkdir (Path "/mnt/persist") :parents True :exist-ok True)
-                 (Mount :t "zfs" (+ ctx.obj.host "/system/persist") "/mnt/persist")
+                    (.mkdir (Path "/mnt/persist") :parents True :exist-ok True)
+                    (Mount :t "zfs" (+ ctx.obj.host "/system/persist") "/mnt/persist")
 
-                 (when boot-device
-                       (let [boot "/mnt/boot/efi"]
-                            (.mkdir (Path boot) :parents True :exist-ok True)
-                            (Mount boot-device boot)))
-                 (when swap (swapon (+ "/dev/zvol/" ctx.obj.host "/swap" :m/run True)))
-                 (when swap-device (swapon swap-device :m/run True))
+                    (when boot-device
+                          (let [boot "/mnt/boot/efi"]
+                               (.mkdir (Path boot) :parents True :exist-ok True)
+                               (Mount boot-device boot)))
+                    (when swap (swapon (+ "/dev/zvol/" ctx.obj.host "/swap" :m/run True)))
+                    (when swap-device (swapon swap-device :m/run True))
 
-                 (.mkdir (Path "/tmp") :parents True :exist-ok True)
-                 (Mount :t "zfs" (+ ctx.obj.host "/system/tmp") "/tmp" :m/run True)
+                    (.mkdir (Path "/tmp") :parents True :exist-ok True)
+                    (Mount :t "zfs" (+ ctx.obj.host "/system/tmp") "/tmp" :m/run True)
 
-                 (.mkdir (Path "/tmp/nix") :parents True :exist-ok True)
-                 (Mount :t "zfs" (+ ctx.obj.host "/system/tmp/nix") "/tmp/nix" :m/run True)
+                    (.mkdir (Path "/tmp/nix") :parents True :exist-ok True)
+                    (Mount :t "zfs" (+ ctx.obj.host "/system/tmp/nix") "/tmp/nix" :m/run True)
 
-                 ;; (rsync :a True :v { "repeat" 2 } :c True :z { "repeat" 2 } :delete True "/nix/" "/tmp/nix/")
-                 ;; (Mount :t "zfs" (+ ctx.obj.host "/system/tmp/nix") "/nix" :m/run True)
+                    ;; (rsync :a True :v { "repeat" 2 } :c True :z { "repeat" 2 } :delete True "/nix/" "/tmp/nix/")
+                    ;; (Mount :t "zfs" (+ ctx.obj.host "/system/tmp/nix") "/nix" :m/run True)
 
-                 (when (or install install-bootloader) (.invoke ctx main :all True :install-bootloader install-bootloader)))
-             (raise (NameError no-host-error-message)))))
-#@((.command strapper)
-   (.option click "-d" "--deduplicated" :is-flag True)
-   (.option click "-e" "--encrypted" :is-flag True)
-   (.option click "-f" "--files" :is-flag True :help "Update datasets.nix with any new datasets; the default")
-   (.option click "-p" "--pool" :is-flag True :help "Update the pool and datasets.nix with any new datasets")
-   (.option click "-r" "--root-device")
-   (.option click "-s" "--swap" :type int :default 0)
-   click.pass-context
-   (defn update [ ctx deduplicated encrypted files pool root-device swap ]
-         (if ctx.obj.host
-             (try (setv ud (partial update-datasets ctx :swap swap :encrypted encrypted :deduplicated deduplicated :root-device root-device))
-                  (cond files (ud)
-                        pool (ud :pool True)
-                        True (ud))
-                  (finally (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
-             (raise (NameError no-host-error-message)))))
+                    (when (or install install-bootloader) (.invoke ctx main :all True :install-bootloader install-bootloader)))
+                (raise (NameError no-host-error-message))))
+(defn [ (.command strapper)
+        (.option click "-d" "--deduplicated" :is-flag True)
+        (.option click "-e" "--encrypted" :is-flag True)
+        (.option click "-f" "--files" :is-flag True :help "Update datasets.nix with any new datasets; the default")
+        (.option click "-p" "--pool" :is-flag True :help "Update the pool and datasets.nix with any new datasets")
+        (.option click "-r" "--root-device")
+        (.option click "-s" "--swap" :type int :default 0)
+        click.pass-context ]
+      update [ ctx deduplicated encrypted files pool root-device swap ]
+             (if ctx.obj.host
+                 (try (setv ud (partial update-datasets ctx :swap swap :encrypted encrypted :deduplicated deduplicated :root-device root-device))
+                      (cond files (ud)
+                            pool (ud :pool True)
+                            True (ud))
+                      (finally (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
+                 (raise (NameError no-host-error-message))))

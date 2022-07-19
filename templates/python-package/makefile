@@ -17,10 +17,7 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
-update: tangle
-|nix flake update $(mkfileDir)
-
-super: update push
+super: push
 
 tangle:
 |org-tangle $(mkfileDir)/nix.org
@@ -30,10 +27,10 @@ export PYTHONPATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${
 tangle-python:
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
 
-test: tangle-python
-|pytest $(mkfileDir)
-
 poetry2setup:
 |poetry2setup > $(mkfileDir)/setup.py
+
+test: tangle-python
+|pytest $(mkfileDir)
 
 super-python: update test push
