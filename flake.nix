@@ -1897,9 +1897,9 @@
                         pkglist
                     ] pkgs;
                 }; }
-                (genAttrs (python: ppkglist: pkglist: pname: pkgs.mkShell {
+                (genAttrs (attrNames mkpythons) (python: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = mkbuildinputs.${python} ppkglist pkglist pname;
-                }) (attrNames mkpythons))
+                }))
             ]);
             mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
