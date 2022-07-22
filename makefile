@@ -29,4 +29,6 @@ update:
 tangle: $(eval $(call exportSettings))
 |org-tangle $(mkfileDir)/README.org $(mkfileDir)/flake.org
 
+quick: tangle push
+
 super: tangle update push

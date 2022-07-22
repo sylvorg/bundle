@@ -1840,11 +1840,7 @@
                 pkglist
                 pname
             ]);
-            buildInputs = with pkgs; {
-                envrc = [ git settings ];
-                makefile = envrc ++ [ poetry2setup ];
-                makefile-python = [ "yq" "pytest" "pytest-hy" "pytest-randomly" ];
-            };
+            buildInputs = with pkgs; { envrc = [ git settings ]; };
             mkbuildinputs = with pkgs; {
                 makefile = buildInputs.envrc ++ [ poetry2setup ];
                 makefile-python = [ "yq" "pytest" "pytest-hy" "pytest-randomly" ];
