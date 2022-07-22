@@ -52,7 +52,7 @@
         };
 
         hy = {
-            url = github:hylang/hy/0.24.0;
+            url = github:hylang/hy/035383d11b44a1731aa6c70735fa4c709979ccdb;
             flake = false;
         };
         hyrule = {
@@ -160,7 +160,7 @@
             in J.foldToSet [
                 (v.locked or {})
                 vo
-                { version = J.remove.prefix [ "v" ] vo.ref; }
+                { version = if (vo ? ref) then (J.remove.prefix [ "v" ] vo.ref) else vo.rev; }
             ]) lockfile'.nodes));
         };
         Inputs = J.extendInputs inputs lockfile;
@@ -1760,13 +1760,11 @@
             templates
             { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs Inputs; }
         ];
-        mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, python ? null, ... }: let
-            pythonTemplate = let
-                mknames = j.attrs.versionNames.python;
-            in j.mifNotNull.False python ((elem python mknames) || (abort "Sorry; the python names can only be of values [ ${concatStringsSep ", " mknames} ]!"));
+        mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, type ? null, ... }: let
+            pythonTemplate = elem type j.attrs.versionNames.python;
             overlayset = let
                 default = if (overlay != null) then overlay else
-                          if pythonTemplate then (j.update.python.callPython.${python} { inherit pname; } pname callPackage)
+                          if pythonTemplate then (j.update.python.callPython.${type} { inherit pname; } pname callPackage)
                           else (final: prev: { "${pname}" = final.callPackage callPackage {}; });
             in {
                 overlays = self.overlays // { inherit default; "${pname}" = default; };
@@ -1778,11 +1776,13 @@
                 made = make system (attrValues overlayset.overlays);
                 pythons = optionalAttrs pythonTemplate (mapAttrs (n: v: v [] pname) made.mkpythons);
             in rec {
-                inherit (made) legacyPackages pkgs nixpkgs;
                 inherit made;
+                nixpkgs = made.nixpkgs'.package;
+                pkgs = made.pkgs'.package;
+                legacyPackages = pkgs;
                 packages = flattenTree (if pythonTemplate then (j.foldToSet [
                     (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
-                    { "${pname}" = pythons.${python}; default = pythons.${python}; }
+                    { "${pname}" = pythons.${type}; default = pythons.${type}; }
                 ]) else {
                     default = pkgs.${pname};
                     "${pname}" = pkgs.${pname};
@@ -1803,10 +1803,7 @@
                 defaultdevShell = devShell;
             }))
             overlayset
-            {
-                inherit pname callPackage;
-                python = if (python == null) then "general" else python;
-            }
+            { inherit pname callPackage type; }
         ];
         make = system: overlays: with lib; rec {
             config' = rec {
@@ -1815,11 +1812,13 @@
                 overlayed = default // { inherit overlays; };
             };
             nixpkgs' = {
+                package = nixpkgs;
                 base = j.patch.nixpkgs.default inputs.nixpkgs config'.base;
                 default = j.patch.nixpkgs.default inputs.nixpkgs config'.default;
                 overlayed = j.patch.nixpkgs.default inputs.nixpkgs config'.overlayed;
             };
             pkgs' = {
+                package = import nixpkgs'.package config'.overlayed;
                 base = j.patch.pkgs.default inputs.nixpkgs config'.base;
                 default = j.patch.pkgs.default inputs.nixpkgs config'.default;
                 overlayed = j.patch.pkgs.default inputs.nixpkgs config'.overlayed;
