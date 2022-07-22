@@ -25,7 +25,7 @@ push: commit
 |git -C $(mkfileDir) push
 
 update:
-|nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}; with lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (remove "nixos-master" (attrNames inputs))}"' | tr -d '"'
+|$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! (elem input [ "nixos-master" ])) (attrNames inputs))}"' | tr -d '"')
 
 tangle: $(eval $(call exportSettings))
 |org-tangle $(mkfileDir)/README.org $(mkfileDir)/flake.org
