@@ -1058,6 +1058,8 @@ Adapted from the following places:
 - https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/
 - https://t-ravis.com/post/nix/nix-make/
 - [[https://stackoverflow.com/a/50754044/10827766][this answer]] by [[https://stackoverflow.com/users/1296044/arielf][arielf]]
+- [[https://stackoverflow.com/a/29098246/10827766][this answer]] by [[https://stackoverflow.com/users/939557/madscientist][MadScientist]]
+- https://gist.github.com/weshouman/f44f330227972073371e1baa510c0d37
 
 In addition to the ~SHELL~ export below, the following can also be used:
 
@@ -1074,8 +1076,14 @@ mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
 
+define exportSettings
+export PATH := $(shell nix-shell -E 'with (import ./.).pkgs.$${builtins.currentSystem}; mkShell { buildInputs = lib.toList settings; shellHook = "echo $$PATH; exit"; }'):$(PATH)
+endef
+
+define exportPathShell
 export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PATH)
 export SHELL := $(shell which sh)
+endef
 
 add:
 |git -C $(mkfileDir) add .
@@ -1086,18 +1094,16 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
-super: push
+update:
+|nix flake update
 #+end_src
 
 #+begin_src makefile
 
-tangle-README:
-|org-tangle $(mkfileDir)/README.org
+tangle: $(eval $(call exportSettings))
+|org-tangle $(mkfileDir)/README.org $(mkfileDir)/flake.org
 
-tangle-flake:
-|org-tangle $(mkfileDir)/flake.org
-
-tangle: tangle-README tangle-flake
+super: tangle update push
 #+end_src
 
 * .envrc
@@ -1121,11 +1127,17 @@ nix flake info &> /dev/null && use flake || use nix
 *** makefile
 
 #+name: 5de2420e-82fc-4925-9299-235328edd4fa
-#+begin_src makefile :tangle (meq/tangle-path)
+#+begin_src makefile
 <<d7d92d0b-396c-4615-9f8f-4bdad4d89787>>
 
-tangle:
+tangle: $(eval $(call exportSettings))
 |org-tangle $(mkfileDir)/nix.org
+#+end_src
+
+#+begin_src makefile :tangle (meq/tangle-path)
+<<5de2420e-82fc-4925-9299-235328edd4fa>>
+
+super: tangle update push
 #+end_src
 
 *** nix.org
@@ -1230,18 +1242,20 @@ in {
 #+begin_src makefile
 <<5de2420e-82fc-4925-9299-235328edd4fa>>
 
+define exportPythonPath
 export PYTHONPATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile-python' --show-trace):$(PYTHONPATH)
+endef
 
-tangle-python:
+tangle-python: tangle
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
 
-poetry2setup:
+poetry2setup: $(eval $(call exportPathShell))
 |poetry2setup > $(mkfileDir)/setup.py
 #+end_src
 
 #+begin_src makefile
 
-super-python: update push
+super: tangle-python update push
 #+end_src
 
 *** nix.org
@@ -1304,10 +1318,10 @@ nix flake info &> /dev/null && use flake || use nix
 #+begin_src makefile :tangle (meq/tangle-path)
 <<8524a302-71f9-4752-9fbf-675d99285846>>
 
-test: tangle-python
+test: tangle-python update $(eval $(call exportPathShell)) $(eval $(call exportPythonPath))
 |pytest $(mkfileDir)
 
-super-python: update test push
+super: test push
 #+end_src
 
 *** nix.org
@@ -8793,6 +8807,11 @@ trusted-public-keys = %qcache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspc
 %ckeep-outputs = true%d
 extra-experimental-features = %qnix-command flakes%q%d
 %caccept-flake-config = true%d
+%cshow-trace = true%d
+%cfallback = true%d
+%cauto-optimise-store = true%d
+%cbuilders-use-substitutes = true%d
+%ccores = 0%d
 %cflake-registry = https://raw.githubusercontent.com/sylvorg/settings/main/flake-registry.json%d
 %callow-unsafe-native-code-during-evaluation = true%d
 %cmin-free = 262144000%d

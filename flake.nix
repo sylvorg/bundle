@@ -761,30 +761,33 @@
                     license = licenses.mit;
                 };
             };
-            nodejs = {
-                uglifycss =  {nodeEnv, fetchurl, fetchgit, nix-gitignore, stdenv, lib, globalBuildInputs ? []}: let
-                    sources = {};
-                in {
-                    uglifycss = nodeEnv.buildNodePackage {
-                        name = "uglifycss";
-                        packageName = "uglifycss";
-                        version = "0.0.29";
-                        src = fetchurl {
-                            url = "https://registry.npmjs.org/uglifycss/-/uglifycss-0.0.29.tgz";
-                            sha512 = "J2SQ2QLjiknNGbNdScaNZsXgmMGI0kYNrXaDlr4obnPW9ni1jljb1NeEVWAiTgZ8z+EBWP2ozfT9vpy03rjlMQ==";
+            nodejs = j.foldToSet [
+                (j.imports.set { dir = ./callPackages/nodejs; ignores.dirs = true; })
+                {
+                    uglifycss =  {nodeEnv, fetchurl, fetchgit, nix-gitignore, stdenv, lib, globalBuildInputs ? []}: let
+                        sources = {};
+                    in {
+                        uglifycss = nodeEnv.buildNodePackage {
+                            name = "uglifycss";
+                            packageName = "uglifycss";
+                            version = "0.0.29";
+                            src = fetchurl {
+                                url = "https://registry.npmjs.org/uglifycss/-/uglifycss-0.0.29.tgz";
+                                sha512 = "J2SQ2QLjiknNGbNdScaNZsXgmMGI0kYNrXaDlr4obnPW9ni1jljb1NeEVWAiTgZ8z+EBWP2ozfT9vpy03rjlMQ==";
+                            };
+                            buildInputs = globalBuildInputs;
+                            meta = {
+                                description = "Port of YUI CSS Compressor to NodeJS";
+                                homepage = "https://github.com/fmarcia/uglifycss";
+                                license = "MIT";
+                            };
+                            production = true;
+                            bypassCache = true;
+                            reconstructLock = true;
                         };
-                        buildInputs = globalBuildInputs;
-                        meta = {
-                            description = "Port of YUI CSS Compressor to NodeJS";
-                            homepage = "https://github.com/fmarcia/uglifycss";
-                            license = "MIT";
-                        };
-                        production = true;
-                        bypassCache = true;
-                        reconstructLock = true;
                     };
-                };
-            };
+                }
+            ];
             python = rec {
                 python2 = {
                 };
@@ -1862,16 +1865,8 @@
             };
             shellHooks = {
                 makefile = lib.j.foldToSet [
-                    {
-                        general = ''
-                            echo $PATH
-                            exit
-                        '';
-                    }
-                    (genAttrs (attrNames mkpythons) (python: ''
-                        echo $PYTHONPATH
-                        exit
-                    ''))
+                    { general = "echo $PATH; exit"; }
+                    (genAttrs (attrNames mkpythons) (python: "echo $PYTHONPATH; exit"))
                 ];
             };
             mkshellfile = let
@@ -1903,8 +1898,8 @@
                 (pkgs.mkShell { shellHook = shellHooks.makefile.${n}; })
             ]) mkshellfile;
             mkboth = type: ppkglist: pkglist: pname: {
-                ${if (elem type (attrNames mkpythons)) then "makefile-python" else "makefile"} = mkfile.${type} ppkglist pkglist pname;
-                ${if (elem type (attrNames mkpythons)) then "makeshell-python" else "makeshell"} = mkshellfile.${type} ppkglist pkglist pname;
+                "makefile-${type}" = mkfile.${type} ppkglist pkglist pname;
+                "makeshell-${type}" = mkshellfile.${type} ppkglist pkglist pname;
             };
             withPackages = {
                 python = let
@@ -1940,6 +1935,7 @@
                     (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames pkgs))
                     (attrNames overlayset.overlays)
                 ] pkgs)
+                (j.filters.has.attrs (attrNames overlayset.nodeOverlays) pkgs.nodePackages)
                 pythonPackages
             ]);
             package = packages.default;

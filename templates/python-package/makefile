@@ -5,8 +5,14 @@ mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
 
+define exportSettings
+export PATH := $(shell nix-shell -E 'with (import ./.).pkgs.$${builtins.currentSystem}; mkShell { buildInputs = lib.toList settings; shellHook = "echo $$PATH; exit"; }'):$(PATH)
+endef
+
+define exportPathShell
 export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PATH)
 export SHELL := $(shell which sh)
+endef
 
 add:
 |git -C $(mkfileDir) add .
@@ -17,20 +23,23 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
-super: push
+update:
+|nix flake update
 
-tangle:
+tangle: $(eval $(call exportSettings))
 |org-tangle $(mkfileDir)/nix.org
 
+define exportPythonPath
 export PYTHONPATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile-python' --show-trace):$(PYTHONPATH)
+endef
 
-tangle-python:
+tangle-python: tangle
 |org-tangle $(mkfileDir)/$$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name | tr -d '"') $(mkfileDir)/tests.org
 
-poetry2setup:
+poetry2setup: $(eval $(call exportPathShell))
 |poetry2setup > $(mkfileDir)/setup.py
 
-test: tangle-python
+test: tangle-python update $(eval $(call exportPathShell)) $(eval $(call exportPythonPath))
 |pytest $(mkfileDir)
 
-super-python: update test push
+super: test push
