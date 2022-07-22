@@ -196,18 +196,21 @@
             foldToSet = list: foldr (new: old: new // old) {} (filter isAttrs (flatten list));
             foldToSet' = list: foldr (new: old: recursiveUpdate new old) {} (filter isAttrs (flatten list));
             fpipe = pipe-list: flip pipe (flatten pipe-list);
-            remove = rec {
-                base = func: fixes: J.fpipe (map func (sort (a: b: (length a) > (length b)) fixes));
+            remove = let
+                sortFunc = sort (a: b: (length a) > (length b));
+            in rec {
+                base = func: fixes: J.fpipe (map func (sortFunc fixes));
                 prefix = base removePrefix;
                 suffix = base removeSuffix;
-                infix = base removeInfix;
+                infix = fixes: replaceStrings (sortFunc fixes) (genList (i: "") (length fixes));
             };
             extendInputs = inputs': lockfile': (makeExtensible (_: inputs')).extend (final: prev: recursiveUpdate prev (mapAttrs (n: v: let
                 vo = v.original or { ref = null; };
+                vl = v.locked or { rev = null; };
             in J.foldToSet [
-                (v.locked or {})
+                vl
                 vo
-                { version = if (vo ? ref) then (J.remove.prefix [ "v" ] vo.ref) else vo.rev; }
+                { version = if (vo ? ref) then (J.remove.prefix [ "v" ] vo.ref) else vl.rev; }
             ]) lockfile'.nodes));
         };
 #+end_src
@@ -2302,10 +2305,8 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 made = make system (attrValues overlayset.overlays);
                 pythons = optionalAttrs pythonTemplate (mapAttrs (n: v: v [] pname) made.mkpythons);
             in rec {
+                inherit (made) nixpkgs pkgs legacyPackages;
                 inherit made;
-                nixpkgs = made.nixpkgs'.package;
-                pkgs = made.pkgs'.package;
-                legacyPackages = pkgs;
                 packages = flattenTree (if pythonTemplate then (j.foldToSet [
                     (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
                     { "${pname}" = pythons.${type}; default = pythons.${type}; }
@@ -2343,7 +2344,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 overlayed = default // { inherit overlays; };
             };
             nixpkgs' = {
-                package = nixpkgs;
+                package = inputs.nixpkgs;
                 base = j.patch.nixpkgs.default inputs.nixpkgs config'.base;
                 default = j.patch.nixpkgs.default inputs.nixpkgs config'.default;
                 overlayed = j.patch.nixpkgs.default inputs.nixpkgs config'.overlayed;
@@ -2354,15 +2355,18 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 default = j.patch.pkgs.default inputs.nixpkgs config'.default;
                 overlayed = j.patch.pkgs.default inputs.nixpkgs config'.overlayed;
             };
-            pkgs = pkgs'.overlayed;
+            pkgs = pkgs'.package;
             legacyPackages = pkgs;
             nixpkgs = config'.overlayed;
             specialArgs = j.foldToSet [
                 individual-outputs
-                {
-                    inherit inputs legacyPackages pkgs nixpkgs;
+                (rec {
+                    inherit inputs;
                     made = make system overlays;
-                }
+                    nixpkgs = made.config'.overlayed;
+                    pkgs = made.pkgs'.overlayed;
+                    legacyPackages = pkgs;
+                })
             ];
             app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name}"}"; };
 #+end_src
