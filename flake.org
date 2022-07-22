@@ -2383,10 +2383,26 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
 
 #+begin_src nix
             buildInputs = with pkgs; { envrc = [ git settings ]; };
-            mkbuildinputs = with pkgs; {
-                makefile = buildInputs.envrc ++ [ poetry2setup ];
-                makefile-python = [ "yq" "pytest" "pytest-hy" "pytest-randomly" ];
-            };
+            mkbuildinputs = with pkgs; let
+                general = [ "yq" ]
+            in lib.j.foldToSet [
+                {
+                    default = flatten [ buildInputs.envrc ];
+                    inherit general;
+                }
+                (mapAttrs (n: v: ppkglist: pkglist: pname: flatten [
+                    pkglist
+                    pkgs.poetry2setup
+                    (v (flatten [
+                        ppkglist
+                        general
+                        "pytest"
+                        "pytest-hy"
+                        "pytest-randomly"
+                    ]) (if (isDerivation mkpythons'.${n}) then (mkpythons'.${n}.pkgs.${pname}.overridePythonAttrs func)
+                        else (pkgs.Python3.pkgs.${pname}.overridePythonAttrs func)))
+                ]) mkpythons)
+            ];
             mkpythons' = {
                 python2 = pkgs.Python2;
                 python3 = pkgs.Python3;
@@ -2411,25 +2427,18 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 func = old: { doCheck = false; };
             in mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
-                (pkgs.mkShell { buildInputs = mkbuildinputs.makefile; })
+                (pkgs.mkShell { buildInputs = mkbuildinputs.default; })
             ]) (j.foldToSet [
                 { general = ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = j.filters.has.list [
                         (if (pname == null) then pname else (pkgs.${pname}.overrideAttrs func))
-                        (mkPython pkgs.Python3 [ ppkglist mkbuildinputs.makefile-python ] null)
+                        (mkPython pkgs.Python3 [ ppkglist mkbuildinputs.general ] null)
                         pkglist
                     ] pkgs;
                 }; }
-                (mapAttrs (n: v: ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = flatten [
-                        pkglist
-                        (v (flatten [
-                            ppkglist
-                            mkbuildinputs.makefile-python
-                        ]) (if (isDerivation mkpythons'.${n}) then (mkpythons'.${n}.pkgs.${pname}.overridePythonAttrs func)
-                            else (pkgs.Python3.pkgs.${pname}.overridePythonAttrs func)))
-                    ];
-                }) mkpythons)
+                (genAttrs (python: ppkglist: pkglist: pname: pkgs.mkShell {
+                    buildInputs = mkbuildinputs.${python} ppkglist pkglist pname;
+                }) (attrNames mkpythons))
             ]);
             mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
                 (v ppkglist pkglist pname)
