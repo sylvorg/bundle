@@ -7,6 +7,7 @@ realfileDir := $(realpath $(mkfileDir))
 
 define exportSettings
 export PATH := $(shell nix-shell -E 'with (import ./.).pkgs.$${builtins.currentSystem}; mkShell { buildInputs = lib.toList settings; shellHook = "echo $$PATH; exit"; }'):$(PATH)
+export SHELL := $(shell which sh)
 endef
 
 define exportPathShell

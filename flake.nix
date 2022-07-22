@@ -1803,7 +1803,10 @@
                 defaultdevShell = devShell;
             }))
             overlayset
-            { inherit pname callPackage; }
+            {
+                inherit pname callPackage;
+                python = if (python == null) then "general" else python;
+            }
         ];
         make = system: overlays: with lib; rec {
             config' = rec {

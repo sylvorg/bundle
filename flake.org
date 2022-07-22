@@ -2329,7 +2329,10 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 defaultdevShell = devShell;
             }))
             overlayset
-            { inherit pname callPackage; }
+            {
+                inherit pname callPackage;
+                python = if (python == null) then "general" else python;
+            }
         ];
 #+end_src
 
