@@ -2384,7 +2384,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
 #+begin_src nix
             buildInputs = with pkgs; { envrc = [ git settings ]; };
             mkbuildinputs = with pkgs; let
-                general = [ "yq" ]
+                general = [ "yq" ];
             in lib.j.foldToSet [
                 {
                     default = flatten [ buildInputs.envrc ];

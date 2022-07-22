@@ -1845,7 +1845,7 @@
             ]);
             buildInputs = with pkgs; { envrc = [ git settings ]; };
             mkbuildinputs = with pkgs; let
-                general = [ "yq" ]
+                general = [ "yq" ];
             in lib.j.foldToSet [
                 {
                     default = flatten [ buildInputs.envrc ];
