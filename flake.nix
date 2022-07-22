@@ -1795,8 +1795,8 @@
                 devShells = j.foldToSet [
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                    (made.mkboth "general" [] [] (if pythonTemplate then null else pname))
-                    (optionalAttrs pythonTemplate (made.mkboth python [] [] pname))
+                    (made.mkboth [] [] (if pythonTemplate then null else pname) "general")
+                    (optional pythonTemplate (map (made.mkboth [] [] pname) (attrNames made.mkpythons)))
                     { default = pkgs.mkShell { buildInputs = attrValues packages; }; }
                 ];
                 devShell = devShells.default;
@@ -1893,7 +1893,7 @@
                 (v ppkglist pkglist pname)
                 (pkgs.mkShell { shellHook = shellHooks.makefile.${n}; })
             ]) mkshellfile;
-            mkboth = type: ppkglist: pkglist: pname: {
+            mkboth = ppkglist: pkglist: pname: type: {
                 "makefile-${type}" = mkfile.${type} ppkglist pkglist pname;
                 "makeshell-${type}" = mkshellfile.${type} ppkglist pkglist pname;
             };

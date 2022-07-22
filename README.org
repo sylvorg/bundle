@@ -1065,6 +1065,7 @@ In addition to the ~SHELL~ export below, the following can also be used:
 
 #+begin_src makefile :noweb-ref no
 export SHELL := $(shell env PATH=$$(nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PATH) which sh)
+export SHELL := $(shell which sh)
 #+end_src
 
 #+name: d7d92d0b-396c-4615-9f8f-4bdad4d89787
