@@ -27,9 +27,14 @@ push: commit
 update:
 |$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! (elem input [ "nixos-master" ])) (attrNames inputs))}"' | tr -d '"')
 
+update-master:
+|nix flake update
+
 tangle: $(eval $(call exportSettings))
 |org-tangle $(mkfileDir)/README.org $(mkfileDir)/flake.org
 
 quick: tangle push
 
 super: tangle update push
+
+super-master: tangle update-master push
