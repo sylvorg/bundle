@@ -1851,7 +1851,7 @@
                     default = flatten [ buildInputs.envrc ];
                     inherit general;
                 }
-                (mapAttrs (n: v: ppkglist: pkglist: pname: flatten [
+                (mapAttrs (n: v: func: ppkglist: pkglist: pname: flatten [
                     pkglist
                     pkgs.poetry2setup
                     (v (flatten [
@@ -1898,7 +1898,7 @@
                     ] pkgs;
                 }; }
                 (genAttrs (attrNames mkpythons) (python: ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = mkbuildinputs.${python} ppkglist pkglist pname;
+                    buildInputs = mkbuildinputs.${python} func ppkglist pkglist pname;
                 }))
             ]);
             mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
