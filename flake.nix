@@ -37,20 +37,6 @@
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
-
-        py3pkg-rich = {
-            url = github:syvlorg/rich;
-            inputs.settings.follows = "";
-        };
-        py3pkg-oreo = {
-            url = github:syvlorg/oreo;
-            inputs.settings.follows = "";
-        };
-        py3pkg-pytest-hy = {
-            url = github:syvlorg/pytest-hy;
-            inputs.settings.follows = "";
-        };
-
         hy = {
             url = github:hylang/hy/035383d11b44a1731aa6c70735fa4c709979ccdb;
             flake = false;
@@ -1761,7 +1747,11 @@
             overlayset
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs Inputs; }
+            {
+                inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs Inputs;
+                type = "general";
+                pname = "settings";
+            }
         ];
         mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, type ? null, ... }: let
             pythonTemplate = elem type j.attrs.versionNames.python;
@@ -1957,7 +1947,7 @@
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                (made.mkboth "general" [] [] "settings")
+                (made.mkboth [] [] "settings" "general")
                 (with pkgs; {
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };

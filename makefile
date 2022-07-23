@@ -1,19 +1,15 @@
 .RECIPEPREFIX := |
 .DEFAULT_GOAL := tangle
 
+define nixShell
+nix-shell -E '(import ./.).devShells.$${builtins.currentSystem}.makeshell-$1' --show-trace --run
+endef
+
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
-
-define exportSettings
-export PATH := $(shell nix-shell -E 'with (import ./.).pkgs.$${builtins.currentSystem}; mkShell { buildInputs = lib.toList settings; shellHook = "echo $$PATH; exit"; }'):$(PATH)
-export SHELL := $(shell which sh)
-endef
-
-define exportPathShell
-export PATH := $(shell nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PATH)
-export SHELL := $(shell which sh)
-endef
+type := $(shell nix eval --impure --expr '(import ./.).type' || echo "general" | tr -d '"')
+projectName := $(shell echo $$(nix eval --impure --expr '(import ./.).pname' || echo $$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name) || basename $(mkfileDir)) | tr -d '"')
 
 add:
 |git -C $(mkfileDir) add .
@@ -30,8 +26,8 @@ update:
 update-master:
 |nix flake update
 
-tangle: $(eval $(call exportSettings))
-|org-tangle $(mkfileDir)/README.org $(mkfileDir)/flake.org
+tangle:
+|$(call nixShell,general) "org-tangle $(mkfileDir)/README.org $(mkfileDir)/flake.org"
 
 quick: tangle push
 

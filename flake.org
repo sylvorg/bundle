@@ -53,7 +53,11 @@
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/<<channel(dotted='t)>>;
+#+end_src
 
+No longer used; circular imports are much too confusing...
+
+#+begin_src nix :noweb-ref no
         py3pkg-rich = {
             url = github:syvlorg/rich;
             inputs.settings.follows = "";
@@ -66,7 +70,9 @@
             url = github:syvlorg/pytest-hy;
             inputs.settings.follows = "";
         };
+#+end_src
 
+#+begin_src nix
         hy = {
             url = github:hylang/hy/035383d11b44a1731aa6c70735fa4c709979ccdb;
             flake = false;
@@ -2282,7 +2288,11 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
             overlayset
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs Inputs; }
+            {
+                inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs Inputs;
+                type = "general";
+                pname = "settings";
+            }
         ];
 #+end_src
 
@@ -2501,7 +2511,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
             devShells = j.foldToSet [
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                 (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                (made.mkboth "general" [] [] "settings")
+                (made.mkboth [] [] "settings" "general")
                 (with pkgs; {
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
