@@ -138,9 +138,9 @@
             remove = let
                 sortFunc = sort (a: b: (length a) > (length b));
             in rec {
-                base = func: fixes: J.fpipe (map func (sortFunc fixes));
-                prefix = base removePrefix;
-                suffix = base removeSuffix;
+                default = func: fixes: J.fpipe (map func (sortFunc fixes));
+                prefix = default removePrefix;
+                suffix = default removeSuffix;
                 infix = fixes: replaceStrings (sortFunc fixes) (genList (i: "") (length fixes));
             };
             extendInputs = inputs': lockfile': (makeExtensible (_: inputs')).extend (final: prev: recursiveUpdate prev (mapAttrs (n: v: let
@@ -439,43 +439,43 @@
             update = {
                 python = {
                     python = rec {
-                        base = pv: pattrs: prev: { "${pv}" = prev.${pv}.override (super: {
+                        default = pv: pattrs: prev: { "${pv}" = prev.${pv}.override (super: {
                             packageOverrides = composeExtensions (super.packageOverrides or (_: _: {})) (new: old: pattrs);
                         }); };
-                        python2 = base attrs.versions.python.python2;
-                        python3 = base attrs.versions.python.python3;
+                        python2 = default attrs.versions.python.python2;
+                        python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
                         xonsh = python3;
                     };
                     callPython = rec {
-                        base = pv: extrargs: name: pkg: final: update.python.python.base pv { "${name}" = final.${pv}.pkgs.callPackage pkg extrargs; };
-                        python2 = base attrs.versions.python.python2;
-                        python3 = base attrs.versions.python.python3;
+                        default = pv: extrargs: name: pkg: final: update.python.python.default pv { "${name}" = final.${pv}.pkgs.callPackage pkg extrargs; };
+                        python2 = default attrs.versions.python.python2;
+                        python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
                         xonsh = python3;
                     };
                     callPython' = rec {
-                        base = pv: extrargs: file: final: update.python.python.base pv { "${imports.name { inherit file; }}" = final.${pv}.pkgs.callPackage file extrargs; };
-                        python2 = base attrs.versions.python.python2;
-                        python3 = base attrs.versions.python.python3;
+                        default = pv: extrargs: file: final: update.python.python.default pv { "${imports.name { inherit file; }}" = final.${pv}.pkgs.callPackage file extrargs; };
+                        python2 = default attrs.versions.python.python2;
+                        python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
                         xonsh = python3;
                     };
                     package = rec {
-                        base = pv: pkg: func: prev: update.python.python.base pv { "${pkg}" = prev.${pv}.pkgs.${pkg}.overridePythonAttrs func; } prev;
-                        python2 = base attrs.versions.python.python2;
-                        python3 = base attrs.versions.python.python3;
+                        default = pv: pkg: func: prev: update.python.python.default pv { "${pkg}" = prev.${pv}.pkgs.${pkg}.overridePythonAttrs func; } prev;
+                        python2 = default attrs.versions.python.python2;
+                        python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
                         xonsh = python3;
                     };
                     packages = rec {
-                        base = pv: dir: final: update.python.python.base pv (imports.set { call = final.${pv}.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; });
-                        python2 = base attrs.versions.python.python2;
-                        python3 = base attrs.versions.python.python3;
+                        default = pv: dir: final: update.python.python.default pv (imports.set { call = final.${pv}.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; });
+                        python2 = default attrs.versions.python.python2;
+                        python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
                         xonsh = python3;
@@ -520,6 +520,17 @@
 
             # foldr func end list
             sequence = foldr deepSeq;
+
+            inputsToOverlays = {
+                python = rec {
+                    default = prefix: inputs': mapAttrs' (n: v: nameValuePair (removePrefix prefix n) v.overlay) (filterAttrs (n: v: hasPrefix prefix n) inputs');
+                    python2 = default "py2pkg-";
+                    python3 = default "py3pkg-";
+                    python = python3;
+                    hy = python3;
+                    xonsh = default "x3pkg";
+                };
+            };
 
             attrs = rec {
                 configs = {
@@ -926,7 +937,7 @@
             pythonOverlays = rec {
                 python2 = j.foldToSet [
                     (mapAttrs (pname: j.update.python.callPython.python2 { inherit pname; } pname) callPackages.python.python2)
-                    (mapAttrs' (n: v: nameValuePair (removePrefix "py2pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "py2pkg-" n) inputs))
+                    (j.inputsToOverlays.python.python2 inputs)
                 ];
                 python3 = let
                     update = j.update.python.package.python3;
@@ -960,13 +971,13 @@
                         });
                     }
                     (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.python3)
-                    (mapAttrs' (n: v: nameValuePair (removePrefix "py3pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "py3pkg-" n) inputs))
+                    (j.inputsToOverlays.python.python3 inputs)
                 ];
                 python = python3;
                 hy = python3;
                 xonsh = j.foldToSet [
                     (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.xonsh)
-                    (mapAttrs' (n: v: nameValuePair (removePrefix "x3pkg-" n) v.overlay) (filterAttrs (n: v: hasPrefix "x3pkg-" n) inputs))
+                    (j.inputsToOverlays.python.xonsh inputs)
                 ];
             };
             overlays = let
@@ -1756,10 +1767,11 @@
         mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, overlays ? {}, type ? "general", app ? false, ... }: let
             type' = if app then "general" else type;
             overlayset = let
-                default = if (callPackage == null) then overlay else (j.foldToSet [
-                    { general."${pname}" = final.callPackage callPackage {}; }
-                    (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
-                ]).${type'};
+                default = if (callPackage == null) then (if (overlay == null) then (abort "Sorry; either the `callPackage' or `overlay' argument must be set!") else overlay)
+                          else (j.foldToSet [
+                            { general."${pname}" = final.callPackage callPackage {}; }
+                            (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
+                        ]).${type'};
             in {
                 overlays = j.foldToSet [
                     self.overlays

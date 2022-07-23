@@ -35,6 +35,7 @@ in {
         };
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
+        overlays = j.foldToSet (map (python: (j.inputsToOverlays.python.${python} inputs)) j.attrs.versionNames.python);
 
         # TODO: Change the pname!
         pname = "";
@@ -60,6 +61,7 @@ in {
         };
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
+        overlays = j.foldToSet (map (python: (j.inputsToOverlays.python.${python} inputs)) j.attrs.versionNames.python);
 
         # TODO: Change the pname!
         pname = "";
@@ -68,6 +70,7 @@ in {
         callPackage = {}: {};
 
         type = "hy";
+        overlays = j.inputsToOverlays;
     };
 }
 #+end_src

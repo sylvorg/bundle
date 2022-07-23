@@ -1282,6 +1282,7 @@ super: test push
         };
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
+        overlays = j.foldToSet (map (python: (j.inputsToOverlays.python.${python} inputs)) j.attrs.versionNames.python);
 
         # TODO: Change the pname!
         pname = "";
@@ -1337,6 +1338,7 @@ nix flake info &> /dev/null && use flake || use nix
         };
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
+        overlays = j.foldToSet (map (python: (j.inputsToOverlays.python.${python} inputs)) j.attrs.versionNames.python);
 
         # TODO: Change the pname!
         pname = "";
@@ -1345,6 +1347,7 @@ nix flake info &> /dev/null && use flake || use nix
         callPackage = {}: {};
 
         type = "hy";
+        overlays = j.inputsToOverlays;
     };
 }
 #+end_src
