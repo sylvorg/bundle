@@ -1764,7 +1764,7 @@
                 pname = "settings";
             }
         ];
-        mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, overlays ? {}, type ? "general", app ? false, ... }: let
+        mkOutputs = with lib; { pname, inputs, callPackage ? null, overlay ? null, overlays ? {}, type ? "general", app ? false, ... }: let
             type' = if app then "general" else type;
             overlayset = let
                 default = if (callPackage == null) then (if (overlay == null) then (abort "Sorry; either the `callPackage' or `overlay' argument must be set!") else overlay)
@@ -1777,6 +1777,7 @@
                     self.overlays
                     { inherit default; "${pname}" = default; }
                     overlays
+                    (j.foldToSet (map (python: (j.inputsToOverlays.python.${python} inputs)) j.attrs.versionNames.python))
                 ];
                 overlay = default;
                 defaultOverlay = default;
