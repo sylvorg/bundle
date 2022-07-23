@@ -8,7 +8,7 @@ endef
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
-type := $(shell nix eval --impure --expr '(import ./.).type' || echo "general" | tr -d '"')
+type := $(shell echo $$(nix eval --impure --expr '(import ./.).type' || echo "general") | tr -d '"')
 projectName := $(shell echo $$(nix eval --impure --expr '(import ./.).pname' || echo $$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name) || basename $(mkfileDir)) | tr -d '"')
 
 add:

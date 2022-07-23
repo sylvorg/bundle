@@ -27,15 +27,7 @@ in {
     description = "";
 
     inputs = rec {
-        settings = {
-            url = github:sylvorg/settings;
-
-            # TODO: Change the PNAME ONLY!
-            inputs.py3app-PNAME.follows = "";
-
-        };
-        # nixpkgs.follows = "settings/nixpkgs";
-        nixpkgs.url = github:nixos/nixpkgs/nixos-22.05;
+        settings.url = github:sylvorg/settings;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = "github:edolstra/flake-compat";
@@ -50,6 +42,8 @@ in {
         # TODO: Change the callPackage!
         callPackage = {}: {};
 
+        type = "hy";
+        app = true;
     };
 }
 {
@@ -58,15 +52,7 @@ in {
     description = "";
 
     inputs = rec {
-        settings = {
-            url = github:sylvorg/settings;
-
-            # TODO: Change the PNAME ONLY!
-            inputs.py3pkg-PNAME.follows = "";
-
-        };
-        # nixpkgs.follows = "settings/nixpkgs";
-        nixpkgs.url = github:nixos/nixpkgs/nixos-22.05;
+        settings.url = github:sylvorg/settings;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = "github:edolstra/flake-compat";
@@ -81,7 +67,7 @@ in {
         # TODO: Change the callPackage!
         callPackage = {}: {};
 
-        python = "hy";
+        type = "hy";
     };
 }
 #+end_src

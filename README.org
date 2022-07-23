@@ -1080,7 +1080,7 @@ endef
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
-type := $(shell nix eval --impure --expr '(import ./.).type' || echo "general" | tr -d '"')
+type := $(shell echo $$(nix eval --impure --expr '(import ./.).type' || echo "general") | tr -d '"')
 projectName := $(shell echo $$(nix eval --impure --expr '(import ./.).pname' || echo $$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name) || basename $(mkfileDir)) | tr -d '"')
 
 add:
@@ -1203,15 +1203,7 @@ in {
     description = "";
 
     inputs = rec {
-        settings = {
-            url = github:sylvorg/settings;
-
-            # TODO: Change the pname ONLY!
-            inputs.pname.follows = "";
-
-        };
-        # nixpkgs.follows = "settings/nixpkgs";
-        nixpkgs.url = github:nixos/nixpkgs/<<channel(dotted='t)>>;
+        settings.url = github:sylvorg/settings;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = "github:edolstra/flake-compat";
@@ -1282,15 +1274,7 @@ super: test push
     description = "";
 
     inputs = rec {
-        settings = {
-            url = github:sylvorg/settings;
-
-            # TODO: Change the PNAME ONLY!
-            inputs.py3app-PNAME.follows = "";
-
-        };
-        # nixpkgs.follows = "settings/nixpkgs";
-        nixpkgs.url = github:nixos/nixpkgs/<<channel(dotted='t)>>;
+        settings.url = github:sylvorg/settings;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = "github:edolstra/flake-compat";
@@ -1305,6 +1289,8 @@ super: test push
         # TODO: Change the callPackage!
         callPackage = {}: {};
 
+        type = "hy";
+        app = true;
     };
 }
 #+end_src
@@ -1343,15 +1329,7 @@ nix flake info &> /dev/null && use flake || use nix
     description = "";
 
     inputs = rec {
-        settings = {
-            url = github:sylvorg/settings;
-
-            # TODO: Change the PNAME ONLY!
-            inputs.py3pkg-PNAME.follows = "";
-
-        };
-        # nixpkgs.follows = "settings/nixpkgs";
-        nixpkgs.url = github:nixos/nixpkgs/<<channel(dotted='t)>>;
+        settings.url = github:sylvorg/settings;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = "github:edolstra/flake-compat";
@@ -1366,7 +1344,7 @@ nix flake info &> /dev/null && use flake || use nix
         # TODO: Change the callPackage!
         callPackage = {}: {};
 
-        python = "hy";
+        type = "hy";
     };
 }
 #+end_src

@@ -1753,48 +1753,63 @@
                 pname = "settings";
             }
         ];
-        mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, type ? null, ... }: let
-            pythonTemplate = elem type j.attrs.versionNames.python;
+        mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, overlays ? {}, type ? "general", app ? false, ... }: let
+            type' = if app then "general" else type;
             overlayset = let
-                default = if (overlay != null) then overlay else
-                          if pythonTemplate then (j.update.python.callPython.${type} { inherit pname; } pname callPackage)
-                          else (final: prev: { "${pname}" = final.callPackage callPackage {}; });
+                overlay = if (callPackage == null) then overlay else (j.foldToSet [
+                    { general."${pname}" = final.callPackage callPackage {}; }
+                    (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
+                ]).${type'};
             in {
-                overlays = self.overlays // { inherit default; "${pname}" = default; };
-                overlay = default;
+                overlays = j.foldToSet [
+                    self.overlays
+                    { default = overlay; "${pname}" = overlay; }
+                    overlays
+                ];
+                inherit overlay;
                 defaultOverlay = default;
             };
         in j.foldToSet [
             (eachSystem allSystems (system: let
                 made = make system (attrValues overlayset.overlays);
-                pythons = optionalAttrs pythonTemplate (mapAttrs (n: v: v [] pname) made.mkpythons);
             in rec {
                 inherit (made) nixpkgs pkgs legacyPackages;
                 inherit made;
-                packages = flattenTree (if pythonTemplate then (j.foldToSet [
-                    (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
-                    { "${pname}" = pythons.${type}; default = pythons.${type}; }
-                ]) else {
-                    default = pkgs.${pname};
-                    "${pname}" = pkgs.${pname};
-                });
+                packages = flattenTree (j.foldToSet [
+                    {
+                        general = {
+                            default = pkgs.${pname};
+                            "${pname}" = pkgs.${pname};
+                        };
+                    }
+                    (let
+                        pythons = mapAttrs (n: v: v [] pname) made.mkpythons;
+                    in mapAttrs (n: v: [
+                        (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
+                        { default = pythons.${type}; "${pname}" = pythons.${type}; }
+                    ]) pythons)
+                ]).${type'};
                 package = packages.default;
                 defaultPackage = package;
                 apps = mapAttrs (n: made.app) packages;
                 app = apps.default;
                 defaultApp = app;
-                devShells = j.foldToSet [
+                devShells = let
+                    default = pkgs.mkShell { buildInputs = attrValues packages; };
+                in j.foldToSet [
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                    (made.mkboth [] [] (if pythonTemplate then null else pname) "general")
-                    (optional pythonTemplate (map (made.mkboth [] [] pname) (attrNames made.mkpythons)))
-                    { default = pkgs.mkShell { buildInputs = attrValues packages; }; }
+                    (made.mkboth [] [] (if (type' == "general") then pname else null) "general")
+                    (optionalAttrs (type != "general") (j.foldToSet [
+                        (genAttrs (attrNames made.mkpythons) (python: map (made.mkboth [] [] pname) (attrNames made.mkpythons)))
+                    ]).${type})
+                    { inherit default; "${pname}" = default; }
                 ];
                 devShell = devShells.default;
                 defaultdevShell = devShell;
             }))
             overlayset
-            { inherit pname callPackage type; }
+            { inherit pname callPackage type' type; }
         ];
         make = system: overlays: with lib; rec {
             config' = rec {
@@ -1847,15 +1862,15 @@
                 (mapAttrs (n: v: func: ppkglist: pkglist: pname: flatten [
                     pkglist
                     pkgs.poetry2setup
-                    (v (flatten [
+                    (mkpythons.${n} (flatten [
                         ppkglist
                         general
                         "pytest"
                         "pytest-hy"
                         "pytest-randomly"
-                    ]) (if (isDerivation mkpythons'.${n}) then (mkpythons'.${n}.pkgs.${pname}.overridePythonAttrs func)
+                    ]) (if (isDerivation v) then (v.pkgs.${pname}.overridePythonAttrs func)
                         else (pkgs.Python3.pkgs.${pname}.overridePythonAttrs func)))
-                ]) mkpythons)
+                ]) mkpythons')
             ];
             mkpythons' = {
                 python2 = pkgs.Python2;
