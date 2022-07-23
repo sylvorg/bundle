@@ -1756,17 +1756,17 @@
         mkOutputs = with lib; { pname, callPackage ? null, overlay ? null, overlays ? {}, type ? "general", app ? false, ... }: let
             type' = if app then "general" else type;
             overlayset = let
-                overlay = if (callPackage == null) then overlay else (j.foldToSet [
+                default = if (callPackage == null) then overlay else (j.foldToSet [
                     { general."${pname}" = final.callPackage callPackage {}; }
                     (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
                 ]).${type'};
             in {
                 overlays = j.foldToSet [
                     self.overlays
-                    { default = overlay; "${pname}" = overlay; }
+                    { inherit default; "${pname}" = default; }
                     overlays
                 ];
-                inherit overlay;
+                overlay = default;
                 defaultOverlay = default;
             };
         in j.foldToSet [
