@@ -532,6 +532,10 @@
                 };
             };
 
+            isSublist = a: b: all (flip elem b) a;
+            allSets = func: set: all (name: func name set.${name}) (attrNames set);
+            anySets = func: set: any (name: func name set.${name}) (attrNames set);
+
             attrs = rec {
                 configs = {
                     nixpkgs = {
@@ -556,11 +560,18 @@
                         python2 = "python27";
                         python3 = "python310";
                         python = python3;
-                        hy = python;
-                        xonsh = python;
+                        hy = python3;
+                        xonsh = python3;
                     };
                 };
-                versionNames = mapAttrs (n: v: attrNames v) versions;
+                versionNames = mapAttrs (n: v: let
+                    names = attrNames v;
+                    sets = [ "inputsToOverlays" ];
+                    supersets = [ "update" ];
+                    stringsets = concatStringsSep ''" "'' (sets ++ supersets);
+                in if ((all (j: allSets (jn: jv: isSublist names (attrNames jv)) self.${j}.${n}) supersets) &&
+                       (all (j: isSublist names (attrNames self.${j}.${n})) sets)) then names
+                   else (throw ''To the developer of the settings module: you missed a "${n}" version somewhere in the following sets: [ "${stringsets}" ]'')) versions;
             };
         })); });
         callPackages = with lib; {
@@ -915,20 +926,6 @@
             suffix = ".patch";
             files = true;
         };
-        mkXonsh' = with lib; final: prev: pkglist: pname: let
-            python3Packages = final.Python3.pkgs;
-        in (prev.xonsh.override { inherit python3Packages; }).overrideAttrs (old: {
-            propagatedBuildInputs = j.filters.has.list [
-                pkglist
-                pname
-                (old.propagatedBuildInputs or [])
-            ] python3Packages;
-            disabledTestPaths = flatten [
-                "tests/test_xonfig.py"
-                (old.disabledTestPaths or [])
-            ];
-        });
-        mkXonsh = pkgs: mkXonsh' pkgs pkgs;
         overlayset = with lib; let
             calledPackages = mapAttrs (pname: v: final: prev: { "${pname}" = final.callPackage v { inherit pname; }; }) (filterAttrs (n: v: isFunction v) callPackages);
             overlay = final: prev: { inherit (calledPackages) settings; };
@@ -958,7 +955,10 @@
                                     command = "${pname} -v";
                                 };
                                 withPackages = python-packages: (final.Python3.pkgs.toPythonApplication final.Python3.pkgs.${pname}).overrideAttrs (old: {
-                                    propagatedBuildInputs = python-packages final.Python3.pkgs ++ (old.propagatedBuildInputs or []);
+                                    propagatedBuildInputs = flatten [
+                                        (python-packages final.Python3.pkgs)
+                                        (old.propagatedBuildInputs or [])
+                                    ];
                                 });
                             };
                         });
@@ -1024,7 +1024,24 @@
                     ) pkglist
                 ) pkgsets)
                 {
-                    xonsh = final: prev: { xonsh = mkXonsh' final prev [] null; };
+                    xonsh = final: prev: {
+                        xonsh = let
+                            python3Packages = final.Python3.pkgs;
+                            override = { inherit python3Packages; };
+                        in (prev.xonsh.override override).overrideAttrs (old: {
+                            disabledTestPaths = flatten [
+                                "tests/test_xonfig.py"
+                                (old.disabledTestPaths or [])
+                            ];
+                            passthru = {
+                                withPackages = python-packages: (final.xonsh.override override).overrideAttrs (old: {
+                                    propagatedBuildInputs = flatten [
+                                        (python-packages python3Packages)
+                                        (old.propagatedBuildInputs or [])
+                                    ];
+                                });
+                            };
+                    }); };
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
                     emacs = inputs.emacs.overlay;
@@ -1759,7 +1776,7 @@
             nixosModules
             templates
             {
-                inherit make lib lockfile channel registry profiles devices mkXonsh' mkXonsh mkOutputs Inputs;
+                inherit make lib lockfile channel registry profiles devices mkOutputs Inputs;
                 type = "general";
                 pname = "settings";
             }
@@ -1796,7 +1813,7 @@
                         };
                     }
                     (let
-                        pythons = mapAttrs (n: v: v [] pname) made.mkpythons;
+                        pythons = mapAttrs (n: v: mkPython v [] pname) made.pythons;
                     in mapAttrs (n: v: j.foldToSet [
                         (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
                         { default = pythons.${type}; "${pname}" = pythons.${type}; }
@@ -1814,7 +1831,7 @@
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
                     (made.mkboth [] [] (if (type' == "general") then pname else null) "general")
                     (optionalAttrs (type != "general") (j.foldToSet [
-                        (genAttrs (attrNames made.mkpythons) (python: map (made.mkboth [] [] pname) (attrNames made.mkpythons)))
+                        (genAttrs j.attrs.versionNames.python (python: map (made.mkboth [] [] pname) j.attrs.versionNames.python))
                     ]).${type})
                     { inherit default; "${pname}" = default; }
                 ];
@@ -1860,10 +1877,6 @@
                 pkglist
                 pname
             ]);
-            mkHy = pkglist: pname: pkgs.Python3.pkgs.hy.withPackages (j.filters.has.list [
-                pkglist
-                pname
-            ]);
             buildInputs = with pkgs; { envrc = [ git settings ]; };
             mkbuildinputs = with pkgs; let
                 general = [ "yq" ];
@@ -1875,34 +1888,26 @@
                 (mapAttrs (n: v: func: ppkglist: pkglist: pname: flatten [
                     pkglist
                     pkgs.poetry2setup
-                    (mkpythons.${n} (flatten [
+                    (mkPython v (flatten [
                         ppkglist
                         general
                         "pytest"
                         "pytest-hy"
                         "pytest-randomly"
-                    ]) (if (isDerivation v) then (v.pkgs.${pname}.overridePythonAttrs func)
-                        else (pkgs.Python3.pkgs.${pname}.overridePythonAttrs func)))
-                ]) mkpythons')
+                    ]) ((v.pkgs or pythons.python.pkgs).${pname}.overridePythonAttrs func))
+                ]) pythons)
             ];
-            mkpythons' = {
+            pythons = rec {
                 python2 = pkgs.Python2;
                 python3 = pkgs.Python3;
-                python = pkgs.Python;
-                hy = null;
-                xonsh = pkgs;
-            };
-            mkpythons = mapAttrs (n: v: if (mkpythons'.${n} == null) then v else (v mkpythons'.${n})) {
-                python2 = mkPython;
-                python3 = mkPython;
-                python = mkPython;
-                hy = mkHy;
-                xonsh = mkXonsh;
+                python = python3;
+                hy = pkgs.Python3.pkgs.hy;
+                xonsh = pkgs.xonsh;
             };
             shellHooks = {
                 makefile = lib.j.foldToSet [
                     { general = "echo $PATH; exit"; }
-                    (genAttrs (attrNames mkpythons) (python: "echo $PYTHONPATH; exit"))
+                    (genAttrs j.attrs.versionNames.python (python: "echo $PYTHONPATH; exit"))
                 ];
             };
             mkshellfile = let
@@ -1918,7 +1923,7 @@
                         pkglist
                     ] pkgs;
                 }; }
-                (genAttrs (attrNames mkpythons) (python: ppkglist: pkglist: pname: pkgs.mkShell {
+                (genAttrs j.attrs.versionNames.python (python: ppkglist: pkglist: pname: pkgs.mkShell {
                     buildInputs = mkbuildinputs.${python} func ppkglist pkglist pname;
                 }))
             ]);
@@ -1938,16 +1943,16 @@
                         pkg
                         pkglist
                     ])) (attrNames overlayset.pythonOverlays.${python})))) [ "python" "python2" "python3" ])
-                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh pkgs [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
-                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkXonsh pkgs [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
+                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
+                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
                     (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pkgs.${j.toCapital python} [
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [ "python" "python2" "python3" ]))
-                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkHy [ pkg pkglist ])) hyOverlays))
+                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkPython pkgs.Python3.pkgs.hy [ pkg pkglist ])) hyOverlays))
                     {
-                        xonsh = pkglist: mkXonsh pkgs [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
-                        hy = pkglist: mkHy [ hyOverlays pkglist ];
+                        xonsh = pkglist: mkPython pkgs.xonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
+                        hy = pkglist: mkPython pkgs.Python3.pkgs.hy [ hyOverlays pkglist ];
                     }
                 ];
             };
