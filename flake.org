@@ -2354,7 +2354,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                         };
                     }
                     (let
-                        pythons = mapAttrs (n: v: mkPython v [] pname) made.pythons;
+                        pythons = mapAttrs (n: v: made.mkPython v [] pname) made.pythons;
                     in mapAttrs (n: v: j.foldToSet [
                         (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
                         { default = pythons.${type}; "${pname}" = pythons.${type}; }
@@ -2494,20 +2494,20 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
                 in j.foldToSet [
-                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pkgs.${j.toCapital python} [
+                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pythons.${python} [
                         pkg
                         pkglist
                     ])) (attrNames overlayset.pythonOverlays.${python})))) [ "python" "python2" "python3" ])
-                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
-                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
-                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pkgs.${j.toCapital python} [
+                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
+                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
+                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pythons.${python} [
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [ "python" "python2" "python3" ]))
-                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkPython pkgs.Python3.pkgs.hy [ pkg pkglist ])) hyOverlays))
+                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkPython pythons.hy [ pkg pkglist ])) hyOverlays))
                     {
-                        xonsh = pkglist: mkPython pkgs.xonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
-                        hy = pkglist: mkPython pkgs.Python3.pkgs.hy [ hyOverlays pkglist ];
+                        xonsh = pkglist: mkPython pythons.xonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
+                        hy = pkglist: mkPython pythons.hy [ hyOverlays pkglist ];
                     }
                 ];
             };
