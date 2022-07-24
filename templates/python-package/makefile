@@ -20,21 +20,33 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
+update-settings:
+|nix flake lock --update-input settings || :
+
+files := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org
+
+ifeq ($(projectName), settings)
+files := $(files) $(mkfileDir)/README.org
+else
+files := $(files) $(mkfileDir)/$(projectName)
+endif
+
+tangle: update-settings
+|$(call nixShell,general) "org-tangle -f $(files)"
+
 update:
+ifeq ($(projectName), settings)
+|$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! (elem input [ "nixos-master" ])) (attrNames inputs))}"' | tr -d '"')
+else
 |nix flake update
+endif
 
-tangle:
-|$(call nixShell,general) "org-tangle $(mkfileDir)/nix.org"
-
-tangle-python: tangle
-|$(call nixShell,general) "org-tangle $(mkfileDir)/$(projectName) $(mkfileDir)/tests.org"
+quick: tangle push
 
 poetry2setup:
 |$(call nixShell,$(type)) "cd $(mkfileDir) && poetry2setup > $(mkfileDir)/setup.py && cd -"
 
-test: tangle-python update 
+test: tangle update
 |$(call nixShell,$(type)) pytest
-
-quick: tangle-python push
 
 super: test push

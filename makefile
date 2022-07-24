@@ -20,17 +20,32 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
+update-settings:
+|nix flake lock --update-input settings || :
+
+files := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org
+
+ifeq ($(projectName), settings)
+files := $(files) $(mkfileDir)/README.org
+else
+files := $(files) $(mkfileDir)/$(projectName)
+endif
+
+tangle: update-settings
+|$(call nixShell,general) "org-tangle -f $(files)"
+
 update:
+ifeq ($(projectName), settings)
 |$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! (elem input [ "nixos-master" ])) (attrNames inputs))}"' | tr -d '"')
-
-update-master:
+else
 |nix flake update
-
-tangle:
-|$(call nixShell,general) "org-tangle $(mkfileDir)/README.org $(mkfileDir)/flake.org"
+endif
 
 quick: tangle push
 
 super: tangle update push
+
+update-master:
+|nix flake update
 
 super-master: tangle update-master push

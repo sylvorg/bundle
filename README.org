@@ -1091,22 +1091,37 @@ commit: add
 
 push: commit
 |git -C $(mkfileDir) push
+
+update-settings:
+|nix flake lock --update-input settings || :
+
+files := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org
+
+ifeq ($(projectName), settings)
+files := $(files) $(mkfileDir)/README.org
+else
+files := $(files) $(mkfileDir)/$(projectName)
+endif
+
+tangle: update-settings
+|$(call nixShell,general) "org-tangle -f $(files)"
+
+update:
+ifeq ($(projectName), settings)
+|$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! (elem input [ "nixos-master" ])) (attrNames inputs))}"' | tr -d '"')
+else
+|nix flake update
+endif
+
+quick: tangle push
 #+end_src
 
 #+begin_src makefile
 
-update:
-|$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! (elem input [ "nixos-master" ])) (attrNames inputs))}"' | tr -d '"')
+super: tangle update push
 
 update-master:
 |nix flake update
-
-tangle:
-|$(call nixShell,general) "org-tangle $(mkfileDir)/README.org $(mkfileDir)/flake.org"
-
-quick: tangle push
-
-super: tangle update push
 
 super-master: tangle update-master push
 #+end_src
@@ -1134,12 +1149,6 @@ nix flake info &> /dev/null && use flake || use nix
 #+name: 5de2420e-82fc-4925-9299-235328edd4fa
 #+begin_src makefile
 <<d7d92d0b-396c-4615-9f8f-4bdad4d89787>>
-
-update:
-|nix flake update
-
-tangle:
-|$(call nixShell,general) "org-tangle $(mkfileDir)/nix.org"
 #+end_src
 
 #+begin_src makefile :tangle (meq/tangle-path)
@@ -1242,16 +1251,11 @@ in {
 #+begin_src makefile
 <<5de2420e-82fc-4925-9299-235328edd4fa>>
 
-tangle-python: tangle
-|$(call nixShell,general) "org-tangle $(mkfileDir)/$(projectName) $(mkfileDir)/tests.org"
-
 poetry2setup:
 |$(call nixShell,$(type)) "cd $(mkfileDir) && poetry2setup > $(mkfileDir)/setup.py && cd -"
 
-test: tangle-python update 
+test: tangle update
 |$(call nixShell,$(type)) pytest
-
-quick: tangle-python push
 
 super: test push
 #+end_src
@@ -8348,6 +8352,7 @@ trees with the :notangle: tag."
 (defvar all-blocks nil)
 (defvar and-tags nil)
 (defvar or-tags nil)
+(defvar force (or (member "-f" argv) (member "--force" argv)))
 (let (lang srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -8356,6 +8361,8 @@ trees with the :notangle: tag."
         ((or "-h" "--help")
          (usage)
          (error ""))
+        ((or "-f" "--force")
+         nil)
         ((or "-a" "--all")
          (setq all-blocks t))
         ((or "-l" "--lang")
@@ -8374,7 +8381,9 @@ trees with the :notangle: tag."
                        srcs)))
         ((guard (file-exists-p arg))
          (push arg srcs))
-        (_ (error "Unknown option or file: %s" arg)))))
+        (_ (if force
+              nil
+              (error "Unknown option or file: %s" arg))))))
 
   (dolist (file srcs)
 		(message (format "\n\nNow tangling %s:\n" file))
