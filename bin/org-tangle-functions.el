@@ -36,7 +36,8 @@ arguments and pop open the results in a preview buffer."
     (condition-case nil
         (meq/org-babel-expand-src-block _arg datum info params)
     (error (org-babel-expand-noweb-references))))
-
+(defun meq/get-block (name &optional _arg datum params) (interactive)
+    (meq/org-babel-expand _arg datum (org-babel-lob--src-info name) params))
 (defun meq/get-header nil (interactive) (nth 4 (org-heading-components)))
 (defun meq/get-theme-from-header nil (interactive) (s-chop-suffix "-theme.el" (meq/get-header)))
 

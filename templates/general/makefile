@@ -34,10 +34,11 @@ else
 endif
 
 tangle: update-settings
-|$(call nixShell,general) "org-tangle -f $(files)"
+|$(call nixShell,general) "org-tangle -f $(files)" || org-tangle -f $(files)
 
 tangle-%: update-settings
-|$(call nixShell,general) "org-tangle -f $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org"
+|$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)
+|$(call nixShell,general) "org-tangle -f $(file)" || org-tangle -f $(file)
 
 update:
 ifeq ($(projectName), settings)

@@ -2539,15 +2539,13 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
             made = make system (attrValues overlayset.overlays);
         in rec {
             inherit (made) legacyPackages pkgs nixpkgs;
-            packages = let
-                pythonPackages = mapAttrs (n: v: v [] null) made.withPackages.python;
-            in flattenTree (j.foldToSet [
+            packages = flattenTree (j.foldToSet [
                 (j.filters.has.attrs [
                     (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames pkgs))
                     (attrNames overlayset.overlays)
                 ] pkgs)
                 (j.filters.has.attrs (attrNames overlayset.nodeOverlays) pkgs.nodePackages)
-                pythonPackages
+                (mapAttrs (n: v: v [] null) made.withPackages.python)
             ]);
             package = packages.default;
             defaultPackage = package;

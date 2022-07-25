@@ -1102,10 +1102,11 @@ else
 endif
 
 tangle: update-settings
-|$(call nixShell,general) "org-tangle -f $(files)"
+|$(call nixShell,general) "org-tangle -f $(files)" || org-tangle -f $(files)
 
 tangle-%: update-settings
-|$(call nixShell,general) "org-tangle -f $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org"
+|$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)
+|$(call nixShell,general) "org-tangle -f $(file)" || org-tangle -f $(file)
 
 update:
 ifeq ($(projectName), settings)
@@ -8460,7 +8461,16 @@ arguments and pop open the results in a preview buffer."
     (condition-case nil
         (meq/org-babel-expand-src-block _arg datum info params)
     (error (org-babel-expand-noweb-references))))
+#+end_src
 
+Adapted from [[https://emacs.stackexchange.com/users/5385/mutbuerger][mutbuerger's]] comment [[https://emacs.stackexchange.com/questions/29131/get-contents-of-a-named-source-block#comment44697_29131][here]] and [[https://emacs.stackexchange.com/users/12504/alex-stragies][Alex Stragies's]] asnwer [[https://emacs.stackexchange.com/a/68298/31428][here]]:
+
+#+begin_src emacs-lisp
+(defun meq/get-block (name &optional _arg datum params) (interactive)
+    (meq/org-babel-expand _arg datum (org-babel-lob--src-info name) params))
+#+end_src
+
+#+begin_src emacs-lisp
 (defun meq/get-header nil (interactive) (nth 4 (org-heading-components)))
 (defun meq/get-theme-from-header nil (interactive) (s-chop-suffix "-theme.el" (meq/get-header)))
 
