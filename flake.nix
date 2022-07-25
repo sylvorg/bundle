@@ -1781,7 +1781,18 @@
                 pname = "settings";
             }
         ];
-        mkOutputs = with lib; { pname, inputs, callPackage ? null, overlay ? null, overlays ? {}, type ? "general", app ? false, ... }: let
+        mkOutputs = with lib; {
+            pname,
+            inputs,
+            callPackage ? null,
+            overlay ? null,
+            overlays ? {},
+            type ? "general",
+            app ? false,
+            python-packages ? [],
+            extra-packages ? [],
+            ...
+        }: let
             type' = if app then "general" else type;
             overlayset = let
                 default = if (callPackage == null) then (if (overlay == null) then (abort "Sorry; either the `callPackage' or `overlay' argument must be set!") else overlay)
@@ -1829,9 +1840,9 @@
                 in j.foldToSet [
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                    (made.mkboth [] [] (if (type' == "general") then pname else null) "general")
+                    (made.mkboth python-packages extra-packages (if (type' == "general") then pname else null) "general")
                     (optionalAttrs (type != "general") (j.foldToSet [
-                        (genAttrs j.attrs.versionNames.python (python: map (made.mkboth [] [] pname) j.attrs.versionNames.python))
+                        (genAttrs j.attrs.versionNames.python (python: map (made.mkboth python-packages extra-packages pname) j.attrs.versionNames.python))
                     ]).${type})
                     { inherit default; "${pname}" = default; }
                 ];
