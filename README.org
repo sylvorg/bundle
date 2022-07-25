@@ -1060,13 +1060,9 @@ Adapted from the following places:
 - [[https://stackoverflow.com/a/50754044/10827766][this answer]] by [[https://stackoverflow.com/users/1296044/arielf][arielf]]
 - [[https://stackoverflow.com/a/29098246/10827766][this answer]] by [[https://stackoverflow.com/users/939557/madscientist][MadScientist]]
 - https://gist.github.com/weshouman/f44f330227972073371e1baa510c0d37
-
-In addition to the ~SHELL~ export below, the following can also be used:
-
-#+begin_src makefile :noweb-ref no
-export SHELL := $(shell env PATH=$$(nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile' --show-trace):$(PATH) which sh)
-export SHELL := $(shell which sh)
-#+end_src
+- [[https://unix.stackexchange.com/a/394491/270053][this answer]] by [[https://unix.stackexchange.com/users/148009/romanperekhrest][RomanPerekhrest]]
+- [[https://stackoverflow.com/a/13945900/10827766][this answer]] by [[https://stackoverflow.com/users/77345/eric-melski][Eric Melski]]
+- [[https://stackoverflow.com/a/44416055/10827766][this answer]] by [[https://stackoverflow.com/users/412080/maxim-egorushkin][Maxim Egorushkin]]
 
 #+name: d7d92d0b-396c-4615-9f8f-4bdad4d89787
 #+begin_src makefile
@@ -1082,6 +1078,7 @@ mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
 type := $(shell echo $$(nix eval --impure --expr '(import ./.).type' || echo "general") | tr -d '"')
 projectName := $(shell echo $$(nix eval --impure --expr '(import ./.).pname' || echo $$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name) || basename $(mkfileDir)) | tr -d '"')
+tangleTask := make -nf $(mkfilePath) test && echo test || echo tangle
 
 add:
 |git -C $(mkfileDir) add .
@@ -1092,38 +1089,34 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
-update-settings:
-|nix flake lock --update-input settings || :
-
-files := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org
-
-ifeq ($(projectName), settings)
-files := $(files) $(mkfileDir)/README.org
+update-%: updateInput := nix flake lock --update-input
+update-%:
+|$(eval input := $(shell echo $@ | cut -d "-" -f2-))
+ifeq ($(input), settings)
+|$(updateInput) $(input) || :
+else ifeq ($(input), all)
+|nix flake update
 else
-files := $(files) $(mkfileDir)/$(projectName)
+|$(updateInput) $(input)
 endif
+
+files := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org $(mkfileDir)/README.org $(mkfileDir)/$(projectName)
 
 tangle: update-settings
 |$(call nixShell,general) "org-tangle -f $(files)"
 
 update:
 ifeq ($(projectName), settings)
-|$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! (elem input [ "nixos-master" ])) (attrNames inputs))}"' | tr -d '"')
+|$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! ((elem input [ "nixos-master" ]) || (hasSuffix "-small" input))) (attrNames inputs))}"' | tr -d '"')
 else
 |nix flake update
 endif
 
 quick: tangle push
-#+end_src
 
-#+begin_src makefile
+super: $(shell $(tangleTask)) update push
 
-super: tangle update push
-
-update-master:
-|nix flake update
-
-super-master: tangle update-master push
+super-%: $(shell $(tangleTask)) update-% push ;
 #+end_src
 
 * .envrc
@@ -1153,8 +1146,6 @@ nix flake info &> /dev/null && use flake || use nix
 
 #+begin_src makefile :tangle (meq/tangle-path)
 <<5de2420e-82fc-4925-9299-235328edd4fa>>
-
-super: tangle update push
 #+end_src
 
 *** nix.org
@@ -1256,8 +1247,6 @@ poetry2setup:
 
 test: tangle update
 |$(call nixShell,$(type)) pytest
-
-super: test push
 #+end_src
 
 *** nix.org
@@ -8382,7 +8371,7 @@ trees with the :notangle: tag."
         ((guard (file-exists-p arg))
          (push arg srcs))
         (_ (if force
-              nil
+              (message "Skipping unknown option or file: %s" arg)
               (error "Unknown option or file: %s" arg))))))
 
   (dolist (file srcs)

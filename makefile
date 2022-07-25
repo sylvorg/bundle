@@ -10,6 +10,7 @@ mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
 type := $(shell echo $$(nix eval --impure --expr '(import ./.).type' || echo "general") | tr -d '"')
 projectName := $(shell echo $$(nix eval --impure --expr '(import ./.).pname' || echo $$(cat $(mkfileDir)/pyproject.toml | tomlq .tool.poetry.name) || basename $(mkfileDir)) | tr -d '"')
+tangleTask := make -nf $(mkfilePath) test && echo test || echo tangle
 
 add:
 |git -C $(mkfileDir) add .
@@ -20,32 +21,31 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
-update-settings:
-|nix flake lock --update-input settings || :
-
-files := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org
-
-ifeq ($(projectName), settings)
-files := $(files) $(mkfileDir)/README.org
+update-%: updateInput := nix flake lock --update-input
+update-%:
+|$(eval input := $(shell echo $@ | cut -d "-" -f2-))
+ifeq ($(input), settings)
+|$(updateInput) $(input) || :
+else ifeq ($(input), all)
+|nix flake update
 else
-files := $(files) $(mkfileDir)/$(projectName)
+|$(updateInput) $(input)
 endif
+
+files := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org $(mkfileDir)/README.org $(mkfileDir)/$(projectName)
 
 tangle: update-settings
 |$(call nixShell,general) "org-tangle -f $(files)"
 
 update:
 ifeq ($(projectName), settings)
-|$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! (elem input [ "nixos-master" ])) (attrNames inputs))}"' | tr -d '"')
+|$(shell nix eval --impure --expr 'with (import ./.); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock --update-input $${concatStringsSep " --update-input " (filter (input: ! ((elem input [ "nixos-master" ]) || (hasSuffix "-small" input))) (attrNames inputs))}"' | tr -d '"')
 else
 |nix flake update
 endif
 
 quick: tangle push
 
-super: tangle update push
+super: $(shell $(tangleTask)) update push
 
-update-master:
-|nix flake update
-
-super-master: tangle update-master push
+super-%: $(shell $(tangleTask)) update-% push ;
