@@ -10,7 +10,7 @@ mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
 type := $(subst ",,$(shell nix eval --impure --expr '(import $(realfileDir)).type' || echo general))
 projectName := $(subst ",,$(shell nix eval --impure --expr '(import $(realfileDir)).pname' || basename $(mkfileDir)))
-tangleTask := make -nf $(mkfilePath) test && echo test || echo tangle
+tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
 files := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org $(mkfileDir)/README.org $(mkfileDir)/$(projectName)
 
 add:
@@ -26,7 +26,7 @@ update-%: updateInput := nix flake lock $(realfileDir) --update-input
 update-%:
 |$(eval input := $(shell echo $@ | cut -d "-" -f2-))
 ifeq ($(input), settings)
-|$(updateInput) $(input) || :
+|-$(updateInput) $(input)
 else ifeq ($(input), all)
 |nix flake update $(realfileDir)
 else
@@ -48,6 +48,6 @@ endif
 
 quick: tangle push
 
-super: update push
+super: $(tangleTask) update push
 
-super-%: update-% push ;
+super-%: $(tangleTask) update-% push ;
