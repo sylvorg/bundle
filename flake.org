@@ -2381,9 +2381,15 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 in j.foldToSet [
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                     (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                    (made.mkboth python-packages extra-packages (if (type' == "general") then pname else null) "general")
+                    (made.mkboth python-packages (flatten [
+                        extra-packages
+                        (packages.${pname}.checkInputs or [])
+                    ]) (if (type' == "general") then pname else null) "general")
                     (optionalAttrs (type != "general") (j.foldToSet [
-                        (genAttrs j.attrs.versionNames.python (python: map (made.mkboth python-packages extra-packages pname) j.attrs.versionNames.python))
+                        (genAttrs j.attrs.versionNames.python (python: map (made.mkboth (flatten [
+                            python-packages
+                            (packages.${python}.pkgs.${pname}.checkInputs or [])
+                        ]) extra-packages pname) j.attrs.versionNames.python))
                     ]).${type})
                     { inherit default; "${pname}" = default; }
                 ];
