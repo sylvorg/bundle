@@ -8426,22 +8426,27 @@ Must be last; [[https://github.com/rejeep/f.el][f.el]] requires [[https://github
 ))
 #+end_src
 
-Adapted from [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L825][here]] and [[https://lists.gnu.org/archive/html/emacs-orgmode/2018-12/msg00048.html][here]];
+Note: the source code for several dependent functions are linked below:
+- ~org-babel-get-src-block-info:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L623
+- ~org-babel-params-from-properties:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L1476
+- ~org-babel-parse-header-arguments:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L1584
+- ~org-babel-read:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L3014
+
+And just in case, [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-tangle.el#L198][org-babel-tangle]].
+
+Adapted from [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L823][here]] and
+[[https://lists.gnu.org/archive/html/emacs-orgmode/2018-12/msg00048.html#:~:text=You%20can%20avoid%20the%20error%20if%20you%20additionally%20let%2Dbind%20%0Aorg%2Dbabel%2Dcurrent%2Dsrc%2Dblock%2Dlocation%20to%20the%20location%20of%20datum%3A][here]];
 [[https://emacs.stackexchange.com/users/468/david-ongaro][David Ongaro's]] answer [[https://emacs.stackexchange.com/a/29132/31428][here]] is also useful, but doesn't expand ~noweb~ coderefs:
 
 #+begin_src emacs-lisp
-(defun meq/org-babel-expand-src-block (&optional _arg datum info params)
-  "Expand the current source code block.
-Expand according to the source code block's header
-arguments and pop open the results in a preview buffer."
-  (interactive)
-  (let* ((datum (or datum (let ((org-babel-current-src-block-location (org-element-property :begin  (org-element-context))))
-                            (org-with-point-at org-babel-current-src-block-location
-                            (org-babel-params-from-properties lang)))))
-         (info (or info (org-babel-get-src-block-info datum)))
+(defun meq/org-babel-expand-src-block (&optional light datum info params)
+  "Expand the current source code block. Expand according to the source code block's header arguments."
+  (let* ((info (or info (org-babel-get-src-block-info t datum)))
          (lang (nth 0 info))
          (params (setf (nth 2 info)
                     (sort (org-babel-merge-params (nth 2 info) params) (lambda (el1 el2) (string< (symbol-name (car el1)) (symbol-name (car el2)))))))
+         (params (if light params (mapcar (lambda (param) (cons (car param) (org-babel-read (cdr param))))
+                                    (-remove (lambda (param) (member (car param) '(:tangle))) params))))
          (body (setf (nth 1 info) (if (org-babel-noweb-p params :eval) (org-babel-expand-noweb-references info) (nth 1 info))))
          (expand-cmd (intern (concat "org-babel-expand-body:" lang)))
          (assignments-cmd (intern (concat "org-babel-variable-assignments:" lang)))
@@ -8451,48 +8456,56 @@ arguments and pop open the results in a preview buffer."
          (expanded (if (a-has-key? params :shebang)
                     (concat (a-get params :shebang) "\n" expanded)
                     expanded)))
-    (if (called-interactively-p 'any)
-        (org-edit-src-code expanded (concat "*Org-Babel Preview " (buffer-name) "[ " lang " ]*"))
-        expanded)))
+    expanded))
 #+end_src
 
 #+begin_src emacs-lisp
-(defun meq/org-babel-expand (&optional _arg datum info params)
-    (condition-case nil
-        (meq/org-babel-expand-src-block _arg datum info params)
-    (error (org-babel-expand-noweb-references))))
+(defun meq/org-babel-expand (path &optional return-path light no-check body info parent-buffer datum params)
+    (let* ((exists (and path (f-exists? path)))
+            (body (if exists (s-trim (f-read path)) body))
+            (args (list light datum info params))
+            (path-or-body (if return-path path (apply #'meq/org-babel-expand-src-block args))))
+        (if (and (not no-check) body)
+            (if exists
 #+end_src
 
-Adapted from [[https://emacs.stackexchange.com/users/5385/mutbuerger][mutbuerger's]] comment [[https://emacs.stackexchange.com/questions/29131/get-contents-of-a-named-source-block#comment44697_29131][here]] and [[https://emacs.stackexchange.com/users/12504/alex-stragies][Alex Stragies's]] asnwer [[https://emacs.stackexchange.com/a/68298/31428][here]]:
+DO NOT CHANGE THIS TO ~path-or-body~! The expanded source block must always be returned here:
 
 #+begin_src emacs-lisp
-(defun meq/get-block (name &optional _arg datum params) (interactive)
-    (meq/org-babel-expand _arg datum (org-babel-lob--src-info name) params))
+                (if (string= body (if return-path (apply #'meq/org-babel-expand-src-block args) path-or-body))
 #+end_src
 
 #+begin_src emacs-lisp
-(defun meq/get-header nil (interactive) (nth 4 (org-heading-components)))
-(defun meq/get-theme-from-header nil (interactive) (s-chop-suffix "-theme.el" (meq/get-header)))
+                    (if return-path "no")
+                    path-or-body)
+                path-or-body)
+            path-or-body)))
+#+end_src
 
-(defun meq/tangle-multi (dont-check-car &rest paths) (interactive)
-    (let* ((body (meq/org-babel-expand)))
-        (mapc (lambda (path) (let* ((path (f-expand (substitute-in-file-name path)))
-                                    (exists (f-exists? path)))
-                                (if exists
-                                    (unless (string= body (s-trim (f-read path))) (f-write body 'utf-8 path))
-                                    (f-write body 'utf-8 path)))) (cdr paths))
-        (let* ((path (f-expand (substitute-in-file-name (car paths))))
-                (exists (f-exists? path)))
-            (if (or dont-check-car (not exists))
-                path
-                (if (string= body (s-trim (f-read path))) path "no")))))
-(defun meq/tangle-path nil (interactive)
-    (let* ((path (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) (meq/get-header))))
-            (exists (f-exists? path)))
-        (if exists
-            (if (string= (meq/org-babel-expand) (s-trim (f-read path))) "no" path)
-            path)))
-(defun meq/tangle-multipath (&rest paths) (interactive) (apply #'meq/tangle-multi t (add-to-list 'paths (meq/tangle-path))))
+Adapted from [[https://emacs.stackexchange.com/users/5385/mutbuerger][mutbuerger's]] comment
+[[https://emacs.stackexchange.com/questions/29131/get-contents-of-a-named-source-block#comment44697_29131][here]] and
+[[https://emacs.stackexchange.com/users/12504/alex-stragies][Alex Stragies's]] answer [[https://emacs.stackexchange.com/a/68298/31428][here]];
+the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-lob.el#L82][here]]:
+
+#+begin_src emacs-lisp
+(defun meq/get-block (name &optional light parent-buffer datum params)
+    (let* (path return-path no-check body)
+        (meq/org-babel-expand path return-path light no-check body (org-babel-lob--src-info name) parent-buffer datum params)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun meq/get-header nil (nth 4 (org-heading-components)))
+(defun meq/get-theme-from-header nil (s-chop-suffix "-theme.el" (meq/get-header)))
+
+(defun meq/tangle-multi (light dont-check-car &rest paths)
+    (mapc (lambda (path) (let* ((body (meq/org-babel-expand (f-expand (substitute-in-file-name path)) nil light)))
+                            (if body (f-write body 'utf-8 path)))) (cdr paths))
+    (meq/org-babel-expand (f-expand (substitute-in-file-name (car paths))) t light dont-check-car))
+
+(defun meq/tangle-path (&optional light)
+    (meq/org-babel-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) (meq/get-header))) t light))
+(defun meq/tangle-multipath (&rest paths) (apply #'meq/tangle-multi nil 'dont-check-car (add-to-list 'paths (meq/tangle-path))))
+(defun meq/tangle-multipath-light (&rest paths) (apply #'meq/tangle-multi 'light 'dont-check-car (add-to-list 'paths (meq/tangle-path t))))
 #+end_src
 
 #+begin_src emacs-lisp

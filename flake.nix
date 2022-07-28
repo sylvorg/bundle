@@ -9,6 +9,11 @@
         # keep-outputs = true;
         extra-experimental-features = "nix-command flakes";
         # accept-flake-config = true;
+        # show-trace = true;
+        # fallback = true;
+        # auto-optimise-store = true;
+        # builders-use-substitutes = true;
+        # cores = 0;
         # flake-registry = https://raw.githubusercontent.com/sylvorg/settings/main/flake-registry.json;
         # allow-unsafe-native-code-during-evaluation = true;
         # min-free = 262144000;
