@@ -975,7 +975,9 @@
                     {
                         hy = let
                             pname = "hy";
-                        in final: update pname (old: rec {
+                        in final: update pname (old: let
+                            python3Packages = final.Python3.pkgs;
+                        in rec {
                             inherit (Inputs.${pname}) version;
                             HY_VERSION = version;
                             src = inputs.${pname};
@@ -984,15 +986,16 @@
                             disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
                             passthru = {
                                 tests.version = testers.testVersion {
-                                    package = final.Python3.pkgs.${pname};
+                                    package = python3Packages.${pname};
                                     command = "${pname} -v";
                                 };
-                                withPackages = python-packages: (final.Python3.pkgs.toPythonApplication final.Python3.pkgs.${pname}).overrideAttrs (old: {
+                                withPackages = python-packages: (python3Packages.toPythonApplication python3Packages.${pname}).overrideAttrs (old: {
                                     propagatedBuildInputs = flatten [
-                                        (python-packages final.Python3.pkgs)
+                                        (python-packages python3Packages)
                                         (old.propagatedBuildInputs or [])
                                     ];
                                 });
+                                pkgs = python3Packages;
                             };
                         });
                         hyrule = let
@@ -1073,6 +1076,7 @@
                                         (old.propagatedBuildInputs or [])
                                     ];
                                 });
+                                pkgs = python3Packages;
                             };
                     }); };
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
