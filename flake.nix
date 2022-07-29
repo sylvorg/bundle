@@ -82,6 +82,10 @@
             url = github:abersheeran/poetry2setup;
             flake = false;
         };
+        gum = {
+            url = github:charmbracelet/gum/v0.1.0;
+            flake = false;
+        };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
@@ -607,7 +611,7 @@
                 '';
                 meta.mainprogram = "org-tangle";
             };
-            sysget = { stdenv, fetchFromGitHub, installShellFiles, pname }: stdenv.mkDerivation rec {
+            sysget = { stdenv, installShellFiles, pname }: stdenv.mkDerivation rec {
                 inherit pname;
                 inherit (Inputs.${pname}) version;
                 src = inputs.sysget;
@@ -625,7 +629,7 @@
                     license = licenses.gpl3;
                 };
             };
-            pacapt = { stdenv, fetchFromGitHub, pname }: stdenv.mkDerivation rec {
+            pacapt = { stdenv, pname }: stdenv.mkDerivation rec {
                 inherit pname;
                 inherit (Inputs.${pname}) version;
                 src = inputs.pacapt;
@@ -660,7 +664,7 @@
                     license = licenses.mpl20;
                 };
             };
-            mdsh = { stdenv, fetchFromGitHub, pname }: let
+            mdsh = { stdenv, pname }: let
                 owner = "bashup";
             in stdenv.mkDerivation rec {
                 inherit pname;
@@ -676,7 +680,7 @@
                     license = licenses.mit;
                 };
             };
-            caddy = { fetchFromGitHub, buildGoModule, pname }: let
+            caddy = { buildGoModule, pname }: let
                 imports = concatMapStrings (pkg: "\t\t\t_ \"${pkg}\"\n") [
                     "github.com/mholt/${pname}-l4@latest"
                     "github.com/abiosoft/${pname}-yaml@latest"
@@ -712,11 +716,35 @@
                     cp vendor/go.sum ./
                     cp vendor/go.mod ./
                 '';
+                passthru.tests = { inherit (nixosTests) caddy; };
                 meta = {
                     homepage = https://caddyserver.com;
                     description = "Fast, cross-platform HTTP/2 web server with automatic HTTPS";
                     license = licenses.asl20;
                     maintainers = with maintainers; [ Br1ght0ne ];
+                };
+            };
+            gum = { buildGoModule, installShellFiles, pname, fetchFromGitHub }: buildGoModule rec {
+                inherit pname;
+                inherit (Inputs.${pname}) version;
+                src = inputs.gum;
+                vendorSha256 = "";
+                nativeBuildInputs = [ installShellFiles ];
+                ldflags = [ "-s" "-w" "-X=main.Version=${version}" ];
+                postInstall = ''
+                    $out/bin/gum man > gum.1
+                    installManPage gum.1
+                    installShellCompletion --cmd gum \
+                    --bash <($out/bin/gum completion bash) \
+                    --fish <($out/bin/gum completion fish) \
+                    --zsh <($out/bin/gum completion zsh)
+                '';
+                meta = {
+                    description = "A tool for glamorous shell scripts";
+                    homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
+                    changelog = "https://github.com/charmbracelet/gum/releases/tag/v${version}";
+                    license = licenses.mit;
+                    maintainers = with maintainers; [ maaslalani ];
                 };
             };
             guix = { stdenv, fetchurl, pname }: stdenv.mkDerivation rec {
@@ -755,7 +783,7 @@
                     platforms = [ "aarch64-linux" "i686-linux" "x86_64-linux" ];
                 };
             };
-            poetry2setup = { lib, Python, fetchFromGitHub, gawk, pname }: Python.pkgs.buildPythonApplication rec {
+            poetry2setup = { lib, Python, gawk, pname }: Python.pkgs.buildPythonApplication rec {
                 inherit pname;
                 version = j.pyVersion format src;
                 format = "pyproject";
@@ -1796,6 +1824,7 @@
             app ? false,
             python-packages ? [],
             extra-packages ? [],
+            extras ? (oo: {}),
             ...
         }: let
             type' = if app then "general" else type;
@@ -1815,54 +1844,55 @@
                 overlay = default;
                 defaultOverlay = default;
             };
-        in j.foldToSet [
-            (eachSystem allSystems (system: let
-                made = make system (attrValues overlayset.overlays);
-            in rec {
-                inherit (made) nixpkgs pkgs legacyPackages;
-                inherit made;
-                packages = flattenTree (j.foldToSet [
-                    {
-                        general = {
-                            default = pkgs.${pname};
-                            "${pname}" = pkgs.${pname};
-                        };
-                    }
-                    (let
-                        pythons = mapAttrs (n: v: made.mkPython v [] pname) made.pythons;
-                    in mapAttrs (n: v: j.foldToSet [
-                        (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
-                        { default = pythons.${type}; "${pname}" = pythons.${type}; }
-                    ]) pythons)
-                ]).${type'};
-                package = packages.default;
-                defaultPackage = package;
-                apps = mapAttrs (n: made.app) packages;
-                app = apps.default;
-                defaultApp = app;
-                devShells = let
-                    default = pkgs.mkShell { buildInputs = attrValues packages; };
-                in j.foldToSet [
-                    (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                    (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                    (made.mkboth python-packages (flatten [
-                        extra-packages
-                        (packages.${pname}.checkInputs or [])
-                    ]) (if (type' == "general") then pname else null) "general")
-                    (optionalAttrs (type != "general") (j.foldToSet [
-                        (genAttrs j.attrs.versionNames.python (python: map (made.mkboth (flatten [
-                            python-packages
-                            (packages.${python}.pkgs.${pname}.checkInputs or [])
-                        ]) extra-packages pname) j.attrs.versionNames.python))
-                    ]).${type})
-                    { inherit default; "${pname}" = default; }
-                ];
-                devShell = devShells.default;
-                defaultdevShell = devShell;
-            }))
-            overlayset
-            { inherit pname callPackage type' type; }
-        ];
+            official-outputs = j.foldToSet [
+                (eachSystem allSystems (system: let
+                    made = make system (attrValues overlayset.overlays);
+                in rec {
+                    inherit (made) nixpkgs pkgs legacyPackages;
+                    inherit made;
+                    packages = flattenTree (j.foldToSet [
+                        {
+                            general = {
+                                default = pkgs.${pname};
+                                "${pname}" = pkgs.${pname};
+                            };
+                        }
+                        (let
+                            pythons = mapAttrs (n: v: made.mkPython v [] pname) made.pythons;
+                        in mapAttrs (n: v: j.foldToSet [
+                            (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
+                            { default = pythons.${type}; "${pname}" = pythons.${type}; }
+                        ]) pythons)
+                    ]).${type'};
+                    package = packages.default;
+                    defaultPackage = package;
+                    apps = mapAttrs (n: made.app) packages;
+                    app = apps.default;
+                    defaultApp = app;
+                    devShells = let
+                        default = pkgs.mkShell { buildInputs = attrValues packages; };
+                    in j.foldToSet [
+                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
+                        (made.mkboth python-packages (flatten [
+                            extra-packages
+                            (packages.${pname}.checkInputs or [])
+                        ]) (if (type' == "general") then pname else null) "general")
+                        (optionalAttrs (type != "general") (j.foldToSet [
+                            (genAttrs j.attrs.versionNames.python (python: map (made.mkboth (flatten [
+                                python-packages
+                                (packages.${python}.pkgs.${pname}.checkInputs or [])
+                            ]) extra-packages pname) j.attrs.versionNames.python))
+                        ]).${type})
+                        { inherit default; "${pname}" = default; }
+                    ];
+                    devShell = devShells.default;
+                    defaultdevShell = devShell;
+                }))
+                overlayset
+                { inherit pname callPackage type' type; }
+            ];
+        in recursiveUpdate official-outputs (extras official-outputs);
         make = system: overlays: with lib; rec {
             config' = rec {
                 base = { inherit system; };
@@ -1915,7 +1945,7 @@
                         general
                         "pytest"
                         "pytest-hy"
-                        "pytest-randomly"
+                        # "pytest-randomly"
                     ]) ((v.pkgs or pythons.python.pkgs).${pname}.overridePythonAttrs func))
                 ]) pythons)
             ];
