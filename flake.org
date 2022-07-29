@@ -2424,13 +2424,12 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                         (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
                         (made.mkboth python-packages (flatten [
                             extra-packages
-                            (packages.${pname}.checkInputs or [])
+                            packages.${pname}.nativeBuildInputs
                         ]) (if (type' == "general") then pname else null) "general")
                         (optionalAttrs (type != "general") (j.foldToSet [
                             (genAttrs j.attrs.versionNames.python (python: map (made.mkboth (flatten [
                                 python-packages
-                                (trace packages.${python}.pkgs.${pname}.checkInputs packages.${python}.pkgs.${pname}.checkInputs)
-                                # (packages.${python}.pkgs.${pname}.checkInputs or [])
+                                packages.${python}.pkgs.${pname}.nativeBuildInputs
                             ]) extra-packages pname) j.attrs.versionNames.python))
                         ]).${type})
                         { inherit default; "${pname}" = default; }
