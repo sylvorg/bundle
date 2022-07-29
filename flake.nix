@@ -1860,6 +1860,7 @@
                         (let
                             pythons = mapAttrs (n: v: made.mkPython v [] pname) made.pythons;
                         in mapAttrs (n: v: j.foldToSet [
+                            pythons
                             (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
                             { default = pythons.${type}; "${pname}" = pythons.${type}; }
                         ]) pythons)
