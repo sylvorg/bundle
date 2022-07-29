@@ -1881,7 +1881,8 @@
                         (optionalAttrs (type != "general") (j.foldToSet [
                             (genAttrs j.attrs.versionNames.python (python: map (made.mkboth (flatten [
                                 python-packages
-                                (packages.${python}.pkgs.${pname}.checkInputs or [])
+                                (trace packages.${python}.pkgs.${pname}.checkInputs packages.${python}.pkgs.${pname}.checkInputs)
+                                # (packages.${python}.pkgs.${pname}.checkInputs or [])
                             ]) extra-packages pname) j.attrs.versionNames.python))
                         ]).${type})
                         { inherit default; "${pname}" = default; }
@@ -1943,9 +1944,6 @@
                     (mkPython v (flatten [
                         ppkglist
                         general
-                        "pytest"
-                        "pytest-hy"
-                        # "pytest-randomly"
                     ]) ((v.pkgs or pythons.python.pkgs).${pname}.overridePythonAttrs func))
                 ]) pythons)
             ];
