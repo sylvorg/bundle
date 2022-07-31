@@ -57,4 +57,5 @@ poetry2setup:
 |$(call nixShell,$(type)) "cd $(mkfileDir) && poetry2setup > $(mkfileDir)/setup.py && cd -"
 
 test: tangle update
-|$(call nixShell,$(type)) pytest
+|find $(mkfileDir)/tests -print | grep -v __pycache__ | xargs touch
+|$(call nixShell,$(type)) "pytest --tb=native"

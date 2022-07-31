@@ -82,10 +82,6 @@
             url = github:abersheeran/poetry2setup;
             flake = false;
         };
-        gum = {
-            url = github:charmbracelet/gum/v0.1.0;
-            flake = false;
-        };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
@@ -724,29 +720,6 @@
                     maintainers = with maintainers; [ Br1ght0ne ];
                 };
             };
-            gum = { buildGoModule, installShellFiles, pname, fetchFromGitHub }: buildGoModule rec {
-                inherit pname;
-                inherit (Inputs.${pname}) version;
-                src = inputs.gum;
-                vendorSha256 = "";
-                nativeBuildInputs = [ installShellFiles ];
-                ldflags = [ "-s" "-w" "-X=main.Version=${version}" ];
-                postInstall = ''
-                    $out/bin/gum man > gum.1
-                    installManPage gum.1
-                    installShellCompletion --cmd gum \
-                    --bash <($out/bin/gum completion bash) \
-                    --fish <($out/bin/gum completion fish) \
-                    --zsh <($out/bin/gum completion zsh)
-                '';
-                meta = {
-                    description = "A tool for glamorous shell scripts";
-                    homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
-                    changelog = "https://github.com/charmbracelet/gum/releases/tag/v${version}";
-                    license = licenses.mit;
-                    maintainers = with maintainers; [ maaslalani ];
-                };
-            };
             guix = { stdenv, fetchurl, pname }: stdenv.mkDerivation rec {
                 inherit pname;
                 version = "1.0.0";
@@ -1079,6 +1052,7 @@
                                 pkgs = python3Packages;
                             };
                     }); };
+                    gum = final: prev: { gum = prev.gum or inputs.nixos-master.legacyPackages.${final.stdenv.targetPlatform.system}.gum; };
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
                     emacs = inputs.emacs.overlay;
@@ -1876,21 +1850,25 @@
                     defaultApp = app;
                     devShells = let
                         default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    in j.foldToSet [
-                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                        (made.mkboth python-packages (flatten [
-                            extra-packages
-                            packages.${pname}.nativeBuildInputs
-                        ]) (if (type' == "general") then pname else null) "general")
-                        (optionalAttrs (type != "general") (j.foldToSet [
-                            (genAttrs j.attrs.versionNames.python (python: map (made.mkboth (flatten [
-                                python-packages
-                                packages.${python}.pkgs.${pname}.nativeBuildInputs
-                            ]) extra-packages pname) j.attrs.versionNames.python))
-                        ]).${type})
-                        { inherit default; "${pname}" = default; }
-                    ];
+                        devShells' = j.foldToSet [
+                            (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                            (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
+                            (made.mkboth python-packages (flatten [
+                                extra-packages
+                                packages.${pname}.nativeBuildInputs
+                            ]) (if (type' == "general") then pname else null) "general")
+                            (optionalAttrs (type != "general") (j.foldToSet [
+                                (genAttrs j.attrs.versionNames.python (python: map (made.mkboth (flatten [
+                                    python-packages
+                                    packages.${python}.pkgs.${pname}.nativeBuildInputs
+                                ]) extra-packages pname) j.attrs.versionNames.python))
+                            ]).${type})
+                            { inherit default; "${pname}" = default; }
+                        ];
+                    in devShells' // {
+                        makefile = devShells'."makefile-${type}";
+                        makeshell = devShells'."makeshell-${type}";
+                    };
                     devShell = devShells.default;
                     defaultdevShell = devShell;
                 }))
