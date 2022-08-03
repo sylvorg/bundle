@@ -85,7 +85,8 @@
                                     temp)))))))))
     file))
 
-(defvar current-lob-file nil)
+(defvar current-lob-file)
+(defvar current-setup-file)
 
 (defun org-babel-pre-tangle-hooks nil (interactive)
     (setq org-elements (let* (
@@ -98,10 +99,12 @@
                         'keyword
                         (lambda (keyword) (cons (downcase (org-element-property :key keyword)) (org-element-property :value keyword))))))
         (unless (or (a-has-key? keywords "nosetupfile") (a-has-key? keywords "nosetuplobfile") (member "no setupfile" headlines))
-            (goto-char 0)
-            (insert (format "#+setupfile: %s\n\n" (get-README 'return-link (when (a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile")))))
-            (goto-char 0)
-            (org-ctrl-c-ctrl-c))
+              (setq current-setup-file (get-README 'return-link (when (a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))))
+              (when (member current-setup-file expanded-args) (global-auto-revert-mode 1))
+              (goto-char 0)
+              (insert (format "#+setupfile: %s\n\n" current-setup-file))
+              (goto-char 0)
+              (org-ctrl-c-ctrl-c))
         (a-list :keywords keywords :headlines headlines)))
     (setq org-src-preserve-indentation t)
     (let* ((headlines (a-get org-elements :headlines))
@@ -111,12 +114,12 @@
                                             ((a-has-key? keywords "lobfile") (a-get keywords "lobfile"))))))
             (when file
               (setq current-lob-file file)
-              (global-auto-revert-mode 1)
+              (when (member current-lob-file expanded-args) (global-auto-revert-mode 1))
               (org-babel-lob-ingest current-lob-file)))))
     (org-export-expand-include-keyword))
 
 (defun org-babel-post-tangle-hooks nil (interactive)
-  (global-auto-revert-mode -1)
+  (when (or (member current-setup-file expanded-args) (member current-lob-file expanded-args)) (global-auto-revert-mode -1))
 )
 
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-pre-tangle-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))

@@ -7877,7 +7877,8 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
                                     temp)))))))))
     file))
 
-(defvar current-lob-file nil)
+(defvar current-lob-file)
+(defvar current-setup-file)
 
 (defun org-babel-pre-tangle-hooks nil (interactive)
     (setq org-elements (let* (
@@ -7903,10 +7904,20 @@ Adapted from [[https://kitchingroup.cheme.cmu.edu/blog/2013/05/05/Getting-keywor
 
 #+begin_src emacs-lisp
         (unless (or (a-has-key? keywords "nosetupfile") (a-has-key? keywords "nosetuplobfile") (member "no setupfile" headlines))
-            (goto-char 0)
-            (insert (format "#+setupfile: %s\n\n" (get-README 'return-link (when (a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile")))))
-            (goto-char 0)
-            (org-ctrl-c-ctrl-c))
+              (setq current-setup-file (get-README 'return-link (when (a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))))
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+              (when (member current-setup-file expanded-args) (global-auto-revert-mode 1))
+#+end_src
+
+#+begin_src emacs-lisp
+              (goto-char 0)
+              (insert (format "#+setupfile: %s\n\n" current-setup-file))
+              (goto-char 0)
+              (org-ctrl-c-ctrl-c))
         (a-list :keywords keywords :headlines headlines)))
 #+end_src
 
@@ -7936,7 +7947,7 @@ Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[htt
 Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
 
 #+begin_src emacs-lisp
-              (global-auto-revert-mode 1)
+              (when (member current-lob-file expanded-args) (global-auto-revert-mode 1))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -7949,7 +7960,7 @@ Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's
 Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
 
 #+begin_src emacs-lisp
-  (global-auto-revert-mode -1)
+  (when (or (member current-setup-file expanded-args) (member current-lob-file expanded-args)) (global-auto-revert-mode -1))
 #+end_src
 
 #+begin_src emacs-lisp
