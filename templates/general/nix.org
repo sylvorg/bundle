@@ -1,4 +1,4 @@
-* shell.nix
+,* shell.nix
 
 #+begin_src nix :tangle (meq/tangle-path)
 (import ./.).devShell.${builtins.currentSystem}
@@ -35,13 +35,13 @@ in {
         };
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
-
+        inherit inputs;
+        
         # TODO: Change this!
         pname = "";
-
+        
         # TODO: Change this!
         callPackage = {}: {};
-        
     };
 }
 #+end_src

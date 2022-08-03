@@ -1,4 +1,4 @@
-* shell.nix
+,* shell.nix
 
 #+begin_src nix :tangle (meq/tangle-path)
 (import ./.).devShell.${builtins.currentSystem}
@@ -23,7 +23,7 @@ in {
 #+begin_src nix :tangle (meq/tangle-path)
 {
 
-    # TODO: Change the description!
+    # TODO: Change this!
     description = "";
 
     inputs = rec {
@@ -36,41 +36,13 @@ in {
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
         inherit inputs;
-
-        # TODO: Change the pname!
-        pname = "";
-
-        # TODO: Change the callPackage!
-        callPackage = {}: {};
-
         type = "hy";
-        app = true;
-    };
-}
-{
 
-    # TODO: Change the description!
-    description = "";
-
-    inputs = rec {
-        settings.url = github:sylvorg/settings;
-        flake-utils.url = github:numtide/flake-utils;
-        flake-compat = {
-            url = "github:edolstra/flake-compat";
-            flake = false;
-        };
-    };
-    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
-        inherit inputs;
-
-        # TODO: Change the pname!
+        # TODO: Change this!
         pname = "";
-
-        # TODO: Change the callPackage!
+        
+        # TODO: Change this!
         callPackage = {}: {};
-
-        type = "hy";
-        overlays = j.inputsToOverlays;
     };
 }
 #+end_src

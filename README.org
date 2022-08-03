@@ -1,4 +1,4 @@
-#+nosetupfile: yes
+#+nosetuplobfile: yes
 
 * General Properties and Settings
 :PROPERTIES:
@@ -1046,13 +1046,6 @@ close TAG;
 #+end_src
 
 * makefile
-:PROPERTIES:
-:header-args:makefile+: :noweb-ref f2c9ac4d-47c9-4b5f-bac8-ac0e937157e5
-:END:
-
-#+begin_src text :tangle (meq/tangle-path)
-<<f2c9ac4d-47c9-4b5f-bac8-ac0e937157e5>>
-#+end_src
 
 Adapted from the following places:
 - https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/
@@ -1065,7 +1058,7 @@ Adapted from the following places:
 - [[https://stackoverflow.com/a/44416055/10827766][this answer]] by [[https://stackoverflow.com/users/412080/maxim-egorushkin][Maxim Egorushkin]]
 
 #+name: d7d92d0b-396c-4615-9f8f-4bdad4d89787
-#+begin_src makefile
+#+begin_src makefile :tangle (meq/tangle-path)
 .RECIPEPREFIX := |
 .DEFAULT_GOAL := tangle
 
@@ -1076,17 +1069,24 @@ endef
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
-tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
 
 preFiles := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org $(mkfileDir)/README.org
+
 pnCommand := nix eval --show-trace --impure --expr '(import $(realfileDir)).pname'
 projectName := $(subst ",,$(shell $(pnCommand) || (org-tangle -f $(preFiles) && $(pnCommand))))
 ifndef projectName
 $(error Sorry; unable to get the name of the project)
 endif
 
-type := $(subst ",,$(shell nix eval --show-trace --impure --expr '(import $(realfileDir)).type'))
+typeCommand := nix eval --show-trace --impure --expr '(import $(realfileDir)).type'
+type := $(subst ",,$(shell $(typeCommand) || (org-tangle -f $(preFiles) && $(typeCommand))))
+ifndef type
+$(error Sorry; unable to get the type of project)
+endif
+
 files := $(preFiles) $(mkfileDir)/$(projectName)
+tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
+tangleCommand := ($(call nixShell,general) "org-tangle -f $(files)") || org-tangle -f $(files)
 
 add:
 |git -C $(mkfileDir) add .
@@ -1108,19 +1108,18 @@ update-%: updateInput := nix flake lock $(realfileDir) --update-input
 update-%:
 |$(eval input := $(shell echo $@ | cut -d "-" -f2-))
 ifeq ($(input), settings)
-|-$(updateInput) $(input)
+|-[ $(projectName) != "settings" ] && $(updateInput) $(input)
 else ifeq ($(input), all)
 |nix flake update $(realfileDir)
 else
 |$(updateInput) $(input)
 endif
 
-tangle: update-settings
-|$(call nixShell,general) "org-tangle -f $(files)"
+tangle: update-settings ; $(tangleCommand)
 
 tangle-%: update-settings
 |$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)
-|$(call nixShell,general) "org-tangle -f $(files)"
+|$(tangleCommand)
 
 quick: tangle push
 
@@ -1149,39 +1148,15 @@ nix flake info &> /dev/null && use flake || use nix
 
 *** makefile
 
-#+name: 5de2420e-82fc-4925-9299-235328edd4fa
-#+begin_src makefile
+#+begin_src makefile :tangle (meq/tangle-path t)
 <<d7d92d0b-396c-4615-9f8f-4bdad4d89787>>
 #+end_src
 
-#+begin_src makefile :tangle (meq/tangle-path)
-<<5de2420e-82fc-4925-9299-235328edd4fa>>
-#+end_src
-
 *** nix.org
-:PROPERTIES:
-:header-args:nix+: :noweb-ref 8cafdd99-97cb-4714-8c18-36fcf8c7f319
-:header-args:org+: :noweb-ref 97220a9c-af77-4056-b7f8-00e11819e210
-:END:
 
-#+begin_src text :tangle (meq/tangle-path)
-<<074ce005-3299-46ab-b259-b988558203b5>>
-<<ab36c35f-aaf5-4372-a0b5-529ae78cd5e8>>
-,#+end_src
-#+end_src
-
-#+name: 074ce005-3299-46ab-b259-b988558203b5
-#+begin_src text
-<<97220a9c-af77-4056-b7f8-00e11819e210>>
-#+end_src
-
-#+name: ab36c35f-aaf5-4372-a0b5-529ae78cd5e8
-#+begin_src text
-<<8cafdd99-97cb-4714-8c18-36fcf8c7f319>>
-#+end_src
-
-#+begin_src org
-,* shell.nix
+#+name: 97220a9c-af77-4056-b7f8-00e11819e210
+#+begin_src emacs-lisp :var type="" app=""
+(format ",* shell.nix
 
 ,#+begin_src nix :tangle (meq/tangle-path)
 (import ./.).devShell.${builtins.currentSystem}
@@ -1194,42 +1169,45 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 ,#+begin_src nix :tangle (meq/tangle-path)
 with builtins; if (builtins ? getFlake) then (getFlake (toString ./.)) else (import fetchTarball (let
     lockExists = pathExists ./flake.lock;
-    lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.flake-compat.locked.rev = "master"; };
+    lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.flake-compat.locked.rev = \"master\"; };
 in {
-    url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
-    ${if lockExists then "sha256" else null} = lock.nodes.flake-compat.locked.narHash;
+    url = \"https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz\";
+    ${if lockExists then \"sha256\" else null} = lock.nodes.flake-compat.locked.narHash;
 }) { src = ./.; }).defaultNix
 ,#+end_src
 
 ,* flake.nix
 
 ,#+begin_src nix :tangle (meq/tangle-path)
-#+end_src
-
-#+begin_src nix
 {
 
     # TODO: Change this!
-    description = "";
+    description = \"\";
 
     inputs = rec {
         settings.url = github:sylvorg/settings;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
-            url = "github:edolstra/flake-compat";
+            url = \"github:edolstra/flake-compat\";
             flake = false;
         };
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
-
+        inherit inputs;
+        %s
         # TODO: Change this!
-        pname = "";
-
+        pname = \"\";
+        %s
         # TODO: Change this!
         callPackage = {}: {};
-        
     };
 }
+,#+end_src" (if (string= type "") "" (format "type = \"%s\";\n" type))
+            (if (string= app "") "" (format "\n        app = %s;\n" app)))
+#+end_src
+
+#+begin_src text :tangle (meq/tangle-path)
+<<97220a9c-af77-4056-b7f8-00e11819e210()>>
 #+end_src
 
 ** python-app
@@ -1240,23 +1218,16 @@ in {
 #+end_src
 
 *** makefile
-:PROPERTIES:
-:header-args:makefile+: :noweb-ref 49cd3909-3c44-4d92-a114-5a1fd16240bd
-:END:
-
-#+begin_src text :tangle (meq/tangle-path)
-<<49cd3909-3c44-4d92-a114-5a1fd16240bd>>
-#+end_src
 
 Adapted from [[https://stackoverflow.com/users/428803/joshua][Joshua's]] answer [[https://stackoverflow.com/a/4210080/10827766][here]],
 [[https://superuser.com/users/48602/notinlist][Notinlist's]] answer [[https://superuser.com/a/566199/1154755][here]],
 and [[https://www.cyberciti.biz/faq/how-to-show-recursive-directory-listing-on-linux-or-unix/][here]]:
 
 #+name: 8524a302-71f9-4752-9fbf-675d99285846
-#+begin_src makefile
-<<5de2420e-82fc-4925-9299-235328edd4fa>>
+#+begin_src makefile :tangle (meq/tangle-path)
+<<d7d92d0b-396c-4615-9f8f-4bdad4d89787>>
 
-poetry2setup:
+poetry2setup: tangle update
 |$(call nixShell,$(type)) "cd $(mkfileDir) && poetry2setup > $(mkfileDir)/setup.py && cd -"
 
 test: tangle update
@@ -1265,43 +1236,9 @@ test: tangle update
 #+end_src
 
 *** nix.org
-:PROPERTIES:
-:header-args:nix+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
-:END:
 
 #+begin_src text :tangle (meq/tangle-path)
-<<074ce005-3299-46ab-b259-b988558203b5>>
-<<42b96823-24f3-4924-becd-721155468419>>
-,#+end_src
-#+end_src
-
-#+begin_src nix
-{
-
-    # TODO: Change the description!
-    description = "";
-
-    inputs = rec {
-        settings.url = github:sylvorg/settings;
-        flake-utils.url = github:numtide/flake-utils;
-        flake-compat = {
-            url = "github:edolstra/flake-compat";
-            flake = false;
-        };
-    };
-    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
-        inherit inputs;
-
-        # TODO: Change the pname!
-        pname = "";
-
-        # TODO: Change the callPackage!
-        callPackage = {}: {};
-
-        type = "hy";
-        app = true;
-    };
-}
+<<97220a9c-af77-4056-b7f8-00e11819e210(type="hy", app="true")>>
 #+end_src
 
 ** python-package
@@ -1321,43 +1258,9 @@ nix flake info &> /dev/null && use flake || use nix
 #+end_src
 
 *** nix.org
-:PROPERTIES:
-:header-args:nix+: :noweb-ref 42b96823-24f3-4924-becd-721155468419
-:END:
 
 #+begin_src text :tangle (meq/tangle-path)
-<<074ce005-3299-46ab-b259-b988558203b5>>
-<<42b96823-24f3-4924-becd-721155468419>>
-,#+end_src
-#+end_src
-
-#+begin_src nix
-{
-
-    # TODO: Change the description!
-    description = "";
-
-    inputs = rec {
-        settings.url = github:sylvorg/settings;
-        flake-utils.url = github:numtide/flake-utils;
-        flake-compat = {
-            url = "github:edolstra/flake-compat";
-            flake = false;
-        };
-    };
-    outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
-        inherit inputs;
-
-        # TODO: Change the pname!
-        pname = "";
-
-        # TODO: Change the callPackage!
-        callPackage = {}: {};
-
-        type = "hy";
-        overlays = j.inputsToOverlays;
-    };
-}
+<<97220a9c-af77-4056-b7f8-00e11819e210(type="hy")>>
 #+end_src
 
 * default.nix
@@ -1389,590 +1292,6 @@ in {
 node_modules/
 package-lock.json
 package.json
-#+end_src
-
-* strapper
-** setup.py
-
-#+begin_src py :tangle (meq/tangle-path) :shebang "#!/usr/bin/env python3"
-from setuptools import setup, find_packages
-setup(name = 'strapper', version = '1.0.0.0', packages = find_packages(), scripts = [ "strapper.py" ])
-#+end_src
-
-** strapper.py
-
-#+begin_src py :tangle (meq/tangle-path) :shebang "#!/usr/bin/env python3"
-import hy, os
-from addict import Dict
-from oreo import module_installed
-strapper = module_installed(os.path.dirname(os.path.realpath(__file__)) + "/strapper.hy").strapper
-if __name__ == "__main__":
-    strapper(obj=Dict(dict()))
-#+end_src
-
-** strapper.hy
-:PROPERTIES:
-:header-args:hy+: :noweb-ref 9f94385b-1c84-4e23-8efc-7689a80d2050
-:END:
-
-#+begin_src text :tangle (meq/tangle-path)
-<<9f94385b-1c84-4e23-8efc-7689a80d2050>>
-#+end_src
-
-*** Imports
-
-#+begin_src hy
-(import click)
-(import json)
-(import oreo)
-(import os)
-#+end_src
-
-**** From
-
-#+begin_src hy
-(import addict [Dict :as D])
-(import bakery [ getconf
-                 mkswap
-                 mount :as Mount
-                 nix
-                 nixos-generate-config
-                 nixos-install
-                 nixos-rebuild
-                 parted
-                 rsync
-                 sd
-                 swapon
-                 umount
-                 zfs
-                 zpool ])
-(import functools [partial])
-(import pathlib [Path])
-(import sys [argv])
-#+end_src
-
-**** Coconut
-
-[[https://coconut.readthedocs.io/en/latest/index.html][Coconut]]:
-
-#+begin_src hy
-(try (import coconut *)
-     (except [ImportError] None))
-#+end_src
-
-**** Toolz
-
-[[https://github.com/pytoolz/toolz][Toolz]] and [[https://github.com/pytoolz/cytoolz/][CyToolz]]:
-
-#+begin_src hy
-(try (import cytoolz [last])
-     (except [ImportError]
-             (import toolz [last])))
-#+end_src
-
-*** Requires
-
-#+begin_src hy
-(require hyrule [-> assoc])
-#+end_src
-
-*** Datasets
-
-#+name: 03a790b2-39f2-40a3-be10-b107c73df509
-#+begin_src text
-reserved
-#+end_src
-
-#+name: f3568bf1-26cf-4d6f-8182-aad00b6a8d69
-#+begin_src json
-{
-    "base": {  },
-    "hold": {  },
-    "omniverse": {  },
-    "<<03a790b2-39f2-40a3-be10-b107c73df509>>": {  },
-    "<<username>>": { "datasets": {
-            "oreo": {  },
-            "sylveon": {  },
-            "sylvorg": {  },
-            "syvlorg": {  },
-            "<<reponame>>": {  },
-            "uru": {  }},
-        "options": [ "mountpoint=legacy" ]},
-    "system": {
-        "datasets": {
-            "home": { "datasets": { "root": { "mountpoint": "/root" }}},
-            "nix": {  },
-            "persist": { "datasets": { "root": { "mountpoint": "/persist/root" }}},
-            "root": {  },
-            "tmp": { "datasets": { "nix": {  }}, "options": [ "sync=disabled" ] }
-        },
-        "options": [ "mountpoint=legacy" ]
-    },
-    "virt": {
-        "datasets": {
-            "docker": {  },
-            "kvm": {  },
-            "podman": { "datasets": {  }},
-            "qemu": {  },
-            "vagrant": {  },
-            "xen": {  }
-        },
-        "options": [ "mountpoint=legacy", "refreservation=none" ],
-        "mountpoint": "/var/lib"
-    }
-}
-#+end_src
-
-*** Update Datasets
-
-#+begin_src hy
-(defn update-datasets [ctx [swap 0] [encrypted False] [deduplicated False] [pool False] [root-device None] [reserved-only False]]
-      (setv host         ctx.obj.host
-            resources    ctx.obj.resources
-            snap-dir     [ "snapdir=visible" ]
-            extra-copies (+ snap-dir [ "copies=3" ])
-            cache        [ "sync=disabled" ]
-            ml           "mountpoint=legacy"
-            d            "datasets"
-            s            "system"
-            reserved     "<<03a790b2-39f2-40a3-be10-b107c73df509>>"
-            datasets     (D (.loads json (.strip #[[
-                                <<f3568bf1-26cf-4d6f-8182-aad00b6a8d69>>
-                         ]])))
-            primary-user "<<username>>"
-            users        (D (.loads json (.strip #[[
-                                <<users>>
-                         ]])))
-            homes        (D (.loads json (.strip #[[
-                                <<homes>>
-                         ]]))))
-      (assoc datasets host (D { "datasets" { "jails" { "datasets" { "base" (dict)}}}
-                                     "options" [ ml ]}))
-      (for [user (.values users)]
-           (assoc (. datasets [s] [d] home [d]) user (dict))
-           (assoc (. datasets [s] [d] persist [d]) user (dict))
-           (assoc (. datasets virt [d] podman [d]) user (dict)))
-      (if reserved-only
-          (.create zfs (+ host "/" reserved) :o "mountpoint=none")
-          (do (with [dnix (open (+ resources "/datasets.nix") "w")]
-                    (.write dnix (+ "host: { \n\t\""
-                                    (or root-device "${host}/system/root")
-                                    "\" = \"/\";"
-                                    "\n"))
-              (defn recurse [ddict dname droot [mountpoint ""]]
-                    (setv recurse/datasets     (.list zfs :r True :o "name" :m/list True :m/ignore-stderr True)
-                          recurse/datasets     (cut recurse/datasets 2 (len recurse/datasets))
-                          recurse/dataset      (+ droot "/" dname)
-                          recurse/real-dataset (.replace recurse/dataset "${host}" host)
-                          cloning              (and (!= dname "base")
-                                                    (and encrypted deduplicated))
-                          prefixes             #("system"
-                                                 "system/root"
-                                                 "swap"
-                                                 "base"
-                                                 "omniverse"
-                                                 reserved))
-                    (if cloning
-                        (setv clone-or-create  "clone"
-                              snapshot-or-none (+ host "/base@root"))
-                        (setv clone-or-create  "create"
-                              snapshot-or-none ""))
-                    (when (not (in recurse/real-dataset (lfor prefix prefixes (+ host "/" prefix))))
-                          (if (setx recurse/mountpoint (.get ddict "mountpoint" ""))
-                              (setv mountpoint recurse/mountpoint)
-                              (if mountpoint
-                                  (setv mountpoint (+ mountpoint "/" dname)
-                                        recurse/mountpoint mountpoint)
-                                  (do (setv recurse/mountpoint (.removeprefix recurse/dataset (+ "${host}" "/")))
-                                      (for [prefix prefixes]
-                                           (setv recurse/mountpoint (.removeprefix recurse/mountpoint (+ prefix "/"))))
-                                      (setv recurse/mountpoint (+ "/" recurse/mountpoint)))))
-                          (if (and (.startswith recurse/real-dataset (+ host "/" primary-user))
-                                   (not (= recurse/real-dataset (+ host "/" primary-user))))
-                              (.write dnix (+ "\t\""
-                                              recurse/dataset
-                                              "\" = [ "
-                                              (.join " " (gfor user (.keys users) (+ "\"" (get homes user) "/" dname "\"")))
-                                              " ];\n"))
-
-                              ;; TODO: What does this do? Mind that this sits in the middle of an if statement
-                              #_(for [user (.keys users)]
-                                   (.write dnix (+ "\t\""
-                                                   recurse/dataset
-                                                   "\" = \""
-                                                   (+ (get homes user) "/" dname)
-                                                   "\";\n")))
-
-                              (.write dnix (+ "\t\""
-                                              recurse/dataset
-                                              "\" = \""
-                                              recurse/mountpoint
-                                              "\";\n"))))
-                    (when (and pool (not (in recurse/real-dataset recurse/datasets)))
-                          (zfs :m/subcommand clone-or-create
-                               :o { "repeat-with-values" (.get ddict "options" []) }
-                               snapshot-or-none
-                               recurse/real-dataset)
-                          (.snapshot zfs :r True (+ recurse/real-dataset "@blank"))
-                          (.hold zfs :r True "blank" (+ recurse/real-dataset "@blank")))
-                    (for [[key value] (.items (.get ddict d (D {  })))]
-                         (recurse value key recurse/dataset mountpoint)))
-              (for [[key value] (.items datasets)]
-                   (recurse value key "${host}"))
-              (.write dnix "}"))))
-      (when (or pool reserved-only)
-            (let [pool-size-plus-metric (get (.get zpool :H True "size" host :m/list True :m/split True) 2)
-                  pool-size             (-> pool-size-plus-metric
-                                            (cut 0 -1)
-                                            float
-                                            (round 2))
-                  pool-metric           (last pool-size-plus-metric)]
-                 (defn pool-percentage-value [percentage]
-                       (-> percentage
-                           float
-                           (/ 100)
-                           (round 2)
-                           str
-                           (+ pool-metric)
-                           return))
-                 (.set zfs
-                       (+ "refreservation=" (pool-percentage-value 15))
-                       (+ host "/" reserved))
-
-                 ;; Apparently, if python internal keywords exist in the argument, such as "set", etc.
-                 ;; the command errors out; perhaps something to raise an issue of.
-                 ;; This seems to work as an alternative.
-                 ;; run(f"zfs set refreservation={pool_percentage_value(15)} {args.Pool}/{reserved}", shell = True)
-
-                 (when (and (not reserved-only) swap)
-                       (let [swoptions [ "com.sun:auto-snapshot=false"
-                                         "compression=zle"
-                                         "logbias=throughput"
-                                         "primarycache=metadata"
-                                         "secondarycache=none"
-                                         "sync=standard" ]
-                             page-size (getconf "PAGESIZE" :m/str True)]
-                            (.create zfs
-                                     :V (+ (str swap) "G")
-                                     :b page-size
-                                     :o { "repeat-with-values" swoptions }
-                                     (+ host "/swap"))
-                            (mkswap (+ "/dev/zvol" host "/swap")))))))
-#+end_src
-
-*** Click
-
-#+begin_src hy
-(setv no-host-error-message "Sorry! The host needs to be set; do this with the main command while running the subcommand!")
-(defn [ (.group click :no-args-is-help True)
-        (.option click "-d" "--dazzle" :is-flag True)
-        (.option click "-H" "--host")
-        (.option click "-i" "--inspect" :is-flag True)
-        (.option click "-P" "--print-run" :is-flag True :cls oreo.Option :xor [ "print" ])
-        (.option click "-p" "--print" :is-flag True :cls oreo.Option :xor [ "print-run" ])
-        (.option click "-r" "--resources-dir")
-        click.pass-context ]
-      strapper [ ctx dazzle host inspect print-run print resources-dir ]
-               (when (!= (.geteuid os) 0)
-                     (raise (SystemError "Sorry; this program needs to be run as root!")))
-               (.ensure-object ctx dict)
-               (if resources-dir
-                   (setv ctx.obj.resources resources-dir)
-                   (let [ cwd (.cwd Path)
-                          nds "etc/nixos"
-                          nd (Path "etc/nixos/")
-                          eds (+ "/" nds)
-                          ed (Path eds) ]
-                        (setv ctx.obj.resources (/ cwd nd))
-                        (if (.match ctx.obj.resources (+ "*" eds))
-                            (setv ctx.obj.resources cwd)
-                            (while (not (.exists ctx.obj.resources))
-                                   (setv cwd cwd.parent
-                                         ctx.obj.resources (/ cwd nd))
-                                   (else (when (and (= resources ed)
-                                                    (.exists (setx mnt-dir (/ "/mnt" nd))))
-                                               (setv ctx.obj.resources mnt-dir)))))))
-               (setv ctx.obj.host host)
-               (.bake-all- getconf :m/dazzle dazzle :m/print-command-and-run print-run :m/print-command print :m/debug inspect))
-#+end_src
-
-**** Main
-
-#+begin_src hy
-(defn [ (.command strapper :no-args-is-help True
-                           :context-settings { "ignore_unknown_options" True
-                                               "allow_extra_args"       True })
-        (.argument click "program-arguments" :nargs -1)
-        (.option click "-a" "--all" :is-flag True)
-        (.option click "-c" "--copy" :is-flag True)
-        (.option click "-g" "--generate" :is-flag True)
-        (.option click "-i" "--install" :is-flag True)
-        (.option click "-b" "--install-bootloader" :is-flag True :cls oreo.Option :req-one-of [ "install" "all" ])
-        (.option click "-r" "--replace" :is-flag True)
-#+end_src
-
-This can't use a default value, as that would trigger a rebuild all the time.
-
-#+begin_src hy
-        (.option click "-R" "--rebuild")
-#+end_src
-
-#+begin_src hy
-        click.pass-context ]
-      main [ ctx all copy generate install program-arguments rebuild replace install-bootloader ]
-           (if ctx.obj.host
-               (do (.bake-all- getconf :m/sudo True :m/run True)
-                   (setv copy-partial (partial rsync :a True :v { "repeat" 2 } :c True :z { "repeat" 2 } f"{ctx.obj.resources}/"))
-                   (if rebuild
-                       (do (when copy (copy-partial "/etc/nixos/"))
-                           (nixos-rebuild rebuild #* ctx.args :show-trace True))
-                       (do (when (or copy all)
-                                 (update-datasets ctx)
-                                 (copy-partial "/mnt/etc/nixos/"))
-                           (when (or generate all) (nixos-generate-config :root "/mnt"))
-                           (when (or replace all)
-                                 (if ctx.obj.host
-                                     (do (sd "./hardware-configuration.nix"
-                                             (+ "(import ./.).nixosConfigurations.${pkgs.stdenv.targetPlatform.system}.mini-" ctx.obj.host)
-                                             "/mnt/etc/nixos/configuration.nix")
-                                         (sd "'device = \"\"'"
-                                             "'device = \"!\"'"
-                                             "/mnt/etc/nixos/hardware-configuration.nix"))
-                                     (raise (NameError no-host-error-message))))
-                           (when (or install all)
-                                 (let [ options [
-#+end_src
-
-From [[https://github.com/NixOS/nix/issues/2293#issuecomment-405339738][here]], and documented [[https://nixos.org/manual/nix/stable/expressions/builtins.html#:~:text=The%20fetched%20tarball%20is%20cached%20for%20a%20certain%20amount%20of%20time%20(1%20hour%20by%20default)%20in%20~/.cache/nix/tarballs/.%20You%20can%20change%20the%20cache%20timeout%20either%20on%20the%20command%20line%20with%20%2D%2Dtarball%2Dttl%20number%2Dof%2Dseconds%20or%20in%20the%20Nix%20configuration%20file%20by%20adding%20the%20line%20tarball%2Dttl%20%3D%20number%2Dof%2Dseconds.][here]]:
-
-#+begin_quote
-The fetched tarball is cached for a certain amount of time (1 hour by default) in ~/.cache/nix/tarballs/.
-You can change the cache timeout either on the command line with --tarball-ttl number-of-seconds
-or in the Nix configuration file by adding the line tarball-ttl = number-of-seconds.
-#+end_quote
-
-Because I'm using the ~flakes nixosConfigurations~ output, I don't need this any more:
-
-#+begin_src hy :noweb-ref no
-                                            "tarball-ttl 0"
-#+end_src
-
-Adapted from [[https://github.com/NixOS/nix/issues/807#issuecomment-209895935][here]]:
-
-#+begin_src hy
-                                            "build-fallback true"
-#+end_src
-
-#+begin_src hy
-                                      ] ]
-                                      (nixos-install #* ctx.args
-#+end_src
-
-Because I'm using the ~flakes nixosConfigurations~ output, I don't need this any more:
-
-#+begin_src hy :noweb-ref no
-                                                 ;; :I (with [f (open (+ ctx.obj.resources "/flake.lock"))]
-                                                 ;;          #[f[nixpkgs=https://github.com/nixos/nixpkgs/archive/{(. (.load json f) ["nodes"] ["<<channel()>>"] ["original"] ["ref"])}.tar.gz]f])
-                                                 :I #[f[nixpkgs={(.strip (.eval nix :impure True :expr "(import ./etc/nixos).inputs.nixpkgs.outPath" :m/run False) "\"")}]f]
-#+end_src
-
-#+begin_src hy
-                                                 :m/run True
-                                                 :show-trace True
-                                                 :install-bootloader install-bootloader
-                                                 :option { "repeat-with-values" options }))))))
-               (raise (NameError no-host-error-message))))
-#+end_src
-
-**** Create
-
-#+begin_src hy
-(defn [ (.command strapper :no-args-is-help True)
-        (.option click "-B" "--boot-device" :type #(str int))
-        (.option click "-c" "--copies" :type int :default 1)
-        (.option click "-d" "--deduplicated" :is-flag True)
-        (.option click "-e" "--encrypted" :is-flag True)
-        (.option click "-M" "--host-mountpoint" :help "Use the hostname as the mountpoint" :is-flag True :cls oreo.Option :xor [ "mountpoint" ])
-        (.option click "-m" "--mountpoint" :cls oreo.Option :xor [ "host-mountpoint" ])
-        (.option click "-o" "--pool-options" :multiple True)
-        (.option click "-O" "--dataset-options" :multiple True)
-        (.option click "-P"
-                       "--partition"
-                       :multiple True
-                       :cls oreo.Option
-                       :xor [ "raid" ]
-                       :help "Set up an entire disk; a single `-P' sets up the boot partition with the size as the value passed in (with the unit, such as `2G' for 2 gibibytes),
-a second `-P' sets up the swap space similarly, and subsequent invocations sets up further unformatted partitions.
-The final partition will be the ZFS partition, and does not need to be specified.")
-        (.option click "-p" "--pool-only" :is-flag True)
-        (.option click "-r" "--raid" :cls oreo.Option :xor [ "partition" ])
-        (.option click "-S" "--swap-device" :type #(str int))
-        (.option click "-s" "--swap" :type int :default 0)
-        (.option click "-z" "--zfs-devices" :required True :multiple True)
-        click.pass-context ]
-      create [ ctx boot-device copies deduplicated encrypted host-mountpoint mountpoint dataset-options pool-options partition pool-only raid swap-device swap zfs-devices ]
-             (if ctx.obj.host
-                 (try (if (= (input "THIS WILL DELETE ALL DATA ON THE SELECTED DEVICE / PARTITION! TO CONTINUE, TYPE IN 'ZFS CREATE'!\n\t") "ZFS CREATE")
-                          (let [ dataset-options-dict (D { "xattr"      "sa"
-                                                           "acltype"    "posixacl"
-                                                           "mountpoint"  (if host-mountpoint
-                                                                             (+ "/" ctx.obj.host)
-                                                                             (or mountpoint "none"))
-                                                           "compression" "zstd-19"
-                                                           "checksum"    "edonr"
-                                                           "atime"       "off"
-                                                           "relatime"    "off"
-                                                           "copies"      copies })
-                                 pool-options-dict (D { "autotrim" "on"
-                                                        "altroot" "/mnt"
-                                                        "autoexpand" "on" })
-                                 command (partial zpool.create :f True :m/run True)
-                                 no-raid-error-message "Sorry! For multiple zfs devices a raid configuration must be provided using `-r / --raid'!"
-                                 zfs-device (if (= (len zfs-devices) 1)
-                                                (if raid
-                                                    (raise (NameError no-raid-error-message))
-                                                    (get zfs-devices 0))
-                                                (if raid
-                                                    #[f[{raid} {(.join " " zfs-devices)}]f]
-                                                    (raise (NameError no-raid-error-message)))) ]
-                               (when (or partition boot-device) (.bake- parted :m/sudo True :s True :a "optimal" "--"))
-                               (when partition
-                                     (setv zfs-name ctx.obj.host)
-                                     (parted zfs-device "mklabel" "gpt")
-                                     (for [[i p] (enumerate partition)]
-                                          (parted zfs-device
-                                                  "mkpart"
-                                                  "primary"
-                                                  (if i (get partition (dec i)) "0%")
-                                                  p))
-                                     (parted zfs-device "mkpart" "primary" (get partition -1) "100%")
-                                     (parted zfs-device "name" (if (> (len partition) 1) 3 2) zfs-name))
-                               (when (or partition boot-device)
-                                     (if boot-device
-                                         (let [ device (get boot-device 0)
-                                                index  (get boot-device 1) ]
-                                              (parted device "mkfs" index "fat32")
-                                              (parted device "set" index "boot" "on")
-                                              (parted device "set" index "esp" "on"))
-                                         (do (parted zfs-device "name" 1 (+ ctx.obj.host "-boot"))
-                                             (parted zfs-device "mkfs" 1 "fat32")
-                                             (parted zfs-device "set" 1 "boot" "on")
-                                             (parted zfs-device "set" 1 "esp" "on"))))
-                               (when (or (> (len partition) 1) swap-device)
-                                     (if swap-device
-                                         (parted (get swap-device 0) "mkfs" (get swap-device 1) "linux-swap")
-                                         (do (parted zfs-device "name" 2 (+ ctx.obj.host "-swap"))
-                                             (parted zfs-device "mkfs" 2 "linux-swap"))))
-                               (for [dataset (.list zfs :r True :H True :m/list True :m/split True)]
-                                    (when (in ctx.obj.host dataset) (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
-                               (when encrypted (setv dataset-options-dict.encryption "aes-256-gcm"
-                                                     dataset-options-dict.keyformat  "passphrase"))
-                               (when deduplicated (setv dataset-options-dict.dedup "edonr,verify"))
-                               (when (.ismount os.path "/mnt") (umount :R True "/mnt"))
-                               (.export zpool :f True ctx.obj.host :m/ignore-stderr True)
-                               (.update dataset-options-dict (dfor item pool-options :setv kv (.split item "=") [(get kv 0) (get kv 1)]))
-                               (.update pool-options-dict (dfor item dataset-options :setv kv (.split item "=") [(get kv 0) (get kv 1)]))
-                               (command :O { "repeat-with-values" (gfor [k v] (.items dataset-options-dict) f"{k}={v}") }
-                                        :o { "repeat-with-values" (gfor [k v] (.items pool-options-dict) f"{k}={v}") }
-                                        ctx.obj.host
-                                        (if partition (+ "/dev/disk/by-label/" zfs-name) zfs-device))
-                               (update-datasets ctx :swap swap :encrypted encrypted :deduplicated deduplicated :pool True :reserved-only pool-only))
-                          (print "Sorry; not continuing!\n\n"))
-                      (finally (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
-                 (raise (NameError no-host-error-message))))
-#+end_src
-
-**** Mount
-
-#+begin_src hy
-(defn [ (.command strapper :no-args-is-help True)
-        (.option click "-b" "--boot-device")
-        (.option click "-d" "--deduplicated" :is-flag True)
-        (.option click "-e" "--encrypted" :is-flag True)
-        (.option click "-r" "--root-device")
-        (.option click "-s" "--swap" :cls oreo.Option :xor [ "swap-device" ] :is-flag True)
-        (.option click "-S" "--swap-device" :cls oreo.Option :xor [ "swap" ])
-        (.option click "-i" "--install" :is-flag True)
-        (.option click "-I" "--install-bootloader" :is-flag True)
-        click.pass-context ]
-      mount [ ctx boot-device deduplicated encrypted root-device swap swap-device install install-bootloader ]
-            (if ctx.obj.host
-                (do (update-datasets ctx :root-device root-device :encrypted encrypted :deduplicated deduplicated :swap swap)
-                    (for [dataset (.list zfs :r True :H True :m/list True :m/split True)]
-                         (when (in ctx.obj.host dataset) (break))
-                         (else (.import zpool :f True ctx.obj.host)))
-                    (when encrypted (.load-key zfs ctx.obj.host))
-                    (try (.mkdir (Path "/mnt"))
-                         (except [FileExistsError]
-                                 (when (.ismount os.path "/mnt") (umount :R True "/mnt"))))
-                    (if root-device
-                        (Mount root-device "/mnt")
-                        (Mount :t "zfs" (+ ctx.obj.host "/system/root") "/mnt"))
-#+end_src
-
-Taken from [[https://github.com/NixOS/nixpkgs/issues/73404#issuecomment-1011485428][here]]:
-
-#+begin_src hy
-                    (try (.mkdir (Path "/mnt/mnt"))
-                         (except [FileExistsError]
-                                 (when (.ismount os.path "/mnt/mnt") (umount :R True "/mnt/mnt"))))
-                    (Mount :bind True "/mnt" "/mnt/mnt")
-#+end_src
-
-#+begin_src hy
-                    (.mkdir (Path "/mnt/etc/nixos") :parents True :exist-ok True)
-
-                    (.mkdir (Path "/mnt/nix") :parents True :exist-ok True)
-                    (Mount :t "zfs" (+ ctx.obj.host "/system/nix") "/mnt/nix")
-
-                    (.mkdir (Path "/mnt/persist") :parents True :exist-ok True)
-                    (Mount :t "zfs" (+ ctx.obj.host "/system/persist") "/mnt/persist")
-
-                    (when boot-device
-                          (let [boot "/mnt/boot/efi"]
-                               (.mkdir (Path boot) :parents True :exist-ok True)
-                               (Mount boot-device boot)))
-                    (when swap (swapon (+ "/dev/zvol/" ctx.obj.host "/swap" :m/run True)))
-                    (when swap-device (swapon swap-device :m/run True))
-
-                    (.mkdir (Path "/tmp") :parents True :exist-ok True)
-                    (Mount :t "zfs" (+ ctx.obj.host "/system/tmp") "/tmp" :m/run True)
-
-                    (.mkdir (Path "/tmp/nix") :parents True :exist-ok True)
-                    (Mount :t "zfs" (+ ctx.obj.host "/system/tmp/nix") "/tmp/nix" :m/run True)
-
-                    ;; (rsync :a True :v { "repeat" 2 } :c True :z { "repeat" 2 } :delete True "/nix/" "/tmp/nix/")
-                    ;; (Mount :t "zfs" (+ ctx.obj.host "/system/tmp/nix") "/nix" :m/run True)
-
-                    (when (or install install-bootloader) (.invoke ctx main :all True :install-bootloader install-bootloader)))
-                (raise (NameError no-host-error-message))))
-#+end_src
-
-**** Update
-
-#+begin_src hy
-(defn [ (.command strapper)
-        (.option click "-d" "--deduplicated" :is-flag True)
-        (.option click "-e" "--encrypted" :is-flag True)
-        (.option click "-f" "--files" :is-flag True :help "Update datasets.nix with any new datasets; the default")
-        (.option click "-p" "--pool" :is-flag True :help "Update the pool and datasets.nix with any new datasets")
-        (.option click "-r" "--root-device")
-        (.option click "-s" "--swap" :type int :default 0)
-        click.pass-context ]
-      update [ ctx deduplicated encrypted files pool root-device swap ]
-             (if ctx.obj.host
-                 (try (setv ud (partial update-datasets ctx :swap swap :encrypted encrypted :deduplicated deduplicated :root-device root-device))
-                      (cond files (ud)
-                            pool (ud :pool True)
-                            True (ud))
-                      (finally (.export zpool :f True ctx.obj.host :m/ignore-stderr True)))
-                 (raise (NameError no-host-error-message))))
-#+end_src
-
-*** End of strapper
-
-#+begin_src hy :noweb-ref no
-(when (= __name__ "__main__") (strapper :obj (D {})))
 #+end_src
 
 * bin
@@ -8439,6 +7758,8 @@ Must be last; [[https://github.com/rejeep/f.el][f.el]] requires [[https://github
 #+end_src
 
 Note: the source code for several dependent functions are linked below:
+- ~org-babel-noweb-p:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L2775
+- ~org-babel-expand-noweb-references:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L2785
 - ~org-babel-get-src-block-info:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L623
 - ~org-babel-params-from-properties:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L1476
 - ~org-babel-parse-header-arguments:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L1584
@@ -8446,7 +7767,7 @@ Note: the source code for several dependent functions are linked below:
 
 And just in case, [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-tangle.el#L198][org-babel-tangle]].
 
-Adapted from [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L823][here]] and
+Adapted from [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L823][org-babel-expand-src-block]] and
 [[https://lists.gnu.org/archive/html/emacs-orgmode/2018-12/msg00048.html#:~:text=You%20can%20avoid%20the%20error%20if%20you%20additionally%20let%2Dbind%20%0Aorg%2Dbabel%2Dcurrent%2Dsrc%2Dblock%2Dlocation%20to%20the%20location%20of%20datum%3A][here]];
 [[https://emacs.stackexchange.com/users/468/david-ongaro][David Ongaro's]] answer [[https://emacs.stackexchange.com/a/29132/31428][here]] is also useful, but doesn't expand ~noweb~ coderefs:
 
@@ -8457,8 +7778,9 @@ Adapted from [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-cor
          (lang (nth 0 info))
          (params (setf (nth 2 info)
                     (sort (org-babel-merge-params (nth 2 info) params) (lambda (el1 el2) (string< (symbol-name (car el1)) (symbol-name (car el2)))))))
-         (params (if light params (mapcar (lambda (param) (cons (car param) (org-babel-read (cdr param))))
-                                    (-remove (lambda (param) (member (car param) '(:tangle))) params))))
+         (params (setf (nth 2 info)
+                    (if light params (mapcar (lambda (param) (cons (car param) (org-babel-read (cdr param))))
+                                        (-remove (lambda (param) (member (car param) '(:tangle))) params)))))
          (body (setf (nth 1 info) (if (org-babel-noweb-p params :eval) (org-babel-expand-noweb-references info) (nth 1 info))))
          (expand-cmd (intern (concat "org-babel-expand-body:" lang)))
          (assignments-cmd (intern (concat "org-babel-variable-assignments:" lang)))
@@ -8521,35 +7843,39 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
 #+end_src
 
 #+begin_src emacs-lisp
-(defun get-README (&optional return-link) (interactive)
+(defun get-README (&optional return-link setupfile lobfile) (interactive)
     (let* ((README (f-join "settings" "README.org"))
+        (settings-README (f-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) "README.org"))))
         (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
         (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
         (repo-README (f-expand README))
         (home-README (f-expand (f-join "~" README)))
-        (user-README (f-expand (f-join "<<userrepo>>" README)))
+        (user-README (f-expand (f-join "/home/shadowrylander/aiern" README)))
         (root-README (f-expand (f-join "/" README)))
         (env (getenv "SETTINGS_README"))
         (env-README (unless (s-blank? env) (f-expand (substitute-in-file-name env))))
-        (file (cond
-                ((f-exists? README) (concat "./" README))
-                ((f-exists? flake-README) flake-README)
-                ((f-exists? repo-README) repo-README)
-                ((f-exists? home-README) home-README)
-                ((f-exists? user-README) user-README)
-                ((f-exists? root-README) root-README)
-                ((unless (s-blank? env) (f-exists? env-README)) env-README)
-                (t (if return-link
-                    "https://raw.githubusercontent.com/sylvorg/settings/main/README.org"
-                    (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
-                        (unless (s-blank? curl-README)
-                            (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
-                                (f-write curl-README 'utf-8 temp)
-                                temp))))))))
+        (file (or (when setupfile (f-expand setupfile))
+                  (when lobfile (f-expand lobfile))
+                  (cond
+                    ((f-exists? README) (concat "./" README))
+                    ((f-exists? settings-README) settings-README)
+                    ((f-exists? flake-README) flake-README)
+                    ((f-exists? repo-README) repo-README)
+                    ((f-exists? home-README) home-README)
+                    ((f-exists? user-README) user-README)
+                    ((f-exists? root-README) root-README)
+                    ((unless (s-blank? env) (f-exists? env-README)) env-README)
+                    (t (if return-link
+                        "https://raw.githubusercontent.com/sylvorg/settings/main/README.org"
+                        (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
+                            (unless (s-blank? curl-README)
+                                (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
+                                    (f-write curl-README 'utf-8 temp)
+                                    temp)))))))))
     file))
 
 (defun org-babel-pre-tangle-hooks nil (interactive)
-    (let* (
+    (setq org-elements (let* (
 #+end_src
 
 Adapted from [[https://stackoverflow.com/users/109169/netawater][netawater's]] answer [[https://stackoverflow.com/a/17310307/10827766][here]]:
@@ -8571,11 +7897,12 @@ Adapted from [[https://kitchingroup.cheme.cmu.edu/blog/2013/05/05/Getting-keywor
 #+end_src
 
 #+begin_src emacs-lisp
-        (unless (or (member "nosetupfile" (a-keys keywords)) (member "no setupfile" headlines))
+        (unless (or (a-has-key? keywords "nosetupfile") (a-has-key? keywords "nosetuplobfile") (member "no setupfile" headlines))
             (goto-char 0)
-            (insert (format "#+setupfile: %s\n\n" (get-README t)))
+            (insert (format "#+setupfile: %s\n\n" (get-README 'return-link (when (a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile")))))
             (goto-char 0)
-            (org-ctrl-c-ctrl-c)))
+            (org-ctrl-c-ctrl-c))
+        (a-list :keywords keywords :headlines headlines)))
 #+end_src
 
 Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]] (no longer used):
@@ -8583,19 +7910,45 @@ Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[htt
 #+begin_src emacs-lisp :noweb-ref no
     (require 'org-id)
     (setq org-id-locations-file (meq/oefd ".org-id-locations")
-            org-id-files (list load-file-name
-                                buffer-file-name
-                                (meq/oefd "README.org"))
-            org-id-link-to-org-use-id t)
+          org-id-files (list load-file-name
+                             buffer-file-name
+                             (meq/oefd "README.org"))
+          org-id-link-to-org-use-id t)
     (org-id-update-id-locations)
 #+end_src
 
 #+begin_src emacs-lisp
     (setq org-src-preserve-indentation t)
-    (let* ((file (get-README))) (when file (org-babel-lob-ingest file)))
+    (let* ((headlines (a-get org-elements :headlines))
+            (keywords (a-get org-elements :keywords)))
+        (unless (or (a-has-key? keywords "nolobfile") (a-has-key? keywords "nosetuplobfile") (member "no lobfile" headlines))
+          (let* ((file (get-README nil nil (cond ((a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))
+                                            ((a-has-key? keywords "lobfile") (a-get keywords "lobfile"))))))
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+            (when file (global-auto-revert-mode 1) (org-babel-lob-ingest file)))))
+#+end_src
+
+#+begin_src emacs-lisp
     (org-export-expand-include-keyword))
 
+(defun org-babel-post-tangle-hooks nil (interactive)
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+  (global-auto-revert-mode -1)
+#+end_src
+
+#+begin_src emacs-lisp
+)
+
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-pre-tangle-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
+(mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-post-tangle-hooks)) '(org-babel-post-tangle-hook org-export-after-processing-hook))
 #+end_src
 
 ** org-interpreter
