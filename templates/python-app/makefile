@@ -8,24 +8,17 @@ endef
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
+tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
 
 preFiles := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org $(mkfileDir)/README.org
-
 pnCommand := nix eval --show-trace --impure --expr '(import $(realfileDir)).pname'
 projectName := $(subst ",,$(shell $(pnCommand) || (org-tangle -f $(preFiles) && $(pnCommand))))
 ifndef projectName
 $(error Sorry; unable to get the name of the project)
 endif
 
-typeCommand := nix eval --show-trace --impure --expr '(import $(realfileDir)).type'
-type := $(subst ",,$(shell $(typeCommand) || (org-tangle -f $(preFiles) && $(typeCommand))))
-ifndef type
-$(error Sorry; unable to get the type of project)
-endif
-
+type := $(subst ",,$(shell nix eval --show-trace --impure --expr '(import $(realfileDir)).type'))
 files := $(preFiles) $(mkfileDir)/$(projectName)
-tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
-tangleCommand := ($(call nixShell,general) "org-tangle -f $(files)") || org-tangle -f $(files)
 
 add:
 |git -C $(mkfileDir) add .
@@ -47,18 +40,19 @@ update-%: updateInput := nix flake lock $(realfileDir) --update-input
 update-%:
 |$(eval input := $(shell echo $@ | cut -d "-" -f2-))
 ifeq ($(input), settings)
-|-[ $(projectName) != "settings" ] && $(updateInput) $(input)
+|-$(updateInput) $(input)
 else ifeq ($(input), all)
 |nix flake update $(realfileDir)
 else
 |$(updateInput) $(input)
 endif
 
-tangle: update-settings ; $(tangleCommand)
+tangle: update-settings
+|$(call nixShell,general) "org-tangle -f $(files)"
 
 tangle-%: update-settings
 |$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)
-|$(tangleCommand)
+|$(call nixShell,general) "org-tangle -f $(files)"
 
 quick: tangle push
 

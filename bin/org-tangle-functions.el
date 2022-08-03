@@ -107,11 +107,14 @@
         (unless (or (a-has-key? keywords "nolobfile") (a-has-key? keywords "nosetuplobfile") (member "no lobfile" headlines))
           (let* ((file (get-README nil nil (cond ((a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))
                                             ((a-has-key? keywords "lobfile") (a-get keywords "lobfile"))))))
-            (when file (global-auto-revert-mode 1) (org-babel-lob-ingest file)))))
+            (when file
+              (setq current-lob-file file)
+              (when (f-equal? current-lob-file buffer-file-name) (global-auto-revert-mode 1))
+              (org-babel-lob-ingest current-lob-file)))))
     (org-export-expand-include-keyword))
 
 (defun org-babel-post-tangle-hooks nil (interactive)
-  (global-auto-revert-mode -1)
+  (when (f-equal? current-lob-file buffer-file-name) (global-auto-revert-mode 1))
 )
 
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-pre-tangle-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))

@@ -7924,15 +7924,18 @@ Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[htt
         (unless (or (a-has-key? keywords "nolobfile") (a-has-key? keywords "nosetuplobfile") (member "no lobfile" headlines))
           (let* ((file (get-README nil nil (cond ((a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))
                                             ((a-has-key? keywords "lobfile") (a-get keywords "lobfile"))))))
+            (when file
+              (setq current-lob-file file)
 #+end_src
 
 Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
 
 #+begin_src emacs-lisp
-            (when file (global-auto-revert-mode 1) (org-babel-lob-ingest file)))))
+              (when (f-equal? current-lob-file buffer-file-name) (global-auto-revert-mode 1))
 #+end_src
 
 #+begin_src emacs-lisp
+              (org-babel-lob-ingest current-lob-file)))))
     (org-export-expand-include-keyword))
 
 (defun org-babel-post-tangle-hooks nil (interactive)
@@ -7941,7 +7944,7 @@ Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's
 Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
 
 #+begin_src emacs-lisp
-  (global-auto-revert-mode -1)
+  (when (f-equal? current-lob-file buffer-file-name) (global-auto-revert-mode 1))
 #+end_src
 
 #+begin_src emacs-lisp
