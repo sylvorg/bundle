@@ -1086,10 +1086,11 @@ endif
 
 files := $(preFiles) $(mkfileDir)/$(projectName)
 tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
-tangleCommand := ($(call nixShell,general) "org-tangle -f $(files)") || org-tangle -f $(files)
+addCommand := git -C $(mkfileDir) add .
+tangleCommand := (($(call nixShell,general) "org-tangle -f $(files)") || org-tangle -f $(files)) && $(addCommand)
 
 add:
-|git -C $(mkfileDir) add .
+|$(addCommand)
 
 commit: add
 |git -C $(mkfileDir) commit --allow-empty-message -am ""
@@ -1115,7 +1116,8 @@ else
 |$(updateInput) $(input)
 endif
 
-tangle: update-settings ; $(tangleCommand)
+tangle: update-settings
+|$(tangleCommand)
 
 tangle-%: update-settings
 |$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)
@@ -7675,7 +7677,8 @@ trees with the :notangle: tag."
 (defvar all-blocks nil)
 (defvar and-tags nil)
 (defvar or-tags nil)
-(defvar force (or (member "-f" argv) (member "--force" argv)))
+(defvar initial-args argv)
+(defvar expanded-args (mapcar #'f-expand argv))
 (let (lang srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -7704,7 +7707,7 @@ trees with the :notangle: tag."
                        srcs)))
         ((guard (file-exists-p arg))
          (push arg srcs))
-        (_ (if force
+        (_ (if (or (member "-f" initial-args) (member "--force" initial-args))
               (message "Skipping unknown option or file: %s" arg)
               (error "Unknown option or file: %s" arg))))))
 
@@ -7874,6 +7877,8 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
                                     temp)))))))))
     file))
 
+(defvar current-lob-file nil)
+
 (defun org-babel-pre-tangle-hooks nil (interactive)
     (setq org-elements (let* (
 #+end_src
@@ -7931,7 +7936,7 @@ Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[htt
 Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
 
 #+begin_src emacs-lisp
-              (when (f-equal? current-lob-file buffer-file-name) (global-auto-revert-mode 1))
+              (when (member current-lob-file expanded-args) (global-auto-revert-mode 1))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -7944,7 +7949,7 @@ Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's
 Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
 
 #+begin_src emacs-lisp
-  (when (f-equal? current-lob-file buffer-file-name) (global-auto-revert-mode 1))
+  (when (member current-lob-file expanded-args) (global-auto-revert-mode -1))
 #+end_src
 
 #+begin_src emacs-lisp

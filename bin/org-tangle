@@ -113,7 +113,8 @@ trees with the :notangle: tag."
 (defvar all-blocks nil)
 (defvar and-tags nil)
 (defvar or-tags nil)
-(defvar force (or (member "-f" argv) (member "--force" argv)))
+(defvar initial-args argv)
+(defvar expanded-args (mapcar #'f-expand argv))
 (let (lang srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -142,7 +143,7 @@ trees with the :notangle: tag."
                        srcs)))
         ((guard (file-exists-p arg))
          (push arg srcs))
-        (_ (if force
+        (_ (if (or (member "-f" initial-args) (member "--force" initial-args))
               (message "Skipping unknown option or file: %s" arg)
               (error "Unknown option or file: %s" arg))))))
 

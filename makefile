@@ -25,10 +25,11 @@ endif
 
 files := $(preFiles) $(mkfileDir)/$(projectName)
 tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
-tangleCommand := ($(call nixShell,general) "org-tangle -f $(files)") || org-tangle -f $(files)
+addCommand := git -C $(mkfileDir) add .
+tangleCommand := (($(call nixShell,general) "org-tangle -f $(files)") || org-tangle -f $(files)) && $(addCommand)
 
 add:
-|git -C $(mkfileDir) add .
+|$(addCommand)
 
 commit: add
 |git -C $(mkfileDir) commit --allow-empty-message -am ""
@@ -54,7 +55,8 @@ else
 |$(updateInput) $(input)
 endif
 
-tangle: update-settings ; $(tangleCommand)
+tangle: update-settings
+|$(tangleCommand)
 
 tangle-%: update-settings
 |$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)

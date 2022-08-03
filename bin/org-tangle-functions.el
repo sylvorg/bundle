@@ -85,6 +85,8 @@
                                     temp)))))))))
     file))
 
+(defvar current-lob-file nil)
+
 (defun org-babel-pre-tangle-hooks nil (interactive)
     (setq org-elements (let* (
             (headlines (org-element-map
@@ -109,12 +111,12 @@
                                             ((a-has-key? keywords "lobfile") (a-get keywords "lobfile"))))))
             (when file
               (setq current-lob-file file)
-              (when (f-equal? current-lob-file buffer-file-name) (global-auto-revert-mode 1))
+              (when (member current-lob-file expanded-args) (global-auto-revert-mode 1))
               (org-babel-lob-ingest current-lob-file)))))
     (org-export-expand-include-keyword))
 
 (defun org-babel-post-tangle-hooks nil (interactive)
-  (when (f-equal? current-lob-file buffer-file-name) (global-auto-revert-mode 1))
+  (when (member current-lob-file expanded-args) (global-auto-revert-mode -1))
 )
 
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-pre-tangle-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
