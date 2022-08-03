@@ -37,7 +37,7 @@ commit: add
 push: commit
 |git -C $(mkfileDir) push
 
-update:
+update: add
 ifeq ($(projectName), settings)
 |$(shell nix eval --impure --expr 'with (import $(realfileDir)); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock $(realfileDir) --update-input $${concatStringsSep " --update-input " (filter (input: ! ((elem input [ "nixos-master" "nixos-unstable" ]) || (hasSuffix "-small" input))) (attrNames inputs))}"' | tr -d '"')
 else
@@ -45,7 +45,7 @@ else
 endif
 
 update-%: updateInput := nix flake lock $(realfileDir) --update-input
-update-%:
+update-%: add
 |$(eval input := $(shell echo $@ | cut -d "-" -f2-))
 ifeq ($(input), settings)
 |-[ $(projectName) != "settings" ] && $(updateInput) $(input)
