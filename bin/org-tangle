@@ -115,6 +115,7 @@ trees with the :notangle: tag."
 (defvar or-tags nil)
 (defvar initial-args argv)
 (defvar expanded-args (mapcar #'f-expand argv))
+(defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
 (let (lang srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -124,6 +125,8 @@ trees with the :notangle: tag."
          (usage)
          (error ""))
         ((or "-f" "--force")
+         nil)
+        ((or "-d" "--debug")
          nil)
         ((or "-a" "--all")
          (setq all-blocks t))

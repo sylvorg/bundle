@@ -1087,7 +1087,7 @@ endif
 files := $(preFiles) $(mkfileDir)/$(projectName)
 tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
 addCommand := git -C $(mkfileDir) add .
-tangleCommand := ((yes yes | ($(call nixShell,general) "org-tangle -f $(files)")) || (yes yes | org-tangle -f $(files))) && $(addCommand)
+tangleCommand := (($(call nixShell,general) "org-tangle -f $(files)") || org-tangle -f $(files)) && $(addCommand)
 
 add:
 |$(addCommand)
@@ -7679,6 +7679,7 @@ trees with the :notangle: tag."
 (defvar or-tags nil)
 (defvar initial-args argv)
 (defvar expanded-args (mapcar #'f-expand argv))
+(defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
 (let (lang srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -7688,6 +7689,8 @@ trees with the :notangle: tag."
          (usage)
          (error ""))
         ((or "-f" "--force")
+         nil)
+        ((or "-d" "--debug")
          nil)
         ((or "-a" "--all")
          (setq all-blocks t))
@@ -7861,7 +7864,7 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
                   (when lobfile (f-expand lobfile))
                   (cond
                     ((f-exists? README) (concat "./" README))
-                    ((f-exists? settings-README) settings-README)
+                    ((and (f-exists? settings-README) (equal (last (f-split settings-README) 2) '("settings" "README.org"))) settings-README)
                     ((f-exists? flake-README) flake-README)
                     ((f-exists? repo-README) repo-README)
                     ((f-exists? home-README) home-README)
@@ -7905,6 +7908,19 @@ Adapted from [[https://kitchingroup.cheme.cmu.edu/blog/2013/05/05/Getting-keywor
 #+begin_src emacs-lisp
         (unless (or (a-has-key? keywords "nosetupfile") (a-has-key? keywords "nosetuplobfile") (member "no setupfile" headlines))
               (setq current-setup-file (get-README 'return-link (when (a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))))
+              (when debug (let* ((m (format "Current Setup File: %s" current-setup-file))
+                                  (l (length m))
+                                  (b (make-string l ?=)))
+                            (message "\n\n%s\n%s\n%s\n\n" b m b)))
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+              (when (member current-setup-file expanded-args) (global-auto-revert-mode 1))
+#+end_src
+
+#+begin_src emacs-lisp
               (goto-char 0)
               (insert (format "#+setupfile: %s\n\n" current-setup-file))
               (goto-char 0)
@@ -7933,10 +7949,33 @@ Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[htt
                                             ((a-has-key? keywords "lobfile") (a-get keywords "lobfile"))))))
             (when file
               (setq current-lob-file file)
+              (when debug (let* ((m (format "Current LOB File: %s" current-lob-file))
+                                  (l (length m))
+                                  (b (make-string l ?=)))
+                            (message "\n\n%s\n%s\n%s\n\n" b m b)))
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+              (when (member current-lob-file expanded-args) (global-auto-revert-mode 1))
+#+end_src
+
+#+begin_src emacs-lisp
               (org-babel-lob-ingest current-lob-file)))))
     (org-export-expand-include-keyword))
 
-(defun org-babel-post-tangle-hooks nil (interactive))
+(defun org-babel-post-tangle-hooks nil (interactive)
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+  (when (or (member current-setup-file expanded-args) (member current-lob-file expanded-args)) (global-auto-revert-mode -1))
+#+end_src
+
+#+begin_src emacs-lisp
+)
 
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-pre-tangle-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-post-tangle-hooks)) '(org-babel-post-tangle-hook org-export-after-processing-hook))
