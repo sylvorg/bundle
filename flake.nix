@@ -1482,7 +1482,7 @@
                         ]).${type'};
             in {
                 overlays = j.foldToSet [
-                    (map (n: (map (v: n.${v} inputs) n)) (attrValues j.attrs.versionNames))
+                    (mapAttrsToList (n: map (version: j.inputsToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
                     # (map (python: j.inputsToOverlays.python.${python} inputs) j.attrs.versionNames.python)
                     self.overlays
                     { inherit default; "${pname}" = default; }
