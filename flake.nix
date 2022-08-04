@@ -528,7 +528,12 @@
 
             inputsToOverlays = {
                 python = rec {
-                    default = prefix: inputs': mapAttrs' (n: v: nameValuePair (removePrefix prefix n) v.overlay) (filterAttrs (n: v: hasPrefix prefix n) inputs');
+                    default = prefix: inputs': let
+                        inputs'' = filterAttrs (n: v: hasPrefix prefix n) inputs';
+                    in self.foldToSet [
+                        (mapAttrs' (n: v: nameValuePair (removePrefix prefix n) v.overlay) inputs'')
+                        (map (v: v.overlays or {}) (attrValues inputs''))
+                    ];
                     python2 = default "py2pkg-";
                     python3 = default "py3pkg-";
                     python = python3;
@@ -1477,10 +1482,11 @@
                         ]).${type'};
             in {
                 overlays = j.foldToSet [
+                    (map (n: map (v: v inputs) (attrValues n)) (attrValues j.attrs.versionNames))
+                    # (map (python: j.inputsToOverlays.python.${python} inputs) j.attrs.versionNames.python)
                     self.overlays
                     { inherit default; "${pname}" = default; }
                     overlays
-                    (j.foldToSet (map (python: (j.inputsToOverlays.python.${python} inputs)) j.attrs.versionNames.python))
                 ];
                 overlay = default;
                 defaultOverlay = default;

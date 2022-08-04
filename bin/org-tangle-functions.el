@@ -85,8 +85,8 @@
                                     temp)))))))))
     file))
 
-(defvar current-lob-file)
-(defvar current-setup-file)
+(defvar current-lob-file nil)
+(defvar current-setup-file nil)
 
 (defun org-babel-pre-tangle-hooks nil (interactive)
     (setq org-elements (let* (
