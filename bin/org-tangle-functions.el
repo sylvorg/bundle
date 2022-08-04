@@ -100,7 +100,6 @@
                         (lambda (keyword) (cons (downcase (org-element-property :key keyword)) (org-element-property :value keyword))))))
         (unless (or (a-has-key? keywords "nosetupfile") (a-has-key? keywords "nosetuplobfile") (member "no setupfile" headlines))
               (setq current-setup-file (get-README 'return-link (when (a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))))
-              (when (member current-setup-file expanded-args) (global-auto-revert-mode 1))
               (goto-char 0)
               (insert (format "#+setupfile: %s\n\n" current-setup-file))
               (goto-char 0)
@@ -114,13 +113,10 @@
                                             ((a-has-key? keywords "lobfile") (a-get keywords "lobfile"))))))
             (when file
               (setq current-lob-file file)
-              (when (member current-lob-file expanded-args) (global-auto-revert-mode 1))
               (org-babel-lob-ingest current-lob-file)))))
     (org-export-expand-include-keyword))
 
-(defun org-babel-post-tangle-hooks nil (interactive)
-  (when (or (member current-setup-file expanded-args) (member current-lob-file expanded-args)) (global-auto-revert-mode -1))
-)
+(defun org-babel-post-tangle-hooks nil (interactive))
 
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-pre-tangle-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
 (mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-post-tangle-hooks)) '(org-babel-post-tangle-hook org-export-after-processing-hook))
