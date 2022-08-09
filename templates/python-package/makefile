@@ -62,6 +62,12 @@ tangle-%: update-settings
 |$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)
 |$(tangleCommand)
 
+develop: tangle
+|nix develop "$(realfileDir)#makeshell-$(type)"
+
+repl: tangle
+|$(call nixShell,$(type)) "$(type)"
+
 quick: tangle push
 
 super: $(tangleTask) update push
@@ -71,6 +77,15 @@ super-%: $(tangleTask) update-% push ;
 poetry2setup: tangle update
 |$(call nixShell,$(type)) "cd $(mkfileDir) && poetry2setup > $(mkfileDir)/setup.py && cd -"
 
-test: tangle update
+touch-tests:
 |find $(mkfileDir)/tests -print | grep -v __pycache__ | xargs touch
-|$(call nixShell,$(type)) "pytest --tb=native"
+
+define pytest
+$(call nixShell,$(type)) "pytest $1"
+endef
+
+test: tangle update touch-tests
+|$(call pytest)
+
+test-native: tangle update touch-tests
+|$(call pytest,--tb=native)

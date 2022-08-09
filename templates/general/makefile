@@ -62,6 +62,12 @@ tangle-%: update-settings
 |$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)
 |$(tangleCommand)
 
+develop: tangle
+|nix develop "$(realfileDir)#makeshell-$(type)"
+
+repl: tangle
+|$(call nixShell,$(type)) "$(type)"
+
 quick: tangle push
 
 super: $(tangleTask) update push
