@@ -82,6 +82,10 @@
             url = github:abersheeran/poetry2setup;
             flake = false;
         };
+        pytest-reverse = {
+            url = github:adamchainz/pytest-reverse/1.5.0;
+            flake = false;
+        };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
@@ -838,6 +842,51 @@
                             license = lib.licenses.asl20;
                         };
                     };
+                    pytest-reverse = { lib
+                        , buildPythonPackage
+                        , factory_boy
+                        , faker
+                        , fetchFromGitHub
+                        , importlib-metadata
+                        , numpy
+                        , pytest-xdist
+                        , pytestCheckHook
+                        , pythonOlder
+                        , pname
+                    }: buildPythonPackage rec {
+                        inherit pname;
+                        version = "1.5.0";
+                        disabled = pythonOlder "3.7";
+                        src = inputs.${pname};
+
+                        # propagatedBuildInputs = lib.optionals (pythonOlder "3.10") [
+                        #     importlib-metadata
+                        # ];
+
+                        checkInputs = [
+                            # factory_boy
+                            # faker
+                            # numpy
+                            # pytest-xdist
+                            pytestCheckHook
+                        ];
+
+                        # needs special invocation, copied from tox.ini
+                        pytestFlagsArray = [
+                            "-p"
+                            "no:reverse"
+                        ];
+
+                        pythonImportsCheck = [
+                            "pytest_reverse"
+                        ];
+
+                        meta = {
+                            description = "Pytest plugin to reverse test order.";
+                            homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
+                            license = licenses.mit;
+                        };
+                    };
                 };
                 python = python3;
                 hy = python3;
@@ -946,9 +995,13 @@
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
                             disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
                             disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
-                            checkPhase = ''
-                                pytest -p no:randomly -k 'not (${concatStringsSep " or " disabledTests})' --ignore=${concatStringsSep " --ignore=" disabledTestPaths}
-                            '';
+                            # checkPhase = ''
+                            #     pytest -p no:randomly -k 'not (${concatStringsSep " or " disabledTests})' --ignore=${concatStringsSep " --ignore=" disabledTestPaths}
+                            # '';
+                            pytestFlagsArray = [
+                                "-p"
+                                "no:randomly"
+                            ];
                             passthru = {
                                 tests.version = testers.testVersion {
                                     package = python3Packages.${pname};
