@@ -26,7 +26,14 @@ endif
 files := $(preFiles) $(mkfileDir)/$(projectName)
 tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
 addCommand := git -C $(mkfileDir) add .
-tangleCommand := (($(call nixShell,general) "org-tangle -f $(files)") || org-tangle -f $(files)) && $(addCommand)
+
+define tangleCommand
+(($(call nixShell,general) "org-tangle -f $1") || org-tangle -f $1) && $(addCommand)
+endef
+
+define wildcardValue
+$(shell echo $1 | cut -d "-" -f2-)
+endef
 
 add:
 |$(addCommand)
@@ -46,7 +53,7 @@ endif
 
 update-%: updateInput := nix flake lock $(realfileDir) --update-input
 update-%: add
-|$(eval input := $(shell echo $@ | cut -d "-" -f2-))
+|$(eval input := $(call wildcardValue,$@))
 ifeq ($(input), settings)
 |-[ $(projectName) != "settings" ] && $(updateInput) $(input)
 else ifeq ($(input), all)
@@ -56,20 +63,37 @@ else
 endif
 
 tangle: update-settings
-|$(tangleCommand)
+|$(call tangleCommand,$(files))
 
 tangle-%: update-settings
-|$(eval file := $(mkfileDir)/$(shell echo $@ | cut -d "-" -f2-).org)
-|$(tangleCommand)
+|$(eval file := $(mkfileDir)/$(call wildcardValue,$@).org)
+|$(call tangleCommand,$(file))
 
-develop: tangle
+tu: tangle update
+
+tu-%: tangle update-%
+
+ttu: $(tangleTask) update
+
+ttu-%: $(tangleTask) update-%
+
+develop: tu
 |nix develop "$(realfileDir)#makeshell-$(type)"
 
-repl: tangle
+develop-%: tu
+|nix develop "$(realfileDir)#$(call wildcardValue,$@)"
+
+repl: tu
 |$(call nixShell,$(type)) "$(type)"
+
+build-%: tu
+|nix build "$(realfileDir)#$(call wildcardValue,$@)"
+
+run-%: tu
+|nix run "$(realfileDir)#$(call wildcardValue,$@)"
 
 quick: tangle push
 
-super: $(tangleTask) update push
+super: ttu push
 
-super-%: $(tangleTask) update-% push ;
+super-%: ttu-% push ;

@@ -946,7 +946,9 @@
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
                             disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
                             disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
-                            checkPhase = "pytest -p no:randomly";
+                            checkPhase = ''
+                                pytest -p no:randomly -k 'not (${concatStringsSep " or " disabledTests})' --ignore=${concatStringsSep " --ignore=" disabledTestPaths}
+                            '';
                             passthru = {
                                 tests.version = testers.testVersion {
                                     package = python3Packages.${pname};
