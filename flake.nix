@@ -995,45 +995,6 @@
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
                             disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
                             disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
-                            # checkPhase = ''
-                            #     pytest -p no:randomly -k 'not (${concatStringsSep " or " disabledTests})' --ignore=${concatStringsSep " --ignore=" disabledTestPaths}
-                            # '';
-                            pytestFlagsArray = [
-                                "-p"
-                                "no:randomly"
-                            ];
-                            passthru = {
-                                tests.version = testers.testVersion {
-                                    package = python3Packages.${pname};
-                                    command = "${pname} -v";
-                                };
-                                withPackages = python-packages: (python3Packages.toPythonApplication python3Packages.${pname}).overrideAttrs (old: {
-                                    propagatedBuildInputs = flatten [
-                                        (python-packages python3Packages)
-                                        (old.propagatedBuildInputs or [])
-                                    ];
-                                });
-                                pkgs = python3Packages;
-                            };
-                        });
-                        hyrule = let
-                            pname = "hyrule";
-                        in final: update pname (old: rec {
-                            inherit (Inputs.${pname}) version;
-                            src = inputs.${pname};
-                            postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
-                        });
-                    }
-                    (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.python3)
-                    (j.inputsToOverlays.python.python3 inputs)
-                ];
-                python = python3;
-                hy = python3;
-                xonsh = j.foldToSet [
-                    (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.xonsh)
-                    (j.inputsToOverlays.python.xonsh inputs)
-                ];
-            };
             overlays = let
                 pyapps = [ "py2app-" "py3app-" ];
             in j.foldToSet [
