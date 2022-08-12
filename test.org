@@ -1,3 +1,0 @@
-#+begin_src shell :tangle test.sh :shebang "#!/usr/bin/env sh" :prologue echo Hello!
-echo Goodbye!
-#+end_src

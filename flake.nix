@@ -74,6 +74,10 @@
             url = github:bashup/mdsh/7e7af618a341eebd50e7825b062bc192079ad5fc;
             flake = false;
         };
+        maid = {
+            url = github:egoist/maid/v0.3.0;
+            flake = false;
+        };
         caddy = {
             url = github:caddyserver/caddy/v2.5.1;
             flake = false;
@@ -494,6 +498,11 @@
                     default = pkg: final: prev: {
                         nodePackages = fix (extends (node-final: node-prev: recursiveUpdate node-prev (final.callPackage pkg {})) (new: prev.nodePackages));
                     };
+                    yarn = name: pkg: final: prev: {
+                        nodePackages = fix (extends (node-final: node-prev: recursiveUpdate node-prev {
+                            "${name}" = final.callPackage pkg { inherit name; };
+                        }) (new: prev.nodePackages));
+                    };
                 };
             };
             multiSplitString = splits: string: if splits == [] then string
@@ -798,6 +807,18 @@
                     };
                 }
             ];
+            yarn = j.foldToSet [
+                (j.imports.set { dir = ./callPackages/yarn; })
+                {
+                    maid = { mkYarnPackage, name }: mkYarnPackage rec {
+                        inherit name;
+                        src = inputs.${name};
+                        packageJSON = "${src}/package.json";
+                        yarnLock = "${src}/yarn.lock";
+                        yarnNix = "${toString ./.}/callPackages/yarn/${name}/yarn.nix";
+                    };
+                }
+            ];
             python = rec {
                 python2 = {
                 };
@@ -975,6 +996,7 @@
             overlay = final: prev: { inherit (calledPackages) settings; };
         in rec {
             nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.nodejs;
+            yarnOverlays = mapAttrs j.update.node.yarn callPackages.yarn;
             pythonOverlays = rec {
                 python2 = j.foldToSet [
                     (mapAttrs (pname: j.update.python.callPython.python2 { inherit pname; } pname) callPackages.python.python2)
@@ -995,12 +1017,49 @@
                             postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
                             disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
                             disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
+                            pytestFlagsArray = [
+                                "-p"
+                                "no:randomly"
+                            ];
+                            passthru = {
+                                tests.version = testers.testVersion {
+                                    package = python3Packages.${pname};
+                                    command = "${pname} -v";
+                                };
+                                withPackages = python-packages: (python3Packages.toPythonApplication python3Packages.${pname}).overrideAttrs (old: {
+                                    propagatedBuildInputs = flatten [
+                                        (python-packages python3Packages)
+                                        (old.propagatedBuildInputs or [])
+                                    ];
+                                });
+                                pkgs = python3Packages;
+                            };
+                        });
+                        hyrule = let
+                            pname = "hyrule";
+                        in final: update pname (old: rec {
+                            inherit (Inputs.${pname}) version;
+                            src = inputs.${pname};
+                            postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
+                        });
+                    }
+                    (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.python3)
+                    (j.inputsToOverlays.python.python3 inputs)
+                ];
+                python = python3;
+                hy = python3;
+                xonsh = j.foldToSet [
+                    (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.xonsh)
+                    (j.inputsToOverlays.python.xonsh inputs)
+                ];
+            };
             overlays = let
                 pyapps = [ "py2app-" "py3app-" ];
             in j.foldToSet [
                 (attrValues pythonOverlays)
                 (mapAttrs' (n: v: nameValuePair (j.remove.prefix pyapps) v.overlay) (filterAttrs (n: v: j.has.prefix n pyapps) inputs))
                 nodeOverlays
+                yarnOverlays
                 calledPackages
                 (let pkgsets = {
                     # nixos-unstable = [ "gnome-tour" ];
@@ -1685,7 +1744,10 @@
                     (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames pkgs))
                     (attrNames overlayset.overlays)
                 ] pkgs)
-                (j.filters.has.attrs (attrNames overlayset.nodeOverlays) pkgs.nodePackages)
+                (j.mapAttrNames (n: v: "nodejs-${n}") (j.filters.has.attrs [
+                    (attrNames overlayset.nodeOverlays)
+                    (attrNames overlayset.yarnOverlays)
+                ] pkgs.nodePackages))
                 (mapAttrs (n: v: v [] null) made.withPackages.python)
             ]);
             package = packages.default;
