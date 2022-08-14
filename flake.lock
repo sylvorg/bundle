@@ -457,23 +457,6 @@
         "type": "github"
       }
     },
-    "parametrized": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1603080728,
-        "narHash": "sha256-vGh9YOdLhMAFTM6wk3E1od6eLLwS0Ng3KvAB5n/lFBI=",
-        "owner": "coady",
-        "repo": "pytest-parametrized",
-        "rev": "359501ba14ca5780cfe9fc91efde1ed245615ae0",
-        "type": "github"
-      },
-      "original": {
-        "owner": "coady",
-        "ref": "v1.3",
-        "repo": "pytest-parametrized",
-        "type": "github"
-      }
-    },
     "poetry2setup": {
       "flake": false,
       "locked": {
@@ -487,6 +470,23 @@
       "original": {
         "owner": "abersheeran",
         "repo": "poetry2setup",
+        "type": "github"
+      }
+    },
+    "pytest-parametrized": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1603080728,
+        "narHash": "sha256-vGh9YOdLhMAFTM6wk3E1od6eLLwS0Ng3KvAB5n/lFBI=",
+        "owner": "coady",
+        "repo": "pytest-parametrized",
+        "rev": "359501ba14ca5780cfe9fc91efde1ed245615ae0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "coady",
+        "ref": "v1.3",
+        "repo": "pytest-parametrized",
         "type": "github"
       }
     },
@@ -532,8 +532,8 @@
         "node2nix": "node2nix",
         "nur": "nur",
         "pacapt": "pacapt",
-        "parametrized": "parametrized",
         "poetry2setup": "poetry2setup",
+        "pytest-parametrized": "pytest-parametrized",
         "pytest-reverse": "pytest-reverse",
         "sysget": "sysget"
       }
