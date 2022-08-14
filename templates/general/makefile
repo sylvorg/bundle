@@ -5,6 +5,10 @@ define nixShell
 nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makeshell-$1' --show-trace --run
 endef
 
+define quickShell
+nix-shell -E 'with (import $(realfileDir)).pkgs.$${builtins.currentSystem}; with lib; mkShell { buildInputs = flatten [ $1 ]; }' --show-trace
+endef
+
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
 realfileDir := $(realpath $(mkfileDir))
@@ -82,6 +86,12 @@ ttu-%: $(tangleTask) update-%
 
 develop: tu
 |nix develop "$(realfileDir)#makeshell-$(type)"
+
+shell: tu
+|$(call quickShell,$(pkgs))
+
+shell-%: tu
+|$(call quickShell,(with $(call wildcardValue,$@); [ $(pkgs) ]))
 
 develop-%: tu
 |nix develop "$(realfileDir)#$(call wildcardValue,$@)"

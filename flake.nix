@@ -90,6 +90,10 @@
             url = github:adamchainz/pytest-reverse/1.5.0;
             flake = false;
         };
+        parametrized = {
+            url = github:coady/pytest-parametrized/v1.3;
+            flake = false;
+        };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
@@ -758,7 +762,7 @@
                     platforms = [ "aarch64-linux" "i686-linux" "x86_64-linux" ];
                 };
             };
-            poetry2setup = { lib, Python, gawk, pname }: Python.pkgs.buildPythonApplication rec {
+            poetry2setup = { Python, gawk, pname }: Python.pkgs.buildPythonApplication rec {
                 inherit pname;
                 version = j.pyVersion format src;
                 format = "pyproject";
@@ -823,7 +827,7 @@
                 python2 = {
                 };
                 python3 = {
-                    autoslot = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit, pname }: buildPythonPackage rec {
+                    autoslot = { buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit, pname }: buildPythonPackage rec {
                         inherit pname;
                         inherit (Inputs.${pname}) version;
                         format = "pyproject";
@@ -838,7 +842,7 @@
                             license = lib.licenses.asl20;
                         };
                     };
-                    magicattr = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, pname }: buildPythonPackage rec {
+                    magicattr = { buildPythonPackage, fetchFromGitHub, pytestCheckHook, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = j.pyVersionSrc src;
                         src = inputs.${pname};
@@ -850,7 +854,7 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    backtrace = { lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, colorama, pname }: buildPythonPackage rec {
+                    backtrace = { buildPythonPackage, fetchFromGitHub, pytestCheckHook, colorama, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = j.pyVersionSrc src;
                         src = inputs.${pname};
@@ -865,12 +869,7 @@
                     };
                     pytest-reverse = { lib
                         , buildPythonPackage
-                        , factory_boy
-                        , faker
-                        , fetchFromGitHub
-                        , importlib-metadata
                         , numpy
-                        , pytest-xdist
                         , pytestCheckHook
                         , pythonOlder
                         , pname
@@ -879,40 +878,33 @@
                         version = "1.5.0";
                         disabled = pythonOlder "3.7";
                         src = inputs.${pname};
-
-                        # propagatedBuildInputs = lib.optionals (pythonOlder "3.10") [
-                        #     importlib-metadata
-                        # ];
-
-                        checkInputs = [
-                            # factory_boy
-                            # faker
-                            # numpy
-                            # pytest-xdist
-                            pytestCheckHook
-                        ];
-
-                        # needs special invocation, copied from tox.ini
-                        pytestFlagsArray = [
-                            "-p"
-                            "no:reverse"
-                        ];
-
-                        pythonImportsCheck = [
-                            "pytest_reverse"
-                        ];
-
+                        checkInputs = [ pytestCheckHook ];
+                        pytestFlagsArray = [ "-p" "no:reverse" ];
+                        pythonImportsCheck = [ "pytest_reverse" ];
                         meta = {
                             description = "Pytest plugin to reverse test order.";
                             homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                             license = licenses.mit;
                         };
                     };
+                    parametrized = { buildPythonPackage, pythonOlder, pytestCheckHook, pytest-cov, pname }: buildPythonPackage rec {
+                        inherit pname;
+                        version = "1.3";
+                        disabled = pythonOlder "3.7";
+                        src = inputs.${pname};
+                        pythonImportsCheck = [ pname ];
+                        checkInputs = [ pytestCheckHook pytest-cov ];
+                        meta = {
+                            description = "Pytest decorator for parametrizing tests with default iterables.";
+                            homepage = "https://github.com/coady/pytest-${pname}";
+                            license = licenses.asl20;
+                        };
+                    };
                 };
                 python = python3;
                 hy = python3;
                 xonsh = {
-                    xontrib-readable-traceback = { lib, buildPythonPackage, fetchPypi, colorama, backtrace, pname }: buildPythonPackage rec {
+                    xontrib-readable-traceback = { buildPythonPackage, fetchPypi, colorama, backtrace, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = "0.3.2";
                         src = fetchPypi {
@@ -926,7 +918,7 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    xonsh-autoxsh = { lib, buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
+                    xonsh-autoxsh = { buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = "0.3";
                         src = fetchPypi {
@@ -939,7 +931,7 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    xonsh-direnv = { lib, buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
+                    xonsh-direnv = { buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = "1.5.0";
                         src = fetchPypi {
@@ -952,7 +944,7 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    xontrib-pipeliner = { lib, buildPythonPackage, fetchPypi, six, pname }: buildPythonPackage rec {
+                    xontrib-pipeliner = { buildPythonPackage, fetchPypi, six, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = "0.3.4";
                         src = fetchPypi {
@@ -969,7 +961,7 @@
                             license = lib.licenses.mit;
                         };
                     };
-                    xontrib-sh = { lib, buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
+                    xontrib-sh = { buildPythonPackage, fetchPypi, pname }: buildPythonPackage rec {
                         inherit pname;
                         version = "0.3.0";
                         src = fetchPypi {
