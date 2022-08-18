@@ -1057,6 +1057,8 @@ Adapted from the following places:
 - [[https://stackoverflow.com/a/13945900/10827766][this answer]] by [[https://stackoverflow.com/users/77345/eric-melski][Eric Melski]]
 - [[https://stackoverflow.com/a/44416055/10827766][this answer]] by [[https://stackoverflow.com/users/412080/maxim-egorushkin][Maxim Egorushkin]]
 
+~Note:~ To export an environment variable for a single, multi-command command, use [[https://stackoverflow.com/a/10856211/10827766][this answer]] by [[https://stackoverflow.com/users/476371/0xc0000022l][0xC0000022L]].
+
 #+name: d7d92d0b-396c-4615-9f8f-4bdad4d89787
 #+begin_src makefile :tangle (meq/tangle-path)
 .RECIPEPREFIX := |
@@ -1163,8 +1165,22 @@ repl: tu
 build-%: tu
 |nix build "$(realfileDir)#$(call wildcardValue,$@)"
 
+run: tu
+|export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "$(command)" && cd $PPWD
+
 run-%: tu
 |nix run "$(realfileDir)#$(call wildcardValue,$@)"
+
+define touch-test-command
+export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "touch $1 && $(type) $1" && cd $PPWD
+endef
+
+touch-test: tu
+|$(call touch-test-command,$(file))
+
+touch-test-%: tu
+|$(eval file := $(mkfileDir)/$(call wildcardValue,$@))
+|$(call touch-test-command,$(file))
 
 quick: tangle push
 

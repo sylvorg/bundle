@@ -102,8 +102,22 @@ repl: tu
 build-%: tu
 |nix build "$(realfileDir)#$(call wildcardValue,$@)"
 
+run: tu
+|export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "$(command)" && cd $PPWD
+
 run-%: tu
 |nix run "$(realfileDir)#$(call wildcardValue,$@)"
+
+define touch-test-command
+export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "touch $1 && $(type) $1" && cd $PPWD
+endef
+
+touch-test: tu
+|$(call touch-test-command,$(file))
+
+touch-test-%: tu
+|$(eval file := $(mkfileDir)/$(call wildcardValue,$@))
+|$(call touch-test-command,$(file))
 
 quick: tangle push
 
