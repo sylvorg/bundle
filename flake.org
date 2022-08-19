@@ -209,8 +209,8 @@ Deprecated; circular imports are much too confusing...
                     extras = src: config: patches: import (J.patch.nixpkgs.extras src config patches) config;
                 };
             };
-            foldToSet = list: foldr (new: old: new // old) {} (filter isAttrs (flatten list));
-            foldToSet' = list: foldr (new: old: recursiveUpdate new old) {} (filter isAttrs (flatten list));
+            foldToSet = list: foldr (new: old: new // old) {} (flatten list);
+            foldToSet' = list: foldr (new: old: recursiveUpdate new old) {} (flatten list);
             fpipe = pipe-list: flip pipe (flatten pipe-list);
             remove = let
                 sortFunc = sort (a: b: (length a) > (length b));
