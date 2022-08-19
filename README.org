@@ -1079,13 +1079,13 @@ realfileDir := $(realpath $(mkfileDir))
 preFiles := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org $(mkfileDir)/README.org
 
 pnCommand := nix eval --show-trace --impure --expr '(import $(realfileDir)).pname'
-projectName := $(subst ",,$(shell (find $(mkfileDir) -name '.#*.org*' -print | xargs rm &> /dev/null || :) && ($(pnCommand) || ((org-tangle -f $(preFiles) &> /dev/null) && $(pnCommand)))))
+projectName := $(subst ",,$(shell (find $(mkfileDir) -name '.#*.org*' -print | xargs rm &> /dev/null || :) && ($(pnCommand) || ((org-tangle -f $(preFiles) > /dev/null) && $(pnCommand)))))
 ifndef projectName
 $(error Sorry; unable to get the name of the project)
 endif
 
 typeCommand := nix eval --show-trace --impure --expr '(import $(realfileDir)).type'
-type := $(subst ",,$(shell (find $(mkfileDir) -name '.#*.org*' -print | xargs rm &> /dev/null || :) && ($(typeCommand) || ((org-tangle -f $(preFiles) &> /dev/null) && $(typeCommand)))))
+type := $(subst ",,$(shell (find $(mkfileDir) -name '.#*.org*' -print | xargs rm &> /dev/null || :) && ($(typeCommand) || ((org-tangle -f $(preFiles) > /dev/null) && $(typeCommand)))))
 ifndef type
 $(error Sorry; unable to get the type of project)
 endif
@@ -1148,7 +1148,7 @@ ttu: $(tangleTask) update
 ttu-%: $(tangleTask) update-%
 
 develop: tu
-|nix develop "$(realfileDir)#makeshell-$(type)"
+|nix develop --show-trace "$(realfileDir)#makeshell-$(type)"
 
 shell: tu
 |$(call quickShell,$(pkgs))
@@ -1157,19 +1157,22 @@ shell-%: tu
 |$(call quickShell,(with $(call wildcardValue,$@); [ $(pkgs) ]))
 
 develop-%: tu
-|nix develop "$(realfileDir)#$(call wildcardValue,$@)"
+|nix develop --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
 
 repl: tu
 |$(call nixShell,$(type)) "$(type)"
 
+build: tu
+|nix build --show-trace "$(realfileDir)"
+
 build-%: tu
-|nix build "$(realfileDir)#$(call wildcardValue,$@)"
+|nix build --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
 
 run: tu
 |export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "$(command)" && cd $PPWD
 
 run-%: tu
-|nix run "$(realfileDir)#$(call wildcardValue,$@)"
+|nix run --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
 
 define touch-test-command
 export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "touch $1 && $(type) $1" && cd $PPWD
@@ -1216,8 +1219,8 @@ nix flake info &> /dev/null && use flake || use nix
 *** nix.org
 
 #+name: 97220a9c-af77-4056-b7f8-00e11819e210
-#+begin_src emacs-lisp :var type="" app=""
-(format ",* shell.nix
+#+begin_src emacs-lisp :var type="" isApp=""
+(format "* shell.nix
 
 ,#+begin_src nix :tangle (meq/tangle-path)
 (import ./.).devShell.${builtins.currentSystem}
@@ -1264,7 +1267,7 @@ in {
     };
 }
 ,#+end_src" (if (string= type "") "" (format "type = \"%s\";\n" type))
-            (if (string= app "") "" (format "\n        app = %s;\n" app)))
+            (if (string= isApp "") "" (format "\n        isApp = %s;\n" isApp)))
 #+end_src
 
 #+begin_src text :tangle (meq/tangle-path)
@@ -1313,7 +1316,7 @@ test-%: tut
 *** nix.org
 
 #+begin_src text :tangle (meq/tangle-path)
-<<97220a9c-af77-4056-b7f8-00e11819e210(type="hy", app="true")>>
+<<97220a9c-af77-4056-b7f8-00e11819e210(type="hy", isApp="true")>>
 #+end_src
 
 ** python-package

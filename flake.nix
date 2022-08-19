@@ -1125,6 +1125,13 @@
                         Python3Packages = Python3.pkgs;
                         Python = Python3;
                         PythonPackages = Python3Packages;
+                        Pythons = rec {
+                            python2 = final.Python2;
+                            python3 = final.Python3;
+                            python = python3;
+                            hy = final.Python3.pkgs.hy;
+                            xonsh = final.xonsh;
+                        };
                     };
                 }
             ];
@@ -1535,25 +1542,31 @@
             overlay ? null,
             overlays ? {},
             type ? "general",
-            app ? false,
+            isApp ? false,
             python-packages ? [],
             extra-packages ? [],
             extras ? (oo: {}),
             ...
         }: let
-            type' = if app then "general" else type;
+            type' = if isApp then "general" else type;
+            isPythonApp = isApp && (elem type j.attrs.versionNames.python);
             overlayset = let
+                overlays' = j.foldToSet [
+                    { general = final: prev: { ${pname} = if isPythonApp then (let
+                                                                 ppkgs = final.Pythons.${type}.pkgs;
+                                                             in ppkgs.toPythonApplication ppkgs.${pname})
+                                                          else (final.callPackage callPackage {}); }; }
+                    (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
+                ];
                 default = if (callPackage == null) then (if (overlay == null) then (abort "Sorry; either the `callPackage' or `overlay' argument must be set!") else overlay)
-                          else (j.foldToSet [
-                            { general."${pname}" = final.callPackage callPackage {}; }
-                            (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
-                        ]).${type'};
+                          else overlays'.${type'};
             in {
                 overlays = j.foldToSet [
                     (mapAttrsToList (n: map (version: j.inputsToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
                     # (map (python: j.inputsToOverlays.python.${python} inputs) j.attrs.versionNames.python)
                     self.overlays
-                    { inherit default; "${pname}" = default; }
+                    { inherit default; ${pname} = default; }
+                    (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
                     overlays
                 ];
                 overlay = default;
@@ -1565,21 +1578,26 @@
                 in rec {
                     inherit (made) nixpkgs pkgs legacyPackages;
                     inherit made;
-                    packages = flattenTree (j.foldToSet [
-                        {
-                            general = {
-                                default = pkgs.${pname};
-                                "${pname}" = pkgs.${pname};
-                            };
-                        }
-                        (let
-                            pythons = mapAttrs (n: v: made.mkPython v [] pname) made.pythons;
-                        in mapAttrs (n: v: j.foldToSet [
-                            pythons
-                            (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
-                            { default = pythons.${type}; "${pname}" = pythons.${type}; }
-                        ]) pythons)
-                    ]).${type'};
+                    packages = let
+                        packages' = j.foldToSet [
+                            {
+                                general = {
+                                    default = pkgs.${pname};
+                                    ${pname} = pkgs.${pname};
+                                };
+                            }
+                            (let
+                                pythons = mapAttrs (n: v: made.mkPython v [] pname) pkgs.Pythons;
+                            in mapAttrs (n: v: j.foldToSet [
+                                pythons
+                                (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
+                                { default = pythons.${type}; "${pname}" = pythons.${type}; }
+                            ]) pythons)
+                        ];
+                    in flattenTree (j.foldToSet [
+                        packages'.${type'}
+                        (optionalAttrs isApp packages'.${type})
+                    ]);
                     package = packages.default;
                     defaultPackage = package;
                     apps = mapAttrs (n: made.app) packages;
@@ -1663,16 +1681,9 @@
                     (mkPython v (flatten [
                         ppkglist
                         general
-                    ]) ((v.pkgs or pythons.python.pkgs).${pname}.overridePythonAttrs func))
-                ]) pythons)
+                    ]) ((v.pkgs or pkgs.Pythons.python.pkgs).${pname}.overridePythonAttrs func))
+                ]) pkgs.Pythons)
             ];
-            pythons = rec {
-                python2 = pkgs.Python2;
-                python3 = pkgs.Python3;
-                python = python3;
-                hy = pkgs.Python3.pkgs.hy;
-                xonsh = pkgs.xonsh;
-            };
             shellHooks = {
                 makefile = lib.j.foldToSet [
                     { general = "echo $PATH; exit"; }
@@ -1708,20 +1719,20 @@
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
                 in j.foldToSet [
-                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pythons.${python} [
+                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pkgs.Pythons.${python} [
                         pkg
                         pkglist
                     ])) (attrNames overlayset.pythonOverlays.${python})))) [ "python" "python2" "python3" ])
-                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
-                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
-                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pythons.${python} [
+                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.Pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
+                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.Pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
+                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pkgs.Pythons.${python} [
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [ "python" "python2" "python3" ]))
-                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkPython pythons.hy [ pkg pkglist ])) hyOverlays))
+                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkPython pkgs.Pythons.hy [ pkg pkglist ])) hyOverlays))
                     {
-                        xonsh = pkglist: mkPython pythons.xonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
-                        hy = pkglist: mkPython pythons.hy [ hyOverlays pkglist ];
+                        xonsh = pkglist: mkPython pkgs.Pythons.xonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
+                        hy = pkglist: mkPython pkgs.Pythons.hy [ hyOverlays pkglist ];
                     }
                 ];
             };

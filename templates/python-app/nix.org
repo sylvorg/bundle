@@ -1,4 +1,4 @@
-,* shell.nix
+* shell.nix
 
 #+begin_src nix :tangle (meq/tangle-path)
 (import ./.).devShell.${builtins.currentSystem}
@@ -41,7 +41,7 @@ in {
         # TODO: Change this!
         pname = "";
         
-        app = true;
+        isApp = true;
 
         # TODO: Change this!
         callPackage = {}: {};
