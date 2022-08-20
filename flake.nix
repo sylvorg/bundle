@@ -1699,14 +1699,14 @@
             ];
             mkfilefunk = let
                 func = old: { doCheck = false; };
-            in mapAttrs (n: v: isApp: extras: pname: pkglist: ppkglist: j.foldToShell pkgs [
+            in mapAttrs (n: v: isApp: type: extras: pname: pkglist: ppkglist: j.foldToShell pkgs [
                 (pkgs.mkShell (j.recursiveUpdateAll { buildInputs = [
                     mkbuildinputs.default
                     (optionals (isApp || (type == "general")) (if (pname == null) then pname else (pkgs.${pname}.overrideAttrs func)))
                 ]; } (extras.global or {})))
                 (v extras pname pkglist ppkglist)
             ]) (j.foldToSet [
-                { general = isApp: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
+                { general = isApp: type: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
                     buildInputs = j.filters.has.list [
                         (mkPython pkgs.Python3 [
                             mkbuildinputs.general
@@ -1716,7 +1716,7 @@
                         pkglist
                     ] pkgs;
                 } (extras.general or {})); }
-                (genAttrs j.attrs.versionNames.python (python: isApp: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
+                (genAttrs j.attrs.versionNames.python (python: isApp: type: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
                     buildInputs = j.filters.has.list [
                         (mkbuildinputs.${python} func extras pname ppkglist)
                         pkglist
@@ -1724,10 +1724,10 @@
                 } (extras."makefile-${python}" or {}))))
             ]);
             mkfile = isApp: type: extras: pname: pkglist: ppkglist: let
-                default = mkfilefunk.${type} isApp extras pname pkglist ppkglist;
+                default = mkfilefunk.${type} isApp type extras pname pkglist ppkglist;
                 isAppGeneral = isApp || (type == "general");
             in rec {
-                makefile-general = mkfilefunk.general isApp extras (if isAppGeneral then pname else null) pkglist ppkglist;
+                makefile-general = mkfilefunk.general isApp type extras (if isAppGeneral then pname else null) pkglist ppkglist;
                 makefile = if isAppGeneral then makefile-general else default;
                 ${if (isApp || (type != "general")) then "makefile-${type}" else null} = default;
             };
@@ -1768,6 +1768,7 @@
                     (attrNames overlayset.yarnOverlays)
                 ] pkgs.nodePackages))
                 (mapAttrs (n: v: v [] null) made.withPackages.python)
+                { default = pkgs.settings; }
             ]);
             package = packages.default;
             defaultPackage = package;
@@ -1775,9 +1776,9 @@
             app = apps.default;
             defaultApp = app;
             devShells = j.foldToSet [
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                (made.mkboth [] [] "settings" "general")
+                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
+                        (made.mkfile false "general" {} "settings" (packages.settings.nativeBuildInputs or []) [])
                 (with pkgs; {
                     default = mkShell { buildInputs = attrValues packages; };
                     site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
