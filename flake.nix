@@ -1704,7 +1704,7 @@
                     mkbuildinputs.default
                     (optionals (isApp || (type == "general")) (if (pname == null) then pname else (pkgs.${pname}.overrideAttrs func)))
                 ]; } (extras.global or {})))
-                (v extras pname pkglist ppkglist)
+                (v isApp type extras pname pkglist ppkglist)
             ]) (j.foldToSet [
                 { general = isApp: type: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
                     buildInputs = j.filters.has.list [
