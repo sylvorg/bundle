@@ -522,12 +522,40 @@
             pyVersion = format: src: pyVersion' format (readFile "${src}/${if (format == "pyproject") then "pyproject.toml" else "setup.py"}");
             pyVersionSrc = src: pyVersion (if (elem "pyproject.toml" (dirCon.others src)) then "pyproject" else "setuptools") src;
             foldToShell = pkgs: envs: foldr (new: old: pkgs.mkShell {
-                buildInputs = unique (flatten [ new.buildInputs old.buildInputs ]);
-                nativeBuildInputs = unique (flatten [ new.nativeBuildInputs old.nativeBuildInputs ]);
-                propagatedBuildInputs = unique (flatten [ new.propagatedBuildInputs old.propagatedBuildInputs ]);
-                propagatedNativeBuildInputs = unique (flatten [ new.propagatedNativeBuildInputs old.propagatedNativeBuildInputs ]);
+                buildInputs = filters.has.list [ new.buildInputs old.buildInputs ] pkgs;
+                nativeBuildInputs = filters.has.list [ new.nativeBuildInputs old.nativeBuildInputs ] pkgs;
+                propagatedBuildInputs = filters.has.list [ new.propagatedBuildInputs old.propagatedBuildInputs ] pkgs;
+                propagatedNativeBuildInputs = filters.has.list [ new.propagatedNativeBuildInputs old.propagatedNativeBuildInputs ] pkgs;
                 shellHook = new.shellHook + "\n" + old.shellHook;
             }) (pkgs.mkShell {}) (filter isDerivation (flatten envs));
+            recursiveUpdateAll' = delim: a: b: let
+                a-names = attrNames a;
+            in (mapAttrs (n: v: if (isAttrs v) then (if (any (attr: (isAttrs attr) || (isList attr) || (isString attr)) (attrValues v))
+                                                     then (recursiveUpdateAll' delim v (b.${n} or {}))
+                                                     else (v // (b.${n} or {})))
+                                else if (isList v) then (v ++ (b.${n} or []))
+                                else if (isString v) then (v + delim + (b.${n} or ""))
+                                else (b.${n} or v)) a) // (filterAttrs (n: v: ! (elem n a-names)) b);
+            recursiveUpdateAll = recursiveUpdateAll' "\n";
+            foldRecursively = attrs: foldr recursiveUpdateAll {} attrs;
+
+            toPythonApplication = ppkgs: pname: {}: ppkgs.buildPythonApplication ((filterAttrs (n: v: ! ((isDerivation v) || (elem n [
+                "drvAttrs"
+                "override"
+                "overrideAttrs"
+                "overrideDerivation"
+                "overridePythonAttrs"
+            ]))) ppkgs.${pname}) // {
+                propagatedBuildInputs = toList ppkgs.${pname};
+                installPhase = ''
+                    mkdir --parents $out/bin
+                    cp $src/${pname}/${if (pathExists "${ppkgs.${pname}.src}/${pname}/__main__.py") then "__main__.py" else "__init__.py"} $out/bin/${pname}
+                    chmod +x $out/bin/${pname}
+                '';
+                postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
+                makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${ppkgs.python.libPrefix}/site-packages" ];
+            });
+
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
                 map (nv: nameValuePair nv.fst nv.snd) (let hasAttrs = any isAttrs values; in zipLists (
@@ -1013,7 +1041,7 @@
                                 "-p"
                                 "no:randomly"
                             ];
-                            passthru = {
+                            passthru = old.passthru // {
                                 tests.version = testers.testVersion {
                                     package = python3Packages.${pname};
                                     command = "${pname} -v";
@@ -1099,7 +1127,7 @@
                                 "tests/test_xonfig.py"
                                 (old.disabledTestPaths or [])
                             ];
-                            passthru = {
+                            passthru = old.passthru // {
                                 withPackages = python-packages: (final.xonsh.override override).overrideAttrs (old: {
                                     propagatedBuildInputs = flatten [
                                         (python-packages python3Packages)
@@ -1543,19 +1571,16 @@
             overlays ? {},
             type ? "general",
             isApp ? false,
-            python-packages ? [],
-            extra-packages ? [],
-            extras ? (oo: {}),
+            extraOutputs ? (oo: system: {}),
+            extras ? {},
             ...
         }: let
             type' = if isApp then "general" else type;
             isPythonApp = isApp && (elem type j.attrs.versionNames.python);
             overlayset = let
                 overlays' = j.foldToSet [
-                    { general = final: prev: { ${pname} = if isPythonApp then (let
-                                                                 ppkgs = final.Pythons.${type}.pkgs;
-                                                             in ppkgs.toPythonApplication ppkgs.${pname})
-                                                          else (final.callPackage callPackage {}); }; }
+                    { general = final: prev: { ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final.Pythons.${type}.pkgs pname)
+                                                                             else callPackage) {}; }; }
                     (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
                 ];
                 default = if (callPackage == null) then (if (overlay == null) then (abort "Sorry; either the `callPackage' or `overlay' argument must be set!") else overlay)
@@ -1605,32 +1630,19 @@
                     defaultApp = app;
                     devShells = let
                         default = pkgs.mkShell { buildInputs = attrValues packages; };
-                        devShells' = j.foldToSet [
-                            (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                            (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputs)
-                            (made.mkboth python-packages (flatten [
-                                extra-packages
-                                packages.${pname}.nativeBuildInputs
-                            ]) (if (type' == "general") then pname else null) "general")
-                            (optionalAttrs (type != "general") (j.foldToSet [
-                                (genAttrs j.attrs.versionNames.python (python: map (made.mkboth (flatten [
-                                    python-packages
-                                    packages.${python}.pkgs.${pname}.nativeBuildInputs
-                                ]) extra-packages pname) j.attrs.versionNames.python))
-                            ]).${type})
-                            { inherit default; "${pname}" = default; }
-                        ];
-                    in devShells' // {
-                        makefile = devShells'."makefile-${type}";
-                        makeshell = devShells'."makeshell-${type}";
-                    };
+                    in j.foldToSet [
+                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
+                        (made.mkfile isApp type extras pname (packages.${pname}.nativeBuildInputs or []) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
+                        { inherit default; "${pname}" = default; }
+                    ];
                     devShell = devShells.default;
                     defaultdevShell = devShell;
                 }))
                 overlayset
                 { inherit pname callPackage type' type; }
             ];
-        in recursiveUpdate official-outputs (extras official-outputs);
+        in recursiveUpdate official-outputs (eachSystem allSystems (extraOutputs official-outputs));
         make = system: overlays: with lib; rec {
             config' = rec {
                 base = { inherit system; };
@@ -1667,53 +1679,57 @@
                 pkglist
                 pname
             ]);
-            buildInputs = with pkgs; { envrc = [ git settings ]; };
+            buildInputSet = with pkgs; { envrc = [ git settings ]; };
             mkbuildinputs = with pkgs; let
                 general = [ "yq" ];
             in lib.j.foldToSet [
                 {
-                    default = flatten [ buildInputs.envrc ];
+                    default = flatten [ buildInputSet.envrc ];
                     inherit general;
                 }
-                (mapAttrs (n: v: func: ppkglist: pkglist: pname: flatten [
-                    pkglist
+                (mapAttrs (n: v: func: extras: pname: ppkglist: flatten [
+                    (extras."makefile-${n}".buildInputs or [])
                     pkgs.poetry2setup
                     (mkPython v (flatten [
-                        ppkglist
                         general
+                        ppkglist
+                        (extras."makefile-${n}".pythonPackages or [])
                     ]) ((v.pkgs or pkgs.Pythons.python.pkgs).${pname}.overridePythonAttrs func))
                 ]) pkgs.Pythons)
             ];
-            shellHooks = {
-                makefile = lib.j.foldToSet [
-                    { general = "echo $PATH; exit"; }
-                    (genAttrs j.attrs.versionNames.python (python: "echo $PYTHONPATH; exit"))
-                ];
-            };
-            mkshellfile = let
+            mkfilefunk = let
                 func = old: { doCheck = false; };
-            in mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
-                (v ppkglist pkglist pname)
-                (pkgs.mkShell { buildInputs = mkbuildinputs.default; })
+            in mapAttrs (n: v: isApp: extras: pname: pkglist: ppkglist: j.foldToShell pkgs [
+                (pkgs.mkShell (j.recursiveUpdateAll { buildInputs = [
+                    mkbuildinputs.default
+                    (optionals (isApp || (type == "general")) (if (pname == null) then pname else (pkgs.${pname}.overrideAttrs func)))
+                ]; } (extras.global or {})))
+                (v extras pname pkglist ppkglist)
             ]) (j.foldToSet [
-                { general = ppkglist: pkglist: pname: pkgs.mkShell {
+                { general = isApp: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
                     buildInputs = j.filters.has.list [
-                        (if (pname == null) then pname else (pkgs.${pname}.overrideAttrs func))
-                        (mkPython pkgs.Python3 [ ppkglist mkbuildinputs.general ] null)
+                        (mkPython pkgs.Python3 [
+                            mkbuildinputs.general
+                            ppkglist
+                            (extras.general.pythonPackages or [])
+                        ] null)
                         pkglist
                     ] pkgs;
-                }; }
-                (genAttrs j.attrs.versionNames.python (python: ppkglist: pkglist: pname: pkgs.mkShell {
-                    buildInputs = mkbuildinputs.${python} func ppkglist pkglist pname;
-                }))
+                } (extras.general or {})); }
+                (genAttrs j.attrs.versionNames.python (python: isApp: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
+                    buildInputs = j.filters.has.list [
+                        (mkbuildinputs.${python} func extras pname ppkglist)
+                        pkglist
+                    ] pkgs;
+                } (extras."makefile-${python}" or {}))))
             ]);
-            mkfile = mapAttrs (n: v: ppkglist: pkglist: pname: j.foldToShell pkgs [
-                (v ppkglist pkglist pname)
-                (pkgs.mkShell { shellHook = shellHooks.makefile.${n}; })
-            ]) mkshellfile;
-            mkboth = ppkglist: pkglist: pname: type: {
-                "makefile-${type}" = mkfile.${type} ppkglist pkglist pname;
-                "makeshell-${type}" = mkshellfile.${type} ppkglist pkglist pname;
+            mkfile = isApp: type: extras: pname: pkglist: ppkglist: let
+                default = mkfilefunk.${type} isApp extras pname pkglist ppkglist;
+                isAppGeneral = isApp || (type == "general");
+            in rec {
+                makefile-general = mkfilefunk.general isApp extras (if isAppGeneral then pname else null) pkglist ppkglist;
+                makefile = if isAppGeneral then makefile-general else default;
+                ${if (isApp || (type != "general")) then "makefile-${type}" else null} = default;
             };
             withPackages = {
                 python = let
