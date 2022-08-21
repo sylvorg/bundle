@@ -94,6 +94,10 @@
             url = github:coady/pytest-parametrized/v1.3;
             flake = false;
         };
+        pytest-custom_exit_code = {
+            url = github:yashtodi94/pytest-custom_exit_code/0.3.0;
+            flake = false;
+        };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
@@ -924,7 +928,20 @@
                         checkInputs = [ pytestCheckHook pytest-cov ];
                         meta = {
                             description = "Pytest decorator for parametrizing tests with default iterables.";
-                            homepage = "https://github.com/coady/${pname}";
+                            homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
+                            license = licenses.asl20;
+                        };
+                    };
+                    pytest-custom_exit_code = { buildPythonPackage, pythonOlder, pytestCheckHook, pname }: buildPythonPackage rec {
+                        inherit pname;
+                        version = "0.3.0";
+                        disabled = pythonOlder "3.7";
+                        src = inputs.${pname};
+                        pythonImportsCheck = [ "pytest_custom_exit_code" ];
+                        checkInputs = [ pytestCheckHook ];
+                        meta = {
+                            description = "Exit pytest test session with custom exit code in different scenarios";
+                            homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
                             license = licenses.asl20;
                         };
                     };

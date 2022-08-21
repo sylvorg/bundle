@@ -148,12 +148,12 @@ poetry2setup: tu
 |$(call nixShell,$(type)) "cd $(mkfileDir) && poetry2setup > $(mkfileDir)/setup.py && cd -"
 
 touch-tests:
-|find $(mkfileDir)/tests -print | grep -v __pycache__ | xargs touch
+|-find $(mkfileDir)/tests -print | grep -v __pycache__ | xargs touch
 
 tut: tu touch-tests
 
 define pytest
-$(call nixShell,$(type)) "pytest $1 $(mkfileDir)"
+$(call nixShell,$(type)) "pytest $1 --suppress-no-test-exit-code $(mkfileDir)"
 endef
 
 test: tut
