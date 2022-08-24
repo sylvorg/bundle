@@ -543,22 +543,25 @@
             recursiveUpdateAll = recursiveUpdateAll' "\n";
             foldRecursively = attrs: foldr recursiveUpdateAll {} attrs;
 
-            toPythonApplication = ppkgs: pname: {}: ppkgs.buildPythonApplication ((filterAttrs (n: v: ! ((isDerivation v) || (elem n [
-                "drvAttrs"
-                "override"
-                "overrideAttrs"
-                "overrideDerivation"
-                "overridePythonAttrs"
-            ]))) ppkgs.${pname}) // {
-                propagatedBuildInputs = toList ppkgs.${pname};
-                installPhase = ''
-                    mkdir --parents $out/bin
-                    cp $src/${pname}/${if (pathExists "${ppkgs.${pname}.src}/${pname}/__main__.py") then "__main__.py" else "__init__.py"} $out/bin/${pname}
-                    chmod +x $out/bin/${pname}
-                '';
-                postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-                makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${ppkgs.python.libPrefix}/site-packages" ];
-            });
+            toPythonApplication = final: prev: ppkgs: extras: pname: {}: ppkgs.buildPythonApplication (j.foldToSet [
+                (filterAttrs (n: v: ! ((isDerivation v) || (elem n [
+                    "drvAttrs"
+                    "override"
+                    "overrideAttrs"
+                    "overrideDerivation"
+                    "overridePythonAttrs"
+                ]))) ppkgs.${pname})
+                (recursiveUpdateAll {
+                    propagatedBuildInputs = toList ppkgs.${pname};
+                    installPhase = ''
+                        mkdir --parents $out/bin
+                        cp $src/${pname}/${if (pathExists "${ppkgs.${pname}.src}/${pname}/__main__.py") then "__main__.py" else "__init__.py"} $out/bin/${pname}
+                        chmod +x $out/bin/${pname}
+                    '';
+                    postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
+                    makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${ppkgs.python.libPrefix}/site-packages" ];
+                } ((extras.appSettings or (final: prev: {})) final prev))
+            ]);
 
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
@@ -634,18 +637,6 @@
             };
         })); });
         callPackages = with lib; {
-            settings = { stdenv, pname }: stdenv.mkDerivation rec {
-                inherit pname;
-                version = "1.0.0.0";
-                src = ./.;
-                phases = [ "installPhase" ];
-                installPhase = ''
-                    mkdir --parents $out
-                    cp -r $src/bin $out/bin
-                    chmod +x $out/bin/*
-                '';
-                meta.mainprogram = "org-tangle";
-            };
             sysget = { stdenv, installShellFiles, pname }: stdenv.mkDerivation rec {
                 inherit pname;
                 inherit (Inputs.${pname}) version;
@@ -1030,7 +1021,6 @@
         };
         overlayset = with lib; let
             calledPackages = mapAttrs (pname: v: final: prev: { "${pname}" = final.callPackage v { inherit pname; }; }) (filterAttrs (n: v: isFunction v) callPackages);
-            overlay = final: prev: { inherit (calledPackages) settings; };
         in rec {
             nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.nodejs;
             yarnOverlays = mapAttrs j.update.node.yarn callPackages.yarn;
@@ -1162,7 +1152,6 @@
                     # nix = inputs.nix.overlay;
                     nix-direnv = final: prev: { nix-direnv = prev.nix-direnv.override { enableFlakes = true; }; };
                     lib = final: prev: { inherit lib; };
-                    default = overlay;
                     Python = final: prev: rec {
                         Python2 = final.${j.attrs.versions.python.python2};
                         Python2Packages = Python2.pkgs;
@@ -1180,8 +1169,6 @@
                     };
                 }
             ];
-            inherit overlay;
-            defaultOverlay = overlay;
         };
         profiles = {
             server = { config, pkgs, ... }: let
@@ -1587,15 +1574,17 @@
             extraOutputs ? {},
             extras ? {},
             settings ? false,
+            make ? self.make,
             ...
         }: let
             type' = if isApp then "general" else type;
             isPythonApp = isApp && (elem type j.attrs.versionNames.python);
             overlayset = let
+                inheritance = { inherit pname; };
                 overlays' = j.foldToSet [
-                    { general = final: prev: { ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final.Pythons.${type}.pkgs pname)
-                                                                             else callPackage) {}; }; }
-                    (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
+                    { general = final: prev: { ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final prev final.Pythons.${type}.pkgs extras pname)
+                                                                             else callPackage) inheritance; }; }
+                    (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} inheritance pname callPackage))
                 ];
                 default = if ((callPackage == null) && (overlay == null) && (((overlays == {}) || (! (overlays ? default))) && (! settings)))
                                then (abort "Sorry; one of `callPackage', `overlay', or an `overlays' set with a `default' overlay must be set!")
@@ -1775,28 +1764,44 @@
                     }
                 ];
             };
+            mkPackages = {
+                default = nixpkgs: j.filters.has.attrs [
+                    (subtractLists (attrNames nixpkgs.legacyPackages.${system}) (attrNames pkgs))
+                    (attrNames overlays)
+                ] pkgs;
+                node = nodeOverlays: j.mapAttrNames (n: v: "nodejs-${n}") (j.filters.has.attrs (map attrNames nodeOverlays) pkgs.nodePackages);
+                python = mapAttrs (n: v: v [] null) withPackages.python;
+            };
         };
     in with lib; mkOutputs {
-        inherit inputs;
+        inherit inputs make;
         pname = "settings";
+        callPackage = { stdenv, emacsGit-nox, pname }: stdenv.mkDerivation rec {
+            inherit pname;
+            version = "1.0.0.0";
+            src = ./.;
+            phases = [ "installPhase" ];
+            installPhase = ''
+                mkdir --parents $out
+                cp -r $src/bin $out/bin
+                chmod +x $out/bin/*
+            '';
+            meta.mainprogram = "org-tangle";
+            postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
+            makeWrapperArgs = toList "--set PATH ${makeBinPath [ inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs-nox ]}";
+        };
         inherit (overlayset) overlays;
         settings = true;
         extraSystemOutputs = oo: system: let
             inherit (oo.${system}) pkgs made;
         in rec {
             packages = flattenTree (j.foldToSet [
-                (j.filters.has.attrs [
-                    (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames pkgs))
-                    (attrNames overlayset.overlays)
-                ] pkgs)
-                (j.mapAttrNames (n: v: "nodejs-${n}") (j.filters.has.attrs [
-                    (attrNames overlayset.nodeOverlays)
-                    (attrNames overlayset.yarnOverlays)
-                ] pkgs.nodePackages))
-                (mapAttrs (n: v: v [] null) made.withPackages.python)
+                (made.mkPackages.default inputs.nixpkgs)
+                (made.mkPackages.node overlayset.nodeOverlays overlayset.yarnOverlays)
+                made.mkPackages.python
             ]);
             devShells = with pkgs; {
-                default = mkShell { buildInputs = flatten [
+                all = mkShell { buildInputs = flatten [
                     (attrValues packages)
                     (attrValues oo.${system}.packages)
                 ]; };

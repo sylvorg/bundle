@@ -1,7 +1,7 @@
 * envrc
 
 #+begin_src shell :tangle (meq/tangle-path)
-make update add
+make tangle update add
 nix flake info &> /dev/null && use flake --show-trace || use nix --show-trace
 #+end_src
 

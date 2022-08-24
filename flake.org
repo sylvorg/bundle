@@ -1496,7 +1496,7 @@ When the ~sandbox~ is disabled, other ~go~ builds will fail if this is enabled: 
 #+end_src
 
 #+begin_src nix
-                    # emacs = inputs.emacs.overlay;
+                    emacs = inputs.emacs.overlay;
                     nur = final: prev: { nur = import inputs.nur { nurpkgs = inputs.nixpkgs; pkgs = final; }; };
                     # nix = inputs.nix.overlay;
                     nix-direnv = final: prev: { nix-direnv = prev.nix-direnv.override { enableFlakes = true; }; };
@@ -2057,16 +2057,17 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
             extraOutputs ? {},
             extras ? {},
             settings ? false,
-            make ? make,
+            make ? self.make,
             ...
         }: let
             type' = if isApp then "general" else type;
             isPythonApp = isApp && (elem type j.attrs.versionNames.python);
             overlayset = let
+                inheritance = { inherit pname; };
                 overlays' = j.foldToSet [
                     { general = final: prev: { ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final prev final.Pythons.${type}.pkgs extras pname)
-                                                                             else callPackage) {}; }; }
-                    (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
+                                                                             else callPackage) inheritance; }; }
+                    (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} inheritance pname callPackage))
                 ];
                 default = if ((callPackage == null) && (overlay == null) && (((overlays == {}) || (! (overlays ? default))) && (! settings)))
                                then (abort "Sorry; one of `callPackage', `overlay', or an `overlays' set with a `default' overlay must be set!")
@@ -2283,9 +2284,9 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
 
 #+begin_src nix
     in with lib; mkOutputs {
-        inherit inputs;
+        inherit inputs make;
         pname = "settings";
-        callPackage = { stdenv, pname }: stdenv.mkDerivation rec {
+        callPackage = { stdenv, emacs-nox, pname }: stdenv.mkDerivation rec {
             inherit pname;
             version = "1.0.0.0";
             src = ./.;
@@ -2297,7 +2298,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
             '';
             meta.mainprogram = "org-tangle";
             postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-            makeWrapperArgs = toList "--set PATH ${makeBinPath [ inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs ]}";
+            makeWrapperArgs = toList "--set PATH ${makeBinPath [ inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs-nox ]}";
         };
         inherit (overlayset) overlays;
         settings = true;
