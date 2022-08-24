@@ -1496,7 +1496,7 @@ When the ~sandbox~ is disabled, other ~go~ builds will fail if this is enabled: 
 #+end_src
 
 #+begin_src nix
-                    emacs = inputs.emacs.overlay;
+                    # emacs = inputs.emacs.overlay;
                     nur = final: prev: { nur = import inputs.nur { nurpkgs = inputs.nixpkgs; pkgs = final; }; };
                     # nix = inputs.nix.overlay;
                     nix-direnv = final: prev: { nix-direnv = prev.nix-direnv.override { enableFlakes = true; }; };
@@ -2297,7 +2297,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
             '';
             meta.mainprogram = "org-tangle";
             postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-            makeWrapperArgs = toList "--set PATH ${makeBinPath [ inputs.nixos-unstable.legacyPackages.${stdenv.targetPlatform.system}.emacs ]}";
+            makeWrapperArgs = toList "--set PATH ${makeBinPath [ inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs ]}";
         };
         inherit (overlayset) overlays;
         settings = true;

@@ -8039,7 +8039,9 @@ suffix."
 
 ** org-tangle
 
-#+begin_src shell :tangle (meq/tangle-path)#!/usr/bin/env sh
+Adapted from [[https://github.com/doomemacs/doomemacs/blob/master/bin/org-tangle][here]]:
+
+#+begin_src shell :tangle (meq/tangle-path) :shebang "#!/usr/bin/env sh"
 ":"; exec emacs --quick --script "$0" -- "$@" # -*- mode: emacs-lisp; lexical-binding: t; -*-
 ;;; bin/org-tangle
 
