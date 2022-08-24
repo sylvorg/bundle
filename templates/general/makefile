@@ -41,7 +41,6 @@ define fallback
 $(call fallbackCommand,$1,$(files))
 endef
 
-tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
 addCommand := git -C $(mkfileDir) add .
 updateCommand := $(call fallback,nix flake update --show-trace $(realfileDir))
 
@@ -94,10 +93,6 @@ tu: tangle update
 
 tu-%: tangle update-%
 
-ttu: $(tangleTask) update
-
-ttu-%: $(tangleTask) update-%
-
 develop: tu
 |nix develop --show-trace "$(realfileDir)#makefile-$(type)"
 
@@ -140,6 +135,6 @@ touch-test-%: tu
 
 quick: tangle push
 
-super: ttu push
+super: tu push
 
-super-%: ttu-% push ;
+super-%: tu-% push ;

@@ -6,6 +6,7 @@
     "a"
     "dash"
     "s"
+    "f-shortdoc"
     "f"
 ))
 (defun meq/org-babel-expand-src-block (&optional light datum info params)

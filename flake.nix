@@ -942,7 +942,7 @@
                         meta = {
                             description = "Exit pytest test session with custom exit code in different scenarios";
                             homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
-                            license = licenses.asl20;
+                            license = licenses.mit;
                         };
                     };
                 };
@@ -1571,14 +1571,9 @@
             defaultTemplate = template;
         };
         individual-outputs = with lib; j.foldToSet [
-            overlayset
             nixosModules
             templates
-            {
-                inherit make lib lockfile channel registry profiles devices mkOutputs Inputs;
-                type = "general";
-                pname = "settings";
-            }
+            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs; }
         ];
         mkOutputs = with lib; {
             pname,
@@ -1588,8 +1583,10 @@
             overlays ? {},
             type ? "general",
             isApp ? false,
-            extraOutputs ? (oo: system: {}),
+            extraSystemOutputs ? (oo: system: {}),
+            extraOutputs ? {},
             extras ? {},
+            settings ? false,
             ...
         }: let
             type' = if isApp then "general" else type;
@@ -1600,22 +1597,26 @@
                                                                              else callPackage) {}; }; }
                     (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} { inherit pname; } pname callPackage))
                 ];
-                default = if (callPackage == null) then (if (overlay == null) then (abort "Sorry; either the `callPackage' or `overlay' argument must be set!") else overlay)
-                          else overlays'.${type'};
+                default = if ((callPackage == null) && (overlay == null) && (((overlays == {}) || (! (overlays ? default))) && (! settings)))
+                               then (abort "Sorry; one of `callPackage', `overlay', or an `overlays' set with a `default' overlay must be set!")
+                          else if (callPackage != null) then overlays'.${type'}
+                          else if (overlay != null) then overlay
+                          else overlays.default;
+                overlay' = { ${pname} = default; };
             in {
                 overlays = j.foldToSet [
                     (mapAttrsToList (n: map (version: j.inputsToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
-                    # (map (python: j.inputsToOverlays.python.${python} inputs) j.attrs.versionNames.python)
-                    self.overlays
-                    { inherit default; ${pname} = default; }
+                    (optionalAttrs (! settings) self.overlays)
+                    overlay'
+                    (optionalAttrs (! (overlays ? default)) { inherit default; })
                     (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
                     overlays
                 ];
                 overlay = default;
                 defaultOverlay = default;
             };
-            official-outputs = j.foldToSet [
-                (eachSystem allSystems (system: let
+            official-outputs = let
+                oo = eachSystem allSystems (system: let
                     made = make system (attrValues overlayset.overlays);
                 in rec {
                     inherit (made) nixpkgs pkgs legacyPackages;
@@ -1655,11 +1656,16 @@
                     ];
                     devShell = devShells.default;
                     defaultdevShell = devShell;
-                }))
+                });
+            in j.foldToSet [
+                oo
                 overlayset
-                { inherit pname callPackage type' type; }
+                {
+                    inherit pname callPackage type' type;
+                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) allSystems);
+                }
             ];
-        in recursiveUpdate official-outputs (eachSystem allSystems (extraOutputs official-outputs));
+        in recursiveUpdate official-outputs (eachSystem allSystems (extraSystemOutputs official-outputs.oo));
         make = system: overlays: with lib; rec {
             config' = rec {
                 base = { inherit system; };
@@ -1770,11 +1776,14 @@
                 ];
             };
         };
-    in with lib; j.foldToSet [
-        (eachSystem allSystems (system: let
-            made = make system (attrValues overlayset.overlays);
+    in with lib; mkOutputs {
+        inherit inputs;
+        pname = "settings";
+        inherit (overlayset) overlays;
+        settings = true;
+        extraSystemOutputs = oo: system: let
+            inherit (oo.${system}) pkgs made;
         in rec {
-            inherit (made) legacyPackages pkgs nixpkgs;
             packages = flattenTree (j.foldToSet [
                 (j.filters.has.attrs [
                     (subtractLists (attrNames inputs.nixpkgs.legacyPackages.${system}) (attrNames pkgs))
@@ -1785,25 +1794,15 @@
                     (attrNames overlayset.yarnOverlays)
                 ] pkgs.nodePackages))
                 (mapAttrs (n: v: v [] null) made.withPackages.python)
-                { default = pkgs.settings; }
             ]);
-            package = packages.default;
-            defaultPackage = package;
-            apps = mapAttrs (n: made.app) packages;
-            app = apps.default;
-            defaultApp = app;
-            devShells = j.foldToSet [
-                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
-                        (made.mkfile false "general" {} "settings" (packages.settings.nativeBuildInputs or []) [])
-                (with pkgs; {
-                    default = mkShell { buildInputs = attrValues packages; };
-                    site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
-                })
-            ];
-            devShell = devShells.default;
-            defaultdevShell = devShell;
-        }))
-        individual-outputs
-    ];
+            devShells = with pkgs; {
+                default = mkShell { buildInputs = flatten [
+                    (attrValues packages)
+                    (attrValues oo.${system}.packages)
+                ]; };
+                site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
+            };
+        };
+        extraOutputs = individual-outputs;
+    };
 }

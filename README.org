@@ -1059,7 +1059,7 @@ Adapted from the following places:
 
 ~Note:~ To export an environment variable for a single, multi-command command, use [[https://stackoverflow.com/a/10856211/10827766][this answer]] by [[https://stackoverflow.com/users/476371/0xc0000022l][0xC0000022L]].
 
-#+name: d7d92d0b-396c-4615-9f8f-4bdad4d89787
+#+name: makefile
 #+begin_src makefile :tangle (meq/tangle-path)
 .RECIPEPREFIX := |
 .DEFAULT_GOAL := tangle
@@ -1104,7 +1104,6 @@ define fallback
 $(call fallbackCommand,$1,$(files))
 endef
 
-tangleTask := $(shell [ -e $(mkfileDir)/tests -o -e $(mkfileDir)/tests.org ] && echo test || echo tangle)
 addCommand := git -C $(mkfileDir) add .
 updateCommand := $(call fallback,nix flake update --show-trace $(realfileDir))
 
@@ -1157,10 +1156,6 @@ tu: tangle update
 
 tu-%: tangle update-%
 
-ttu: $(tangleTask) update
-
-ttu-%: $(tangleTask) update-%
-
 develop: tu
 |nix develop --show-trace "$(realfileDir)#makefile-$(type)"
 
@@ -1203,43 +1198,41 @@ touch-test-%: tu
 
 quick: tangle push
 
-super: ttu push
+super: tu push
 
-super-%: ttu-% push ;
+super-%: tu-% push ;
 #+end_src
 
 * .envrc
 
-#+name: 89ba6ea2-f0d6-4676-885e-f0b4c2b92ed9
-#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
-#! nix-shell -i sh
+#+name: envrc
+#+begin_src shell :tangle (meq/tangle-path)
 make update add
-nix flake info &> /dev/null && use flake || use nix
+nix flake info &> /dev/null && use flake --show-trace || use nix --show-trace
 #+end_src
 
 * templates
 ** general
-*** .envrc
-
-#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-<<89ba6ea2-f0d6-4676-885e-f0b4c2b92ed9>>
-#+end_src
-
 *** makefile
 
-#+begin_src makefile :tangle (meq/tangle-path t)
-<<d7d92d0b-396c-4615-9f8f-4bdad4d89787>>
+#+begin_src makefile :tangle (meq/tangle-path)
+<<makefile>>
 #+end_src
 
 *** nix.org
 
 #+name: 97220a9c-af77-4056-b7f8-00e11819e210
 #+begin_src emacs-lisp :var type="" isApp=""
-(format "* shell.nix
+(format "* envrc
+
+,#+begin_src shell :tangle (meq/tangle-path)
+<<envrc>>
+,#+end_src
+
+,* shell.nix
 
 ,#+begin_src nix :tangle (meq/tangle-path)
-(import ./.).devShell.${builtins.currentSystem}
+<<shell.nix>>
 ,#+end_src
 
 ,* default.nix
@@ -1247,13 +1240,7 @@ nix flake info &> /dev/null && use flake || use nix
 Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 
 ,#+begin_src nix :tangle (meq/tangle-path)
-with builtins; if (builtins ? getFlake) then (getFlake (toString ./.)) else (import fetchTarball (let
-    lockExists = pathExists ./flake.lock;
-    lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.flake-compat.locked.rev = \"master\"; };
-in {
-    url = \"https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz\";
-    ${if lockExists then \"sha256\" else null} = lock.nodes.flake-compat.locked.narHash;
-}) { src = ./.; }).defaultNix
+<<default.nix(elisp='t)>>
 ,#+end_src
 
 ,* flake.nix
@@ -1291,10 +1278,10 @@ in {
 #+end_src
 
 ** python-app
-*** .envrc
+*** include.mk
 
-#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-<<89ba6ea2-f0d6-4676-885e-f0b4c2b92ed9>>
+#+begin_src makefile :tangle (meq/tangle-path)
+<<makefile>>
 #+end_src
 
 *** makefile
@@ -1305,7 +1292,7 @@ and [[https://www.cyberciti.biz/faq/how-to-show-recursive-directory-listing-on-l
 
 #+name: 8524a302-71f9-4752-9fbf-675d99285846
 #+begin_src makefile :tangle (meq/tangle-path)
-<<d7d92d0b-396c-4615-9f8f-4bdad4d89787>>
+include: $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/include.mk
 
 poetry2setup: tu
 |$(call nixShell,$(type)) "cd $(mkfileDir) && poetry2setup > $(mkfileDir)/setup.py && cd -"
@@ -1327,6 +1314,8 @@ test-native: tut
 
 test-%: tut
 |$(call pytest,-m $(call wildcardValue,$@))
+
+super: test push
 #+end_src
 
 *** nix.org
@@ -1336,13 +1325,10 @@ test-%: tut
 #+end_src
 
 ** python-package
-*** .envrc
+*** include.mk
 
-#+begin_src shell :tangle (meq/tangle-path) :shebang "#! /usr/bin/env nix-shell"
-#! nix-shell -E "(import ./.).devShells.${builtins.currentSystem}.envrc"
-#! nix-shell -i sh
-make update tangle-python add
-nix flake info &> /dev/null && use flake || use nix
+#+begin_src makefile :tangle (meq/tangle-path)
+<<makefile>>
 #+end_src
 
 *** makefile
@@ -1361,18 +1347,24 @@ nix flake info &> /dev/null && use flake || use nix
 
 Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 
-#+begin_src nix :tangle (meq/tangle-path)
-with builtins; if (builtins ? getFlake) then (getFlake (toString ./.)) else (import fetchTarball (let
+#+name: default.nix
+#+begin_src emacs-lisp :var elisp='nil
+(format-spec "with builtins; if (builtins ? getFlake) then (getFlake (toString ./.)) else (import fetchTarball (let
     lockExists = pathExists ./flake.lock;
-    lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.flake-compat.locked.rev = "master"; };
+    lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.flake-compat.locked.rev = %qmaster%q; };
 in {
-    url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
-    ${if lockExists then "sha256" else null} = lock.nodes.flake-compat.locked.narHash;
-}) { src = ./.; }).defaultNix
+    url = %qhttps://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz%q;
+    ${if lockExists then %qsha256%q else null} = lock.nodes.flake-compat.locked.narHash;
+}) { src = ./.; }).defaultNix" `((?q . ,(if elisp "\\\"" "\""))))
+#+end_src
+
+#+begin_src nix :tangle (meq/tangle-path)
+<<default.nix()>>
 #+end_src
 
 * shell.nix
 
+#+name: shell.nix
 #+begin_src nix :tangle (meq/tangle-path)
 (import ./.).devShell.${builtins.currentSystem}
 #+end_src
@@ -1612,6 +1604,8 @@ See `org-html-format-headline-function' for details."
 #+end_src
 
 ** uuidgen.el
+
+Taken from [[https://github.com/kanru/uuidgen-el/blob/master/uuidgen.el][here]]:
 
 #+begin_src emacs-lisp :tangle (meq/tangle-path)
 ;;; uuidgen.el --- Provides various UUID generating functions
@@ -1963,6 +1957,8 @@ You customize `uuidgen-cid-format-string' to change the default format."
 #+end_src
 
 ** a.el
+
+Taken from [[https://github.com/plexus/a.el/blob/master/a.el][here]]:
 
 #+begin_src emacs-lisp :tangle (meq/tangle-path)
 ;;; a.el --- Associative data structure functions   -*- lexical-binding: t; -*-
@@ -2323,6 +2319,8 @@ association lists will be created."
 #+end_src
 
 ** dash.el
+
+Taken from [[https://github.com/magnars/dash.el/blob/master/dash.el][here]]:
 
 #+begin_src emacs-lisp :tangle (meq/tangle-path)
 ;;; dash.el --- A modern list library for Emacs  -*- lexical-binding: t -*-
@@ -6254,6 +6252,8 @@ Used by `unload-feature', which see."
 
 ** f.el
 
+Taken from [[https://github.com/rejeep/f.el/blob/master/f.el][here]]:
+
 #+begin_src emacs-lisp :tangle (meq/tangle-path)
 ;;; f.el --- Modern API for working with files and directories -*- lexical-binding: t; -*-
 
@@ -6901,6 +6901,392 @@ returned."
 (provide 'f)
 
 ;;; f.el ends here
+#+end_src
+
+** f-shortdoc.el
+
+Taken from [[https://github.com/rejeep/f.el/blob/master/f-shortdoc.el][here]]:
+
+#+begin_src emacs-lisp :tangle (meq/tangle-path)
+;; -*- no-byte-compile: t; -*-
+;;; f-shortdoc.el --- Shortdoc for f.el -*- lexical-binding: t -*-
+
+;; Author: Lucien Cartier-Tilet <lucien@phundrak.com>
+;; Maintainer: Lucien Cartier-Tilet <lucien@phundrak.com>
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "28.1"))
+;; Homepage: https://github.com/rejeep/f.el
+
+;; This file is not part of GNU Emacs
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+;;; Commentary:
+
+;; Shortdoc implementation for f.el
+
+;;; Code:
+
+(when (version<= "28.1" emacs-version)
+  (require 'shortdoc)
+
+  (define-short-documentation-group f
+    "Paths"
+    (f-join
+     :eval (f-join "path")
+     :eval (f-join "path" "to")
+     :eval (f-join "/" "path" "to" "heaven")
+     :eval (f-join "path" "/to" "file"))
+
+    (f-split
+     :eval (f-split "path")
+     :eval (f-split "path/to")
+     :eval (f-split "/path/to/heaven")
+     :eval (f-split "~/back/to/earth"))
+
+    (f-expand
+     :no-eval (f-expand "name")
+     :result-string "/default/directory/name"
+     :no-eval (f-expand "name" "other/directory")
+     :result-string "other/directory/name")
+
+    (f-filename
+     :eval (f-filename "path/to/file.ext")
+     :eval (f-filename "path/to/directory"))
+
+    (f-dirname
+     :eval (f-dirname "path/to/file.ext")
+     :eval (f-dirname "path/to/directory")
+     :eval (f-dirname "/"))
+
+    (f-common-parent
+     :eval (f-common-parent '("foo/bar/baz" "foo/bar/qux" "foo/bar/mux"))
+     :eval (f-common-parent '("/foo/bar/baz" "/foo/bar/qux" "/foo/bax/mux"))
+     :eval (f-common-parent '("foo/bar/baz" "quack/bar/qux" "lack/bar/mux")))
+
+    (f-ext
+     :eval (f-ext "path/to/file")
+     :eval (f-ext "path/to/file.txt")
+     :eval (f-ext "path/to/file.txt.org"))
+
+    (f-no-ext
+     :eval (f-no-ext "path/to/file")
+     :eval (f-no-ext "path/to/file.txt")
+     :eval (f-no-ext "path/to/file.txt.org"))
+
+    (f-swap-ext
+     :eval (f-swap-ext "path/to/file.ext" "org"))
+
+    (f-base
+     :eval (f-base "path/to/file.ext")
+     :eval (f-base "path/to/directory"))
+
+    (f-relative
+     :eval (f-relative "/some/path/relative/to/my/file.txt" "/some/path/")
+     :eval (f-relative "/default/directory/my/file.txt"))
+
+    (f-short
+     :no-eval (f-short "/Users/foo/Code/on/macOS")
+     :result-string "~/Code/on/macOS"
+     :no-eval (f-short "/home/foo/Code/on/linux")
+     :result-string "~/Code/on/linux"
+     :eval (f-short "/path/to/Code/bar"))
+
+    (f-long
+     :eval (f-long "~/Code/bar")
+     :eval (f-long "/path/to/Code/bar"))
+
+    (f-canonical
+     :eval (f-canonical "/path/to/real/file")
+     :no-eval (f-canonical "/link/to/file")
+     :result-string "/path/to/real/file")
+
+    (f-slash
+     :no-eval (f-slash "/path/to/file")
+     :result-string "/path/to/file"
+     :no-eval (f-slash "/path/to/dir")
+     :result-string "/path/to/dir/"
+     :no-eval (f-slash "/path/to/dir/")
+     :result-string "/path/to/dir/")
+
+    (f-full
+     :eval (f-full "~/path/to/file")
+     :eval (f-full "~/path/to/dir")
+     :eval (f-full "~/path/to/dir/"))
+
+    (f-uniquify
+     :eval (f-uniquify '("/foo/bar" "/foo/baz" "/foo/quux"))
+     :eval (f-uniquify '("/foo/bar" "/www/bar" "/foo/quux"))
+     :eval (f-uniquify '("/foo/bar" "/www/bar" "/www/bar/quux"))
+     :eval (f-uniquify '("/foo/bar" "/foo/baz" "/home/www/bar" "/home/www/baz" "/var/foo" "/opt/foo/www/baz")))
+
+    (f-uniquify-alist
+     :eval (f-uniquify-alist '("/foo/bar" "/foo/baz" "/foo/quux"))
+     :eval (f-uniquify-alist '("/foo/bar" "/www/bar" "/foo/quux"))
+     :eval (f-uniquify-alist '("/foo/bar" "/www/bar" "/www/bar/quux"))
+     :eval (f-uniquify-alist '("/foo/bar" "/foo/baz" "/home/www/bar" "/home/www/baz" "/var/foo" "/opt/foo/www/baz")))
+
+    "I/O"
+    (f-read-bytes
+     :no-eval* (f-read-bytes "path/to/binary/data"))
+
+    (f-write-bytes
+     :no-eval* (f-write-bytes (unibyte-string 72 101 108 108 111 32 119 111 114 108 100) "path/to/binary/data"))
+
+    (f-append-bytes
+     :no-eval* (f-append-bytes "path/to/file" (unibyte-string 72 101 108 108 111 32 119 111 114 108 100)))
+
+    (f-read-text
+     :no-eval* (f-read-text "path/to/file.txt" 'utf-8)
+     :no-eval* (f-read "path/to/file.txt" 'utf-8))
+
+    (f-write-text
+     :no-eval* (f-write-text "Hello world" 'utf-8 "path/to/file.txt")
+     :no-eval* (f-write "Hello world" 'utf-8 "path/to/file.txt"))
+
+    (f-append-text
+     :no-eval* (f-append-text "Hello world" 'utf-8 "path/to/file.txt")
+     :no-eval* (f-append "Hello world" 'utf-8 "path/to/file.txt"))
+
+    "Destructive"
+    (f-mkdir
+     :no-eval (f-mkdir "dir")
+     :result-string "creates /default/directory/dir"
+     :no-eval (f-mkdir "other" "dir")
+     :result-string "creates /default/directory/other/dir"
+     :no-eval (f-mkdir "/" "some" "path")
+     :result-string "creates /some/path"
+     :no-eval (f-mkdir "~" "yet" "another" "dir")
+     :result-string "creates ~/yet/another/dir")
+
+    (f-mkdir-full-path
+     :no-eval (f-mkdir-full-path "dir")
+     :result-string "creates /default/directory/dir"
+     :no-eval (f-mkdir-full-path "other/dir")
+     :result-string "creates /default/directory/other/dir"
+     :no-eval (f-mkdir-full-path "/some/path")
+     :result-string "creates /some/path"
+     :no-eval (f-mkdir-full-path "~/yet/another/dir")
+     :result-string "creates ~/yet/another/dir")
+
+    (f-delete
+     :no-eval* (f-delete "dir")
+     :no-eval* (f-delete "other/dir" t)
+     :no-eval* (f-delete "path/to/file.txt"))
+
+    (f-symlink
+     :no-eval* (f-symlink "path/to/source" "path/to/link"))
+
+    (f-move
+     :no-eval* (f-move "path/to/file.txt" "new-file.txt")
+     :no-eval* (f-move "path/to/file.txt" "other/path"))
+
+    (f-copy
+     :no-eval* (f-copy "path/to/file.txt" "new-file.txt")
+     :no-eval* (f-copy "path/to/dir" "other/dir"))
+
+    (f-copy-contents
+     :no-eval* (f-copy-contents "path/to/dir" "path/to/other/dir"))
+
+    (f-touch
+     :no-eval* (f-touch "path/to/existing/file.txt")
+     :no-eval* (f-touch "path/to/non/existing/file.txt"))
+
+    "Predicates"
+    (f-exists-p
+     :no-eval* (f-exists-p "path/to/file.txt")
+     :no-eval* (f-exists-p "path/to/dir"))
+
+    (f-directory-p
+     :no-eval* (f-directory-p "path/to/file.txt")
+     :no-eval* (f-directory-p "path/to/dir"))
+
+    (f-file-p
+     :no-eval* (f-file-p "path/to/file.txt")
+     :no-eval* (f-file-p "path/to/dir"))
+
+    (f-symlink-p
+     :no-eval* (f-symlink-p "path/to/file.txt")
+     :no-eval* (f-symlink-p "path/to/dir")
+     :no-eval* (f-symlink-p "path/to/link"))
+
+    (f-readable-p
+     :no-eval* (f-readable-p "path/to/file.txt")
+     :no-eval* (f-readable-p "path/to/dir"))
+
+    (f-writable-p
+     :no-eval* (f-writable-p "path/to/file.txt")
+     :no-eval* (f-writable-p "path/to/dir"))
+
+    (f-executable-p
+     :no-eval* (f-executable-p "path/to/file.txt")
+     :no-eval* (f-executable-p "path/to/dir"))
+
+    (f-absolute-p
+     :eval (f-absolute-p "path/to/dir")
+     :eval (f-absolute-p "/full/path/to/dir"))
+
+    (f-relative-p
+     :eval (f-relative-p "path/to/dir")
+     :eval (f-relative-p "/full/path/to/dir"))
+
+    (f-root-p
+     :eval (f-root-p "/")
+     :eval (f-root-p "/not/root"))
+
+    (f-ext-p
+     :eval (f-ext-p "path/to/file.el" "el")
+     :eval (f-ext-p "path/to/file.el" "txt")
+     :eval (f-ext-p "path/to/file.el")
+     :eval (f-ext-p "path/to/file"))
+
+    (f-same-p
+     :eval (f-same-p "foo.txt" "foo.txt")
+     :eval (f-same-p "foo/bar/../baz" "foo/baz")
+     :eval (f-same-p "/path/to/foo.txt" "/path/to/bar.txt"))
+
+    (f-parent-of-p
+     :no-eval (f-parent-of-p "/path/to" "/path/to/dir")
+     :result t
+     :no-eval (f-parent-of-p "/path/to/dir" "/path/to")
+     :result nil
+     :no-eval (f-parent-of-p "/path/to" "/path/to")
+     :result nil)
+
+    (f-child-of-p
+     :no-eval (f-child-of-p "/path/to" "/path/to/dir")
+     :result nil
+     :no-eval (f-child-of-p "/path/to/dir" "/path/to")
+     :result t
+     :no-eval (f-child-of-p "/path/to" "/path/to")
+     :result nil)
+
+    (f-ancestor-of-p
+     :no-eval (f-ancestor-of-p "/path/to" "/path/to/dir")
+     :result t
+     :no-eval (f-ancestor-of-p "/path" "/path/to/dir")
+     :result t
+     :no-eval (f-ancestor-of-p "/path/to/dir" "/path/to")
+     :result nil
+     :no-eval (f-ancestor-of-p "/path/to" "/path/to")
+     :result nil)
+
+    (f-descendant-of-p
+     :no-eval (f-descendant-of-p "/path/to/dir" "/path/to")
+     :result t
+     :no-eval (f-descendant-of-p "/path/to/dir" "/path")
+     :result t
+     :no-eval (f-descendant-of-p "/path/to" "/path/to/dir")
+     :result nil
+     :no-eval (f-descendant-of-p "/path/to" "/path/to")
+     :result nil)
+
+    (f-hidden-p
+     :no-eval (f-hidden-p "/path/to/foo")
+     :result nil
+     :no-eval (f-hidden-p "/path/to/.foo")
+     :result t)
+
+    (f-empty-p
+     :no-eval (f-empty-p "/path/to/empty-file")
+     :result t
+     :no-eval (f-empty-p "/path/to/file-with-contents")
+     :result nil
+     :no-eval (f-empty-p "/path/to/empty-dir/")
+     :result t
+     :no-eval (f-empty-p "/path/to/dir-with-contents/")
+     :result nil)
+
+    "Stats"
+    (f-size
+     :no-eval* (f-size "path/to/file.txt")
+     :no-eval* (f-size "path/to/dir"))
+
+    (f-depth
+     :eval (f-depth "/")
+     :eval (f-depth "/var/")
+     :eval (f-depth "/usr/local/bin"))
+
+    (f-change-time
+     :no-eval* (f-change-time "path/to/file.txt")
+     :no-eval* (f-change-time "path/to/dir"))
+
+    (f-modification-time
+     :no-eval* (f-modification-time "path/to/file.txt")
+     :no-eval* (f-modification-time "path/to/dir"))
+
+    (f-access-time
+     :no-eval* (f-access-time "path/to/file.txt")
+     :no-eval* (f-access-time "path/to/dir"))
+
+    "Misc"
+    (f-this-file
+     :no-eval* (f-this-file))
+
+    (f-path-separator
+     :eval (f-path-separator))
+
+    (f-glob
+     :noeval* (f-glob "path/to/*.el")
+     :noeval* (f-glob "*.el" "path/to"))
+
+    (f-entries
+     :no-eval* (f-entries "path/to/dir")
+     :no-eval* (f-entries "path/to/dir" (lambda (file) (s-matches? "test" file)))
+     :no-eval* (f-entries "path/to/dir" nil t)
+     :no-eval* (f--entries "path/to/dir" (s-matches? "test" it)))
+
+    (f-directories
+     :no-eval* (f-directories "path/to/dir")
+     :no-eval* (f-directories "path/to/dir" (lambda (dir) (equal (f-filename dir) "test")))
+     :no-eval* (f-directories "path/to/dir" nil t)
+     :no-eval* (f--directories "path/to/dir" (equal (f-filename it) "test")))
+
+    (f-files
+     :no-eval* (f-files "path/to/dir")
+     :no-eval* (f-files "path/to/dir" (lambda (file) (equal (f-ext file) "el")))
+     :no-eval* (f-files "path/to/dir" nil t)
+     :no-eval* (f--files "path/to/dir" (equal (f-ext it) "el")))
+
+    (f-root
+     :eval (f-root))
+
+    (f-traverse-upwards
+     :no-eval* (f-traverse-upwards
+                (lambda (path)
+                  (f-exists? (f-expand ".git" path)))
+                start-path)
+
+     :no-eval* (f--traverse-upwards (f-exists? (f-expand ".git" it)) start-path))
+
+    (f-with-sandbox
+     :no-eval (f-with-sandbox foo-path
+                (f-touch (f-expand "foo" foo-path)))
+     :no-eval (f-with-sandbox (list foo-path bar-path)
+                (f-touch (f-expand "foo" foo-path))
+                (f-touch (f-expand "bar" bar-path)))
+     :no-eval (f-with-sandbox foo-path
+                (f-touch (f-expand "bar" bar-path)))))) ;; "Destructive operation outside sandbox"
+
+(eval-when-compile
+  (when (version< emacs-version "28.1")
+    (warn "Emacs should not be compiling this file")))
+
+(provide 'f-shortdoc)
+
+;;; f-shortdoc.el ends here
 #+end_src
 
 ** s.el
@@ -7848,6 +8234,7 @@ The tangle functions are adapted from [[https://emacs.stackexchange.com/a/29884/
 Must be last; [[https://github.com/rejeep/f.el][f.el]] requires [[https://github.com/magnars/dash.el][dash.el]] and [[https://github.com/magnars/s.el][s.el]]
 
 #+begin_src emacs-lisp
+    "f-shortdoc"
     "f"
 #+end_src
 
