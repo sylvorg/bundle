@@ -1278,13 +1278,13 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 #+end_src
 
 ** python-app
-*** include.mk
-
-#+begin_src makefile :tangle (meq/tangle-path)
-<<makefile>>
-#+end_src
-
 *** makefile
+
+#+name: cbcd9114-187b-4053-aaaf-e9b68353f8c9
+#+begin_src emacs-lisp :var elisp='nil
+(format-spec "nix eval --impure --expr %q((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath%q | tr -d '%q' 2> /dev/null"
+  `((?q . ,(if elisp "\\\"" "\""))))
+#+end_src
 
 Adapted from [[https://stackoverflow.com/users/428803/joshua][Joshua's]] answer [[https://stackoverflow.com/a/4210080/10827766][here]],
 [[https://superuser.com/users/48602/notinlist][Notinlist's]] answer [[https://superuser.com/a/566199/1154755][here]],
@@ -1292,7 +1292,7 @@ and [[https://www.cyberciti.biz/faq/how-to-show-recursive-directory-listing-on-l
 
 #+name: 8524a302-71f9-4752-9fbf-675d99285846
 #+begin_src makefile :tangle (meq/tangle-path)
-include: $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/include.mk
+<<makefile>>
 
 poetry2setup: tu
 |$(call nixShell,$(type)) "cd $(mkfileDir) && poetry2setup > $(mkfileDir)/setup.py && cd -"
@@ -1325,12 +1325,6 @@ super: test push
 #+end_src
 
 ** python-package
-*** include.mk
-
-#+begin_src makefile :tangle (meq/tangle-path)
-<<makefile>>
-#+end_src
-
 *** makefile
 
 #+begin_src makefile :tangle (meq/tangle-path)
@@ -8482,7 +8476,7 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
 (defun get-README (&optional return-link setupfile lobfile) (interactive)
     (let* ((README (f-join "settings" "README.org"))
         (settings-README (f-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) "README.org"))))
-        (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
+        (flake-settings (s-trim (shell-command-to-string "<<cbcd9114-187b-4053-aaaf-e9b68353f8c9(elisp='t)>>")))
         (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
         (repo-README (f-expand README))
         (home-README (f-expand (f-join "~" README)))

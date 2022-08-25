@@ -1776,7 +1776,7 @@
     in with lib; mkOutputs {
         inherit inputs make;
         pname = "settings";
-        callPackage = { stdenv, emacsGit-nox, pname }: stdenv.mkDerivation rec {
+        callPackage = { stdenv, emacs-nox, pname }: stdenv.mkDerivation rec {
             inherit pname;
             version = "1.0.0.0";
             src = ./.;
