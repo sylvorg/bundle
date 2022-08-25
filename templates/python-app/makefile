@@ -73,10 +73,8 @@ update-%: add
 |$(eval input := $(call wildcardValue,$@))
 ifeq ($(input), settings)
 |-[ $(projectName) != "settings" ] && $(call fallback,$(updateInput) $(input))
-else ifeq ($(input), all)
-|$(updateCommand)
 else
-|$(call fallback,$(updateInput) $(input))
+|[ $(input) == "all" ] && $(updateCommand) || $(call fallback,$(updateInput) $(input))
 endif
 
 pre-tangle: update-settings
@@ -91,7 +89,7 @@ tangle-%: pre-tangle
 
 tu: tangle update
 
-tu-%: tangle update-%
+tu-%: tangle update-% ;
 
 develop: tu
 |nix develop --show-trace "$(realfileDir)#makefile-$(type)"

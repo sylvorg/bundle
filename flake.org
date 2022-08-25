@@ -752,6 +752,21 @@ Adapted from [[https://gist.github.com/adisbladis/2a44cded73e048458a815b5822eea1
         })); });
 #+end_src
 
+** Default System
+
+#+begin_src nix
+        defaultSystem = "x86_64-linux";
+#+end_src
+
+** Default System
+
+#+begin_src nix
+        workingSystems = with lib; subtractLists (flatten [
+            (filter (system: hasPrefix "mips" system) allSystems)
+            "x86_64-solaris"
+        ]) allSystems;
+#+end_src
+
 ** callPackages
 
 #+begin_src nix
@@ -1433,7 +1448,9 @@ You can use attribute sets to reassign packages from a particular channel, such 
                             pkg1 = if pkgIsAttrs then (last (attrNames pkg')) else pkg';
                             pkg2 = if pkgIsAttrs then (last (attrValues pkg')) else pkg';
                             self = (pkgchannel == channel) || (pkgchannel == "self");
-                        in final: prev: { "${pkg1}" = if self then (if pkgIsAttrs then final.${pkg2} else prev.${pkg2}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg2}; }
+                        in final: prev: {
+                            ${if (self || (elem prev.stdenv.targetPlatform.system (attrNames inputs.${pkgchannel}.legacyPackages))) then pkg1 else null} = if self then (if pkgIsAttrs then final.${pkg2} else prev.${pkg2}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg2};
+                        }
                     ) pkglist
                 ) pkgsets)
 #+end_src
@@ -1449,15 +1466,20 @@ You can use attribute sets to reassign packages from a particular channel, such 
                 in mapAttrsToList (
                     pkgchannel: pkglist': let
                         pkglist = if (isAttrs pkglist') then [ pkglist' ] else pkglist';
+                        channelSystems = attrNames inputs.${pkgchannel}.legacyPackages;
                     in map (
                         pkg': let
                             pkg1 = last (attrNames pkg');
                             pkg2Pre = last (attrValues pkg');
                             pkg2IsString = isString pkg2Pre;
                             self = (pkgchannel == channel) || (pkgchannel == "self");
-                            pkgFunc = pkg: { "${pkg}" = if self then (if pkgIsAttrs then final.${pkg} else prev.${pkg}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg1}.${pkg}; };
+                            pkgFunc = pkg: {
+                                ${if (self || (elem prev.stdenv.targetPlatform.system channelSystems)) then pkg else null} = if self then (if pkgIsAttrs then final.${pkg} else prev.${pkg}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg1}.${pkg};
+                            };
                             pkg2 = if pkg2IsString then (pkgFunc pkg2Pre) else (genAttrs pkg2Pre pkgFunc);
-                        in final: prev: { "${pkg1}" = pkg2; }
+                        in final: prev: {
+                            ${if (self || (elem prev.stdenv.targetPlatform.system channelSystems)) then pkg1 else null} = pkg2;
+                        }
                     ) pkglist
                 ) pkgsets)
 #+end_src
@@ -1485,7 +1507,9 @@ You can use attribute sets to reassign packages from a particular channel, such 
                                 pkgs = python3Packages;
                             };
                     }); };
-                    gum = final: prev: { gum = prev.gum or inputs.nixos-master.legacyPackages.${final.stdenv.targetPlatform.system}.gum; };
+                    gum = final: prev: {
+                        ${if ((elem prev.stdenv.targetPlatform.system (attrNames inputs.nixos-master.legacyPackages)) || (elem "gum" (attrNames prev))) then "gum" else null} = prev.gum or inputs.nixos-master.legacyPackages.${final.stdenv.targetPlatform.system}.gum;
+                    };
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
 #+end_src
 
@@ -2018,7 +2042,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
 #+begin_src nix
         templates = with lib; rec {
             templates = let
-                allTemplates = mapAttrs (n: path: { description = "The {n} template!"; inherit path; }) (j.imports.set {
+                allTemplates = mapAttrs (n: path: { description = "The ${n} template!"; inherit path; }) (j.imports.set {
                     dir = ./templates;
                     ignores.files = true;
                     files = true;
@@ -2038,7 +2062,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
         individual-outputs = with lib; j.foldToSet [
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs; }
+            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs defaultSystem workingSystems; }
         ];
 #+end_src
 
@@ -2096,8 +2120,8 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
                 defaultOverlay = default;
             };
             official-outputs = let
-                oo = eachSystem allSystems (system: let
-                    made = make system (attrValues overlayset.overlays);
+                oo = eachSystem workingSystems (system: let
+                    made = make system overlayset.overlays;
                 in rec {
                     inherit (made) nixpkgs pkgs legacyPackages;
                     inherit made;
@@ -2142,10 +2166,14 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
                 overlayset
                 {
                     inherit pname callPackage type' type;
-                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) allSystems);
+                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems);
                 }
             ];
-        in recursiveUpdate official-outputs (eachSystem allSystems (extraSystemOutputs official-outputs.oo));
+        in j.foldToSet' [
+            official-outputs
+            (eachSystem workingSystems (extraSystemOutputs official-outputs.oo))
+            extraOutputs
+        ];
 #+end_src
 
 ** Make
@@ -2155,7 +2183,7 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
             config' = rec {
                 base = { inherit system; };
                 default = base // { config = lib.j.attrs.configs.nixpkgs; };
-                overlayed = default // { inherit overlays; };
+                overlayed = default // { overlays = attrValues overlays; };
             };
             nixpkgs' = {
                 package = inputs.nixpkgs;
@@ -2271,7 +2299,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
             };
             mkPackages = {
                 default = nixpkgs: j.filters.has.attrs [
-                    (subtractLists (attrNames nixpkgs.legacyPackages.${system}) (attrNames pkgs))
+                    (subtractLists (attrNames (nixpkgs.legacyPackages.${system} or nixpkgs.legacyPackages.${defaultSystem})) (attrNames pkgs))
                     (attrNames overlays)
                 ] pkgs;
                 node = nodeOverlays: j.mapAttrNames (n: v: "nodejs-${n}") (j.filters.has.attrs (map attrNames nodeOverlays) pkgs.nodePackages);
@@ -2298,7 +2326,9 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
             '';
             meta.mainprogram = "org-tangle";
             postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-            makeWrapperArgs = toList "--set PATH ${makeBinPath [ inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs-nox ]}";
+            makeWrapperArgs = toList "--set PATH ${makeBinPath [
+                (if (elem stdenv.targetPlatform.system (attrNames inputs.nixpkgs.legacyPackages)) then inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs-nox else emacs-nox)
+            ]}";
         };
         inherit (overlayset) overlays;
         settings = true;
@@ -2307,7 +2337,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
         in rec {
             packages = flattenTree (j.foldToSet [
                 (made.mkPackages.default inputs.nixpkgs)
-                (made.mkPackages.node overlayset.nodeOverlays overlayset.yarnOverlays)
+                (made.mkPackages.node [ overlayset.nodeOverlays overlayset.yarnOverlays ])
                 made.mkPackages.python
             ]);
             devShells = with pkgs; {

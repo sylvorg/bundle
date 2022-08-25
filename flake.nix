@@ -636,6 +636,11 @@
                    else (throw ''To the developer of the settings module: you missed a "${n}" version somewhere in the following sets: [ "${stringsets}" ]'')) versions;
             };
         })); });
+        defaultSystem = "x86_64-linux";
+        workingSystems = with lib; subtractLists (flatten [
+            (filter (system: hasPrefix "mips" system) allSystems)
+            "x86_64-solaris"
+        ]) allSystems;
         callPackages = with lib; {
             sysget = { stdenv, installShellFiles, pname }: stdenv.mkDerivation rec {
                 inherit pname;
@@ -1102,7 +1107,9 @@
                             pkg1 = if pkgIsAttrs then (last (attrNames pkg')) else pkg';
                             pkg2 = if pkgIsAttrs then (last (attrValues pkg')) else pkg';
                             self = (pkgchannel == channel) || (pkgchannel == "self");
-                        in final: prev: { "${pkg1}" = if self then (if pkgIsAttrs then final.${pkg2} else prev.${pkg2}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg2}; }
+                        in final: prev: {
+                            ${if (self || (elem prev.stdenv.targetPlatform.system (attrNames inputs.${pkgchannel}.legacyPackages))) then pkg1 else null} = if self then (if pkgIsAttrs then final.${pkg2} else prev.${pkg2}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg2};
+                        }
                     ) pkglist
                 ) pkgsets)
                 (let pkgsets = {
@@ -1113,15 +1120,20 @@
                 in mapAttrsToList (
                     pkgchannel: pkglist': let
                         pkglist = if (isAttrs pkglist') then [ pkglist' ] else pkglist';
+                        channelSystems = attrNames inputs.${pkgchannel}.legacyPackages;
                     in map (
                         pkg': let
                             pkg1 = last (attrNames pkg');
                             pkg2Pre = last (attrValues pkg');
                             pkg2IsString = isString pkg2Pre;
                             self = (pkgchannel == channel) || (pkgchannel == "self");
-                            pkgFunc = pkg: { "${pkg}" = if self then (if pkgIsAttrs then final.${pkg} else prev.${pkg}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg1}.${pkg}; };
+                            pkgFunc = pkg: {
+                                ${if (self || (elem prev.stdenv.targetPlatform.system channelSystems)) then pkg else null} = if self then (if pkgIsAttrs then final.${pkg} else prev.${pkg}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg1}.${pkg};
+                            };
                             pkg2 = if pkg2IsString then (pkgFunc pkg2Pre) else (genAttrs pkg2Pre pkgFunc);
-                        in final: prev: { "${pkg1}" = pkg2; }
+                        in final: prev: {
+                            ${if (self || (elem prev.stdenv.targetPlatform.system channelSystems)) then pkg1 else null} = pkg2;
+                        }
                     ) pkglist
                 ) pkgsets)
                 {
@@ -1144,7 +1156,9 @@
                                 pkgs = python3Packages;
                             };
                     }); };
-                    gum = final: prev: { gum = prev.gum or inputs.nixos-master.legacyPackages.${final.stdenv.targetPlatform.system}.gum; };
+                    gum = final: prev: {
+                        ${if ((elem prev.stdenv.targetPlatform.system (attrNames inputs.nixos-master.legacyPackages)) || (elem "gum" (attrNames prev))) then "gum" else null} = prev.gum or inputs.nixos-master.legacyPackages.${final.stdenv.targetPlatform.system}.gum;
+                    };
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
                     emacs = inputs.emacs.overlay;
@@ -1545,7 +1559,7 @@
         };
         templates = with lib; rec {
             templates = let
-                allTemplates = mapAttrs (n: path: { description = "The {n} template!"; inherit path; }) (j.imports.set {
+                allTemplates = mapAttrs (n: path: { description = "The ${n} template!"; inherit path; }) (j.imports.set {
                     dir = ./templates;
                     ignores.files = true;
                     files = true;
@@ -1560,7 +1574,7 @@
         individual-outputs = with lib; j.foldToSet [
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs; }
+            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs defaultSystem workingSystems; }
         ];
         mkOutputs = with lib; {
             pname,
@@ -1605,8 +1619,8 @@
                 defaultOverlay = default;
             };
             official-outputs = let
-                oo = eachSystem allSystems (system: let
-                    made = make system (attrValues overlayset.overlays);
+                oo = eachSystem workingSystems (system: let
+                    made = make system overlayset.overlays;
                 in rec {
                     inherit (made) nixpkgs pkgs legacyPackages;
                     inherit made;
@@ -1651,15 +1665,19 @@
                 overlayset
                 {
                     inherit pname callPackage type' type;
-                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) allSystems);
+                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems);
                 }
             ];
-        in recursiveUpdate official-outputs (eachSystem allSystems (extraSystemOutputs official-outputs.oo));
+        in j.foldToSet' [
+            official-outputs
+            (eachSystem workingSystems (extraSystemOutputs official-outputs.oo))
+            extraOutputs
+        ];
         make = system: overlays: with lib; rec {
             config' = rec {
                 base = { inherit system; };
                 default = base // { config = lib.j.attrs.configs.nixpkgs; };
-                overlayed = default // { inherit overlays; };
+                overlayed = default // { overlays = attrValues overlays; };
             };
             nixpkgs' = {
                 package = inputs.nixpkgs;
@@ -1766,7 +1784,7 @@
             };
             mkPackages = {
                 default = nixpkgs: j.filters.has.attrs [
-                    (subtractLists (attrNames nixpkgs.legacyPackages.${system}) (attrNames pkgs))
+                    (subtractLists (attrNames (nixpkgs.legacyPackages.${system} or nixpkgs.legacyPackages.${defaultSystem})) (attrNames pkgs))
                     (attrNames overlays)
                 ] pkgs;
                 node = nodeOverlays: j.mapAttrNames (n: v: "nodejs-${n}") (j.filters.has.attrs (map attrNames nodeOverlays) pkgs.nodePackages);
@@ -1788,7 +1806,9 @@
             '';
             meta.mainprogram = "org-tangle";
             postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-            makeWrapperArgs = toList "--set PATH ${makeBinPath [ inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs-nox ]}";
+            makeWrapperArgs = toList "--set PATH ${makeBinPath [
+                (if (elem stdenv.targetPlatform.system (attrNames inputs.nixpkgs.legacyPackages)) then inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs-nox else emacs-nox)
+            ]}";
         };
         inherit (overlayset) overlays;
         settings = true;
@@ -1797,7 +1817,7 @@
         in rec {
             packages = flattenTree (j.foldToSet [
                 (made.mkPackages.default inputs.nixpkgs)
-                (made.mkPackages.node overlayset.nodeOverlays overlayset.yarnOverlays)
+                (made.mkPackages.node [ overlayset.nodeOverlays overlayset.yarnOverlays ])
                 made.mkPackages.python
             ]);
             devShells = with pkgs; {
