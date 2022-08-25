@@ -71,11 +71,7 @@ endif
 update-%: updateInput := nix flake lock $(realfileDir) --show-trace --update-input
 update-%: add
 |$(eval input := $(call wildcardValue,$@))
-ifeq ($(input), settings)
-|-[ $(projectName) != "settings" ] && $(call fallback,$(updateInput) $(input))
-else
-|[ $(input) == "all" ] && $(updateCommand) || $(call fallback,$(updateInput) $(input))
-endif
+|([ "$(input)" == "settings" ] && [ "$(projectName)" != "settings" ] && $(call fallback,$(updateInput) $(input))) || ([ "$(input)" == "all" ] && $(updateCommand) || $(call fallback,$(updateInput) $(input)))
 
 pre-tangle: update-settings
 |$(removeTangleBackups)
@@ -113,7 +109,7 @@ build-%: tu
 |nix build --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
 
 run: tu
-|export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "$(command)" && cd $PPWD
+|export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "$(command)" && cd $$PPWD
 
 run-%: tu
 |nix run --show-trace "$(realfileDir)#$(call wildcardValue,$@)" -- $(args)
@@ -121,7 +117,7 @@ run-%: tu
 rund: run-default
 
 define touch-test-command
-export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "touch $1 && $(type) $1" && cd $PPWD
+export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "touch $1 && $(type) $1" && cd $$PPWD
 endef
 
 touch-test: tu
