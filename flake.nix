@@ -543,7 +543,7 @@
             recursiveUpdateAll = recursiveUpdateAll' "\n";
             foldRecursively = attrs: foldr recursiveUpdateAll {} attrs;
 
-            toPythonApplication = final: prev: ppkgs: extras: pname: {}: ppkgs.buildPythonApplication (j.foldToSet [
+            toPythonApplication = final: prev: ppkgs: extras: pname: ppkgs.buildPythonApplication (j.foldToSet [
                 (filterAttrs (n: v: ! ((isDerivation v) || (elem n [
                     "drvAttrs"
                     "override"

@@ -71,7 +71,7 @@ endif
 update-%: updateInput := nix flake lock $(realfileDir) --show-trace --update-input
 update-%: add
 |$(eval input := $(call wildcardValue,$@))
-|([ "$(input)" == "settings" ] && [ "$(projectName)" != "settings" ] && $(call fallback,$(updateInput) $(input))) || ([ "$(input)" == "all" ] && $(updateCommand) || $(call fallback,$(updateInput) $(input)))
+|([ "$(input)" == "settings" ] && [ "$(projectName)" != "settings" ] && $(call fallback,$(updateInput) $(input))) || ([ "$(input)" == "all" ] && $(updateCommand)) || $(call fallback,$(updateInput) $(input))
 
 pre-tangle: update-settings
 |$(removeTangleBackups)
