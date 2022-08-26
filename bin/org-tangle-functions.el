@@ -62,8 +62,11 @@
     (let ((block-lang (car by-fn)))
         (mapc (lambda (spec)
                 (let* ((get-spec (lambda (name) (cdr (assq name (nth 4 spec)))))
-                        (file-name (funcall get-spec :tangle)))
-                    (when (and file-name (not (string= file-name "no")))
+                        (file-name (let ((fn (funcall get-spec :tangle)))
+                                      (cond ((string= fn "yes") (concat (file-name-sans-extension (nth 1 (cadr by-fn))) "." block-lang))
+                                        ((string= fn "no") nil)
+                                        (t fn)))))
+                    (when file-name
                         (with-temp-buffer
                             (let ((fnd (file-name-directory file-name))
                                     (she-bang (let ((sheb (funcall get-spec :shebang)))
