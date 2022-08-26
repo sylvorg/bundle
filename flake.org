@@ -657,7 +657,7 @@ Adapted from [[https://gist.github.com/adisbladis/2a44cded73e048458a815b5822eea1
             recursiveUpdateAll = recursiveUpdateAll' "\n";
             foldRecursively = attrs: foldr recursiveUpdateAll {} attrs;
 
-            toPythonApplication = final: prev: ppkgs: extras: pname: ppkgs.buildPythonApplication (j.foldToSet [
+            toPythonApplication = final: prev: ppkgs: extras: pname: { ... }: ppkgs.buildPythonApplication (j.foldToSet [
                 (filterAttrs (n: v: ! ((isDerivation v) || (elem n [
                     "drvAttrs"
                     "override"
