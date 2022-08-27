@@ -549,6 +549,7 @@
                     version = pyVersion format pself.src;
                     format = "pyproject";
                     disabled = ppkgs.pythonOlder "3.9";
+                    meta.homepage = "https://github.com/${owner}/${pname}";
                 };
                 overrideNames = attrNames toOverride;
                 pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
@@ -572,23 +573,14 @@
                 };
                 recursiveNames = attrNames toOverride;
                 pselfRecursed = filterAttrs (n: v: elem n recursiveNames) pself;
-                toOverride' = rec {
-                    meta.homepage = "https://github.com/${owner}/${pname}";
-                };
-                overrideNames' = attrNames toOverride';
-                pselfOverride' = filterAttrs (n: v: elem n overrideNames') pself;
-            in ppkgs.buildPythonPackage (lself.foldToSet [
+            in ppkgs.buildPythonPackage (lself.foldToSet' [
                 toOverride
                 pselfOverride
-                (lself.foldToSet' [
-                    toOverride'
-                    pselfOverride'
-                ])
                 (foldRecursively [
                     toRecurse
                     pselfRecursed
                 ])
-                (filterAttrs (n: v: ! (elem n (flatten [ overrideNames recursiveNames overrideNames' "owner" "pythonImportsCheck" ]))) pself)
+                (filterAttrs (n: v: ! (elem n (flatten [ overrideNames recursiveNames "owner" "pythonImportsCheck" ]))) pself)
             ]);
             toPythonApplication = final: prev: ppkgs: extras: pname: args@{ ... }: ppkgs.buildPythonApplication (lself.foldToSet [
                 (filterAttrs (n: v: ! ((isDerivation v) || (elem n [

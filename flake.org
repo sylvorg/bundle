@@ -663,6 +663,7 @@ Adapted from [[https://gist.github.com/adisbladis/2a44cded73e048458a815b5822eea1
                     version = pyVersion format pself.src;
                     format = "pyproject";
                     disabled = ppkgs.pythonOlder "3.9";
+                    meta.homepage = "https://github.com/${owner}/${pname}";
                 };
                 overrideNames = attrNames toOverride;
                 pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
@@ -695,23 +696,14 @@ Adapted from [[https://nixos.org/manual/nixpkgs/stable/#:~:text=roughly%20transl
                 };
                 recursiveNames = attrNames toOverride;
                 pselfRecursed = filterAttrs (n: v: elem n recursiveNames) pself;
-                toOverride' = rec {
-                    meta.homepage = "https://github.com/${owner}/${pname}";
-                };
-                overrideNames' = attrNames toOverride';
-                pselfOverride' = filterAttrs (n: v: elem n overrideNames') pself;
-            in ppkgs.buildPythonPackage (lself.foldToSet [
+            in ppkgs.buildPythonPackage (lself.foldToSet' [
                 toOverride
                 pselfOverride
-                (lself.foldToSet' [
-                    toOverride'
-                    pselfOverride'
-                ])
                 (foldRecursively [
                     toRecurse
                     pselfRecursed
                 ])
-                (filterAttrs (n: v: ! (elem n (flatten [ overrideNames recursiveNames overrideNames' "owner" "pythonImportsCheck" ]))) pself)
+                (filterAttrs (n: v: ! (elem n (flatten [ overrideNames recursiveNames "owner" "pythonImportsCheck" ]))) pself)
             ]);
 #+end_src
 
