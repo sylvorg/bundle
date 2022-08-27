@@ -174,7 +174,7 @@
             ]) lockfile'.nodes));
         };
         Inputs = J.extendInputs inputs lockfile;
-        lib = inputs.nixpkgs.lib.extend (final: prev: { j = with final; makeExtensible (self: J // (rec {
+        lib = inputs.nixpkgs.lib.extend (final: prev: { j = with final; makeExtensible (lself: J // (rec {
             genAttrNames = values: f: listToAttrs (map (v: nameValuePair (f v) v) values);
             mapAttrNames = f: mapAttrs' (n: v: nameValuePair (f n v) v);
             mif = {
@@ -224,7 +224,7 @@
                 has = {
                     attrs = list: attrs: let
                         l = unique (flatten list);
-                    in self.foldToSet [
+                    in lself.foldToSet [
                         (filterAttrs (n: v: elem n l) attrs)
                         (genAttrNames (filter isDerivation l) (drv: drv.pname or drv.name))
                     ];
@@ -403,13 +403,13 @@
                             pre-orders
                         ];
                         items = let
-                            filtered-others = self.fpipe pipe-list (dirCon.attrs.others dir);
-                            filtered-dirs = self.fpipe [
+                            filtered-others = lself.fpipe pipe-list (dirCon.attrs.others dir);
+                            filtered-dirs = lself.fpipe [
                                 pipe-list
                                 (optionals recursive (mapAttrsToList (n: v: list (args // { dir = "${stringyDir}/${n}"; inherit idir; iter = iter + 1; }))))
                             ] (dirCon.attrs.dirs dir);
-                        in self.foldToSet [ filtered-others filtered-dirs ];
-                        process = self.fpipe [
+                        in lself.foldToSet [ filtered-others filtered-dirs ];
+                        process = lself.fpipe [
                             pipe-list
                             orders
                             (if names then (mapAttrNames (file: v: name { inherit suffix file; })) else [
@@ -543,7 +543,54 @@
             recursiveUpdateAll = recursiveUpdateAll' "\n";
             foldRecursively = attrs: foldr recursiveUpdateAll {} attrs;
 
-            toPythonApplication = final: prev: ppkgs: extras: pname: args@{ ... }: ppkgs.buildPythonApplication (j.foldToSet [
+            mkPythonPackage = ppkgs: pself: let
+                inherit (pself) pname owner;
+                toOverride = rec {
+                    version = pyVersion format pself.src;
+                    format = "pyproject";
+                    disabled = pythonOlder "3.9";
+                };
+                overrideNames = attrNames toOverride;
+                pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
+                toRecurse = rec {
+                    buildInputs = optional ((pself.format or toOverride.format) == "pyproject") ppkgs.poetry-core;
+                    nativeBuildInputs = buildInputs;
+                    propagatedNativeBuildInputs = pself.propagatedBuildInputs or [];
+                    postCheck = ''
+                        PYTHONPATH=${ppkgs.makePythonPath (flatten [ propagatedNativeBuildInputs (pself.propagatedNativeBuildInputs or []) ])}:$PYTHONPATH
+                        python -c "import ${concatStringsSep "; import " (flatten [ pname (pself.pythonImportsCheck or []) ])}"
+                    '';
+                    checkInputs = with ppkgs; flatten [
+                        pytestCheckHook
+                        (optional (pname != "pytest-hy") pytest-hy)
+                        pytest-randomly
+                        pytest-parametrized
+                        pytest-custom_exit_code
+                        pytest-sugar
+                    ];
+                    pytestFlagsArray = toList "--suppress-no-test-exit-code";
+                };
+                recursiveNames = attrNames toOverride;
+                pselfRecursed = filterAttrs (n: v: elem n recursiveNames) pself;
+                toOverride' = rec {
+                    meta.homepage = "https://github.com/${owner}/${pname}";
+                };
+                overrideNames' = attrNames toOverride';
+                pselfOverride' = filterAttrs (n: v: elem n overrideNames') pself;
+            in lself.foldToSet [
+                toOverride
+                pselfOverride
+                (lself.foldToSet' [
+                    toOverride'
+                    pselfOverride'
+                ])
+                (foldRecursively [
+                    toRecurse
+                    pselfRecursed
+                ])
+                (filterAttrs (n: v: ! (elem n (flatten [ overrideNames recursiveNames overrideNames' "owner" "pythonImportsCheck" ]))) pself)
+            ];
+            toPythonApplication = final: prev: ppkgs: extras: pname: args@{ ... }: ppkgs.buildPythonApplication (lself.foldToSet [
                 (filterAttrs (n: v: ! ((isDerivation v) || (elem n [
                     "drvAttrs"
                     "override"
@@ -554,6 +601,7 @@
                 (foldRecursively [
                     (rec {
                         propagatedBuildInputs = toList ppkgs.${pname};
+                        propagatedNativeBuildInputs = propagatedBuildInputs;
                         installPhase = ''
                             mkdir --parents $out/bin
                             cp $src/${pname}/${if (pathExists "${ppkgs.${pname}.src}/${pname}/__main__.py") then "__main__.py" else "__init__.py"} $out/bin/${pname}
@@ -561,7 +609,7 @@
                         '';
                         postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
                         makeWrapperArgs = flatten [
-                            "--prefix PYTHONPATH : ${placeholder "out"}/lib/${ppkgs.python.libPrefix}/site-packages"
+                            "--prefix PYTHONPATH : ${ppkgs.makePythonPath propagatedBuildInputs}"
                             (optional (extras.appPathUseBuildInputs or false) "--prefix PATH ${with final; makeBinPath (ppkgs.${pname}.buildInputs or [])}")
                             (optional (extras.appPathUseNativeBuildInputs or false) "--prefix PATH ${with final; makeBinPath (ppkgs.${pname}.nativeBuildInputs or [])}")
                         ];
@@ -589,7 +637,7 @@
                 python = rec {
                     default = prefix: inputs': let
                         inputs'' = filterAttrs (n: v: hasPrefix prefix n) inputs';
-                    in self.foldToSet [
+                    in lself.foldToSet [
                         (mapAttrs' (n: v: nameValuePair (removePrefix prefix n) v.overlay) inputs'')
                         (map (v: v.overlays or {}) (attrValues inputs''))
                     ];
@@ -638,8 +686,8 @@
                     sets = [ "inputsToOverlays" ];
                     supersets = [ "update" ];
                     stringsets = concatStringsSep ''" "'' (sets ++ supersets);
-                in if ((all (j: allSets (jn: jv: isSublist names (attrNames jv)) self.${j}.${n}) supersets) &&
-                       (all (j: isSublist names (attrNames self.${j}.${n})) sets)) then names
+                in if ((all (j: allSets (jn: jv: isSublist names (attrNames jv)) lself.${j}.${n}) supersets) &&
+                       (all (j: isSublist names (attrNames lself.${j}.${n})) sets)) then names
                    else (throw ''To the developer of the settings module: you missed a "${n}" version somewhere in the following sets: [ "${stringsets}" ]'')) versions;
             };
         })); });
@@ -1113,9 +1161,9 @@
                             pkgIsAttrs = isAttrs pkg';
                             pkg1 = if pkgIsAttrs then (last (attrNames pkg')) else pkg';
                             pkg2 = if pkgIsAttrs then (last (attrValues pkg')) else pkg';
-                            self = (pkgchannel == channel) || (pkgchannel == "self");
+                            pself = (pkgchannel == channel) || (pkgchannel == "self");
                         in final: prev: {
-                            ${if (self || (elem prev.stdenv.targetPlatform.system (attrNames inputs.${pkgchannel}.legacyPackages))) then pkg1 else null} = if self then (if pkgIsAttrs then final.${pkg2} else prev.${pkg2}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg2};
+                            ${if (pself || (elem prev.stdenv.targetPlatform.system (attrNames inputs.${pkgchannel}.legacyPackages))) then pkg1 else null} = if pself then (if pkgIsAttrs then final.${pkg2} else prev.${pkg2}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg2};
                         }
                     ) pkglist
                 ) pkgsets)
@@ -1133,13 +1181,13 @@
                             pkg1 = last (attrNames pkg');
                             pkg2Pre = last (attrValues pkg');
                             pkg2IsString = isString pkg2Pre;
-                            self = (pkgchannel == channel) || (pkgchannel == "self");
+                            pself = (pkgchannel == channel) || (pkgchannel == "self");
                             pkgFunc = pkg: {
-                                ${if (self || (elem prev.stdenv.targetPlatform.system channelSystems)) then pkg else null} = if self then (if pkgIsAttrs then final.${pkg} else prev.${pkg}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg1}.${pkg};
+                                ${if (pself || (elem prev.stdenv.targetPlatform.system channelSystems)) then pkg else null} = if pself then (if pkgIsAttrs then final.${pkg} else prev.${pkg}) else inputs.${pkgchannel}.legacyPackages.${final.stdenv.targetPlatform.system}.${pkg1}.${pkg};
                             };
                             pkg2 = if pkg2IsString then (pkgFunc pkg2Pre) else (genAttrs pkg2Pre pkgFunc);
                         in final: prev: {
-                            ${if (self || (elem prev.stdenv.targetPlatform.system channelSystems)) then pkg1 else null} = pkg2;
+                            ${if (pself || (elem prev.stdenv.targetPlatform.system channelSystems)) then pkg1 else null} = pkg2;
                         }
                     ) pkglist
                 ) pkgsets)
