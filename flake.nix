@@ -548,7 +548,7 @@
                 toOverride = rec {
                     version = pyVersion format pself.src;
                     format = "pyproject";
-                    disabled = pythonOlder "3.9";
+                    disabled = ppkgs.pythonOlder "3.9";
                 };
                 overrideNames = attrNames toOverride;
                 pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
