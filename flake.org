@@ -700,7 +700,7 @@ Adapted from [[https://nixos.org/manual/nixpkgs/stable/#:~:text=roughly%20transl
                 };
                 overrideNames' = attrNames toOverride';
                 pselfOverride' = filterAttrs (n: v: elem n overrideNames') pself;
-            in lself.foldToSet [
+            in ppkgs.buildPythonPackage (lself.foldToSet [
                 toOverride
                 pselfOverride
                 (lself.foldToSet' [
@@ -712,7 +712,7 @@ Adapted from [[https://nixos.org/manual/nixpkgs/stable/#:~:text=roughly%20transl
                     pselfRecursed
                 ])
                 (filterAttrs (n: v: ! (elem n (flatten [ overrideNames recursiveNames overrideNames' "owner" "pythonImportsCheck" ]))) pself)
-            ];
+            ]);
 #+end_src
 
 #+begin_src nix

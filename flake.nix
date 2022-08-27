@@ -577,7 +577,7 @@
                 };
                 overrideNames' = attrNames toOverride';
                 pselfOverride' = filterAttrs (n: v: elem n overrideNames') pself;
-            in lself.foldToSet [
+            in ppkgs.buildPythonPackage (lself.foldToSet [
                 toOverride
                 pselfOverride
                 (lself.foldToSet' [
@@ -589,7 +589,7 @@
                     pselfRecursed
                 ])
                 (filterAttrs (n: v: ! (elem n (flatten [ overrideNames recursiveNames overrideNames' "owner" "pythonImportsCheck" ]))) pself)
-            ];
+            ]);
             toPythonApplication = final: prev: ppkgs: extras: pname: args@{ ... }: ppkgs.buildPythonApplication (lself.foldToSet [
                 (filterAttrs (n: v: ! ((isDerivation v) || (elem n [
                     "drvAttrs"
