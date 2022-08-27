@@ -543,7 +543,7 @@
             recursiveUpdateAll = recursiveUpdateAll' "\n";
             foldRecursively = attrs: foldr recursiveUpdateAll {} attrs;
 
-            toPythonApplication = final: prev: ppkgs: extras: pname: { ... }: ppkgs.buildPythonApplication (j.foldToSet [
+            toPythonApplication = final: prev: ppkgs: extras: pname: args@{ ... }: ppkgs.buildPythonApplication (j.foldToSet [
                 (filterAttrs (n: v: ! ((isDerivation v) || (elem n [
                     "drvAttrs"
                     "override"
@@ -551,16 +551,23 @@
                     "overrideDerivation"
                     "overridePythonAttrs"
                 ]))) ppkgs.${pname})
-                (recursiveUpdateAll {
-                    propagatedBuildInputs = toList ppkgs.${pname};
-                    installPhase = ''
-                        mkdir --parents $out/bin
-                        cp $src/${pname}/${if (pathExists "${ppkgs.${pname}.src}/${pname}/__main__.py") then "__main__.py" else "__init__.py"} $out/bin/${pname}
-                        chmod +x $out/bin/${pname}
-                    '';
-                    postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-                    makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${ppkgs.python.libPrefix}/site-packages" ];
-                } ((extras.appSettings or (final: prev: {})) final prev))
+                (foldRecursively [
+                    (rec {
+                        propagatedBuildInputs = toList ppkgs.${pname};
+                        installPhase = ''
+                            mkdir --parents $out/bin
+                            cp $src/${pname}/${if (pathExists "${ppkgs.${pname}.src}/${pname}/__main__.py") then "__main__.py" else "__init__.py"} $out/bin/${pname}
+                            chmod +x $out/bin/${pname}
+                        '';
+                        postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
+                        makeWrapperArgs = flatten [
+                            "--prefix PYTHONPATH : ${placeholder "out"}/lib/${ppkgs.python.libPrefix}/site-packages"
+                            (optional (extras.appPathUseBuildInputs or false) "--prefix PATH ${with final; makeBinPath (ppkgs.${pname}.buildInputs or [])}")
+                            (optional (extras.appPathUseNativeBuildInputs or false) "--prefix PATH ${with final; makeBinPath (ppkgs.${pname}.nativeBuildInputs or [])}")
+                        ];
+                    })
+                    ((extras.appSettings or (final: prev: {})) final prev)
+                ])
             ]);
 
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
