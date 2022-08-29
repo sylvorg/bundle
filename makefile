@@ -1,6 +1,6 @@
-
 .RECIPEPREFIX := |
 .DEFAULT_GOAL := tangle
+.ONESHELL:
 
 mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfileDir := $(dir $(mkfilePath))
@@ -11,7 +11,11 @@ preFiles := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org $
 removeTangleBackups := find $(mkfileDir) -name '.\#*.org*' -print | xargs rm &> /dev/null || :
 
 define fallbackCommand
-($(removeTangleBackups)) && ($1 || ((org-tangle -f $2 > /dev/null) && $1))
+$(removeTangleBackups)
+if ! $1; then
+    org-tangle -f $2 > /dev/null
+    $1
+fi
 endef
 
 define preFallback
@@ -46,7 +50,11 @@ addCommand := git -C $(mkfileDir) add .
 updateCommand := $(call fallback,nix flake update --show-trace $(realfileDir))
 
 define tangleCommand
-($(removeTangleBackups)) && (($(call nixShell,general) "org-tangle -f $1") || org-tangle -f $1) && $(addCommand)
+$(removeTangleBackups)
+if ! $(call nixShell,general) "org-tangle -f $1"; then
+    org-tangle -f $1
+    $(addCommand)
+fi
 endef
 
 define wildcardValue
@@ -72,7 +80,13 @@ endif
 update-%: updateInput := nix flake lock $(realfileDir) --show-trace --update-input
 update-%: add
 |$(eval input := $(call wildcardValue,$@))
-|([ "$(input)" == "settings" ] && [ "$(projectName)" != "settings" ] && $(call fallback,$(updateInput) $(input))) || ([ "$(input)" == "all" ] && $(updateCommand)) || $(call fallback,$(updateInput) $(input))
+|if [ "$(input)" == "settings" ] && [ "$(projectName)" != "settings" ]; then
+|    $(call fallback,$(updateInput) $(input))
+|elif [ "$(input)" == "all" ]; then
+|    $(updateCommand)
+|else
+|    $(call fallback,$(updateInput) $(input))
+|fi
 
 pre-tangle: update-settings
 |$(removeTangleBackups)
@@ -110,7 +124,8 @@ build-%: tu
 |nix build --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
 
 run: tu
-|export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "$(command)" && cd $$PPWD
+|cd $(mkfileDir)
+|$(call nixShell,$(type)) "$(command)"
 
 run-%: tu
 |nix run --show-trace "$(realfileDir)#$(call wildcardValue,$@)" -- $(args)
@@ -118,7 +133,8 @@ run-%: tu
 rund: run-default
 
 define touch-test-command
-export PPWD=$$(pwd) && cd $(mkfileDir) && $(call nixShell,$(type)) "touch $1 && $(type) $1" && cd $$PPWD
+cd $(mkfileDir)
+$(call nixShell,$(type)) "touch $1 && $(type) $1"
 endef
 
 touch-test: tu

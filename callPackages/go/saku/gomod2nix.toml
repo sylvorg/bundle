@@ -1,0 +1,27 @@
+schema = 3
+
+[mod]
+  [mod."github.com/fatih/color"]
+    version = "v1.6.0"
+    hash = "sha256-VoXPdzrM8cKohMHJHRRnARk4H+wpjk53aaZMJkKmZpM="
+  [mod."github.com/jinzhu/copier"]
+    version = "v0.0.0-20180308034124-7e38e58719c3"
+    hash = "sha256-F3zQzaS79GsZP6pLtxSYnsX/GgTN14TuBE8QqdBnJw4="
+  [mod."github.com/mattn/go-colorable"]
+    version = "v0.0.9"
+    hash = "sha256-fVPF8VxbdggLAZnaexMl6Id1WjXKImzVySxKfa+ukts="
+  [mod."github.com/mattn/go-isatty"]
+    version = "v0.0.3"
+    hash = "sha256-9ogEEd8/kl/dImldzdBmTFdepvB0dVXEzN4o8bEqhBs="
+  [mod."github.com/shurcooL/sanitized_anchor_name"]
+    version = "v0.0.0-20170918181015-86672fcb3f95"
+    hash = "sha256-cCgSET8c3BKw25+jhvuIb9qO9eFs1YYRZeGkpA8oVZA="
+  [mod."github.com/simonleung8/flags"]
+    version = "v0.0.0-20170704170018-8020ed7bcf1a"
+    hash = "sha256-tELA7ds9PNSwmqaYKVxw5C3tWhddN1WOOEdN519u3p8="
+  [mod."golang.org/x/sys"]
+    version = "v0.0.0-20180420145319-79b0c6888797"
+    hash = "sha256-3liImocB82DknlMMwaxoqO2xDHx7Htkophyd/rW5c3k="
+  [mod."gopkg.in/russross/blackfriday.v2"]
+    version = "v2.0.0"
+    hash = "sha256-9OsPzeUMjV06n1zFwPQ2E1h7mDhezGhLiG1hMNUnsIM="

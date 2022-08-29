@@ -41,7 +41,7 @@
         nixos-master.url = github:NixOS/nixpkgs/master;
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
-        nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
+        nixpkgs.url = github:NixOS/nixpkgs/nixos-unstable;
         hy = {
             url = github:hylang/hy/035383d11b44a1731aa6c70735fa4c709979ccdb;
             flake = false;
@@ -78,6 +78,15 @@
             url = github:egoist/maid/v0.3.0;
             flake = false;
         };
+        gomod2nix.url = github:nix-community/gomod2nix;
+        saku = {
+            url = github:kt3k/saku/v1.2.4;
+            flake = false;
+        };
+        uglifycss = {
+            url = https://registry.npmjs.org/uglifycss/-/uglifycss-0.0.29.tgz;
+            flake = false;
+        };
         caddy = {
             url = github:caddyserver/caddy/v2.5.1;
             flake = false;
@@ -101,7 +110,7 @@
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
-        channel = "nixos-22-05";
+        channel = "nixos-unstable";
         registry = fromJSON ''
 {
   "flakes": [
@@ -503,8 +512,8 @@
                     };
                 };
                 node = {
-                    default = pkg: final: prev: {
-                        nodePackages = fix (extends (node-final: node-prev: recursiveUpdate node-prev (final.callPackage pkg {})) (new: prev.nodePackages));
+                    default = name: pkg: final: prev: {
+                        nodePackages = fix (extends (node-final: node-prev: recursiveUpdate node-prev (final.callPackage pkg { inherit name; })) (new: prev.nodePackages));
                     };
                     yarn = name: pkg: final: prev: {
                         nodePackages = fix (extends (node-final: node-prev: recursiveUpdate node-prev {
@@ -543,19 +552,24 @@
             recursiveUpdateAll = recursiveUpdateAll' "\n";
             foldRecursively = attrs: foldr recursiveUpdateAll {} attrs;
 
+            callPackages = attrs: mapAttrs (pname: v: final: prev: { "${pname}" = final.callPackage v { inherit pname; }; }) attrs;
+
             mkPythonPackage = ppkgs: pself: let
                 inherit (pself) pname owner;
                 toOverride = rec {
                     version = pyVersion format pself.src;
                     format = "pyproject";
                     disabled = ppkgs.pythonOlder "3.9";
-                    meta.homepage = "https://github.com/${owner}/${pname}";
+                    meta = {
+                        homepage = "https://github.com/${owner}/${pname}";
+                        position = let pos = unsafeGetAttrPos "pname" pself; in "${pos.file}:${toString pos.line}";
+                    };
                 };
                 overrideNames = attrNames toOverride;
                 pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
                 toRecurse = rec {
                     buildInputs = optional ((pself.format or toOverride.format) == "pyproject") ppkgs.poetry-core;
-                    nativeBuildInputs = buildInputs;
+                    nativeBuildInputs = flatten [ buildInputs (pself.buildInputs or []) ];
                     propagatedNativeBuildInputs = pself.propagatedBuildInputs or [];
                     postCheck = ''
                         PYTHONPATH=${ppkgs.makePythonPath (flatten [ propagatedNativeBuildInputs (pself.propagatedNativeBuildInputs or []) ])}:$PYTHONPATH
@@ -789,7 +803,6 @@
                 });
                 postPatch = "echo '${main}' > cmd/${pname}/main.go";
                 postConfigure = ''
-                    ls -la
                     cp vendor/go.sum ./
                     cp vendor/go.mod ./
                 '';
@@ -859,24 +872,31 @@
                     license = licenses.mit;
                 };
             };
+            saku = { buildGoApplication, pname }: buildGoApplication rec {
+                inherit pname;
+                inherit (Inputs.${pname}) version;
+                src = inputs.${pname};
+                modules = "${toString ./.}/callPackages/go/${pname}/gomod2nix.toml";
+            };
             nodejs = j.foldToSet [
                 (j.imports.set { dir = ./callPackages/nodejs; ignores.dirs = true; })
                 {
-                    uglifycss =  {nodeEnv, fetchurl, fetchgit, nix-gitignore, stdenv, lib, globalBuildInputs ? []}: let
+                    uglifycss = { nodeEnv, fetchurl, fetchgit, nix-gitignore, stdenv, lib, globalBuildInputs ? [], name }: let
                         sources = {};
                     in {
-                        uglifycss = nodeEnv.buildNodePackage {
-                            name = "uglifycss";
-                            packageName = "uglifycss";
+                        ${name} = nodeEnv.buildNodePackage {
+                            inherit name;
+                            packageName = name;
                             version = "0.0.29";
-                            src = fetchurl {
-                                url = "https://registry.npmjs.org/uglifycss/-/uglifycss-0.0.29.tgz";
-                                sha512 = "J2SQ2QLjiknNGbNdScaNZsXgmMGI0kYNrXaDlr4obnPW9ni1jljb1NeEVWAiTgZ8z+EBWP2ozfT9vpy03rjlMQ==";
-                            };
+                            # src = fetchurl {
+                            #     url = "https://registry.npmjs.org/${name}/-/${name}-0.0.29.tgz";
+                            #     sha512 = "J2SQ2QLjiknNGbNdScaNZsXgmMGI0kYNrXaDlr4obnPW9ni1jljb1NeEVWAiTgZ8z+EBWP2ozfT9vpy03rjlMQ==";
+                            # };
+                            src = inputs.${name};
                             buildInputs = globalBuildInputs;
                             meta = {
                                 description = "Port of YUI CSS Compressor to NodeJS";
-                                homepage = "https://github.com/fmarcia/uglifycss";
+                                homepage = "https://github.com/fmarcia/${name}";
                                 license = "MIT";
                             };
                             production = true;
@@ -1072,9 +1092,9 @@
             files = true;
         };
         overlayset = with lib; let
-            calledPackages = mapAttrs (pname: v: final: prev: { "${pname}" = final.callPackage v { inherit pname; }; }) (filterAttrs (n: v: isFunction v) callPackages);
+            calledPackages = j.callPackages (filterAttrs (n: isFunction) callPackages);
         in rec {
-            nodeOverlays = mapAttrs (n: j.update.node.default) callPackages.nodejs;
+            nodeOverlays = mapAttrs j.update.node.default callPackages.nodejs;
             yarnOverlays = mapAttrs j.update.node.yarn callPackages.yarn;
             pythonOverlays = rec {
                 python2 = j.foldToSet [
@@ -1209,6 +1229,7 @@
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
                     emacs = inputs.emacs.overlay;
+                    gomod2nix = inputs.gomod2nix.overlays.default;
                     nur = final: prev: { nur = import inputs.nur { nurpkgs = inputs.nixpkgs; pkgs = final; }; };
                     # nix = inputs.nix.overlay;
                     nix-direnv = final: prev: { nix-direnv = prev.nix-direnv.override { enableFlakes = true; }; };
@@ -1693,19 +1714,6 @@
                     ]);
                     package = packages.default;
                     defaultPackage = package;
-                    apps = mapAttrs (n: made.app) packages;
-                    app = apps.default;
-                    defaultApp = app;
-                    devShells = let
-                        default = pkgs.mkShell { buildInputs = attrValues packages; };
-                    in j.foldToSet [
-                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
-                        (made.mkfile isApp type extras pname (packages.${pname}.nativeBuildInputs or []) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
-                        { inherit default; "${pname}" = default; }
-                    ];
-                    devShell = devShells.default;
-                    defaultdevShell = devShell;
                 });
             in j.foldToSet [
                 oo
@@ -1715,9 +1723,32 @@
                     oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems);
                 }
             ];
+            extra-outputs = let
+                oo = eachSystem workingSystems (extraSystemOutputs official-outputs.oo);
+            in j.foldToSet [
+                oo
+                { oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems); }
+            ];
+            both-outputs = recursiveUpdate official-outputs extra-outputs;
         in j.foldToSet' [
-            official-outputs
-            (eachSystem workingSystems (extraSystemOutputs official-outputs.oo))
+            both-outputs
+            (eachSystem workingSystems (system: let
+                inherit (both-outputs.oo.${system}) pkgs made packages;
+            in rec {
+                apps = mapAttrs made.app packages;
+                app = apps.default;
+                defaultApp = app;
+                devShells = let
+                    default = pkgs.mkShell { buildInputs = attrValues packages; };
+                in j.foldToSet [
+                    (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                    (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
+                    (made.mkfile isApp type extras pname (packages.${pname}.nativeBuildInputs or []) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
+                    { inherit default; "${pname}" = default; }
+                ];
+                devShell = devShells.default;
+                defaultdevShell = devShell;
+            }))
             extraOutputs
         ];
         make = system: overlays: with lib; rec {
@@ -1751,7 +1782,7 @@
                     legacyPackages = pkgs;
                 })
             ];
-            app = drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name}"}"; };
+            app = name: drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name or name}"}"; };
             mkPython = python: pkglist: pname: python.withPackages (j.filters.has.list [
                 pkglist
                 pname
