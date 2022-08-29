@@ -12,7 +12,8 @@ removeTangleBackups := find $(mkfileDir) -name '.\#*.org*' -print | xargs rm &> 
 
 define fallbackCommand
 $(removeTangleBackups)
-if ! $1; then
+$1
+if [ $$? -neq 0 ]; then
     org-tangle -f $2 > /dev/null
     $1
 fi
@@ -51,7 +52,8 @@ updateCommand := $(call fallback,nix flake update --show-trace $(realfileDir))
 
 define tangleCommand
 $(removeTangleBackups)
-if ! $(call nixShell,general) "org-tangle -f $1"; then
+$(call nixShell,general) "org-tangle -f $1"
+if [ $$? -neq 0 ]; then
     org-tangle -f $1
     $(addCommand)
 fi
