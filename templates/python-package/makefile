@@ -55,8 +55,8 @@ $(removeTangleBackups)
 $(call nixShell,general) "org-tangle -f $1"
 if [ $$? -ne 0 ]; then
     org-tangle -f $1
-    $(addCommand)
 fi
+$(addCommand)
 endef
 
 define wildcardValue
@@ -66,13 +66,13 @@ endef
 add:
 |$(addCommand)
 
-commit: add
+commit: | add
 |git -C $(mkfileDir) commit --allow-empty-message -am ""
 
-push: commit
+push: | commit
 |git -C $(mkfileDir) push
 
-update: add
+update: | add
 ifeq ($(projectName), settings)
 |$(shell $(call fallback,nix eval --impure --expr 'with (import $(realfileDir)); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock $(realfileDir) --update-input $${concatStringsSep " --update-input " (filter (input: ! ((elem input [ "nixos-master" "nixos-unstable" ]) || (hasSuffix "-small" input))) (attrNames inputs))}"' | tr -d '"'))
 else
@@ -80,7 +80,7 @@ else
 endif
 
 update-%: updateInput := nix flake lock $(realfileDir) --show-trace --update-input
-update-%: add
+update-%: | add
 |$(eval input := $(call wildcardValue,$@))
 |if [ "$(input)" == "settings" ] && [ "$(projectName)" != "settings" ]; then
 |    $(call fallback,$(updateInput) $(input))
@@ -90,88 +90,88 @@ update-%: add
 |    $(call fallback,$(updateInput) $(input))
 |fi
 
-pre-tangle: update-settings
+pre-tangle: | update-settings
 |$(removeTangleBackups)
 
-tangle: pre-tangle
+tangle: | pre-tangle
 |$(call tangleCommand,$(files))
 
-tangle-%: pre-tangle
+tangle-%: | pre-tangle
 |$(eval file := $(mkfileDir)/$(call wildcardValue,$@).org)
 |$(call tangleCommand,$(file))
 
-tu: tangle update
+tu: | tangle update
 
-tu-%: tangle update-% ;
+tu-%: | tangle update-% ;
 
-develop: tu
+develop: | tu
 |nix develop --show-trace "$(realfileDir)#makefile-$(type)"
 
-shell: tu
+shell: | tu
 |$(call quickShell,$(pkgs))
 
-shell-%: tu
+shell-%: | tu
 |$(call quickShell,(with $(call wildcardValue,$@); [ $(pkgs) ]))
 
-develop-%: tu
+develop-%: | tu
 |nix develop --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
 
-repl: tu
+repl: | tu
 |$(call nixShell,$(type)) "$(type)"
 
-build: tu
+build: | tu
 |nix build --show-trace "$(realfileDir)"
 
-build-%: tu
+build-%: | tu
 |nix build --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
 
-run: tu
+run: | tu
 |cd $(mkfileDir)
 |$(call nixShell,$(type)) "$(command)"
 
-run-%: tu
+run-%: | tu
 |nix run --show-trace "$(realfileDir)#$(call wildcardValue,$@)" -- $(args)
 
-rund: run-default
+rund: | run-default
 
 define touch-test-command
 cd $(mkfileDir)
 $(call nixShell,$(type)) "touch $1 && $(type) $1"
 endef
 
-touch-test: tu
+touch-test: | tu
 |$(call touch-test-command,$(file))
 
-touch-test-%: tu
+touch-test-%: | tu
 |$(eval file := $(mkfileDir)/$(call wildcardValue,$@))
 |$(call touch-test-command,$(file))
 
-quick: tangle push
+quick: | tangle push
 
-super: tu push
+super: | tu push
 
-super-%: tu-% push ;
+super-%: | tu-% push ;
 
-poetry2setup: tu
+poetry2setup: | tu
 |cd $(mkfileDir)
 |$(call nixShell,$(type)) "poetry2setup > $(mkfileDir)/setup.py"
 
 touch-tests:
 |-find $(mkfileDir)/tests -print | grep -v __pycache__ | xargs touch
 
-tut: tu touch-tests
+tut: | tu touch-tests
 
 define pytest
 $(call nixShell,$(type)) "pytest $1 --suppress-no-test-exit-code $(mkfileDir)"
 endef
 
-test: tut
+test: | tut
 |$(call pytest)
 
-test-native: tut
+test-native: | tut
 |$(call pytest,--tb=native)
 
-test-%: tut
+test-%: | tut
 |$(call pytest,-m $(call wildcardValue,$@))
 
-super: test push
+super: | test push
