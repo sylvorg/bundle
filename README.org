@@ -1342,7 +1342,7 @@ super: | test push
 ** python-package
 *** makefile
 
-#+begin_src makefile :tangle (meq/tangle-path)
+#+begin_src makefile
 <<8524a302-71f9-4752-9fbf-675d99285846>>
 #+end_src
 
