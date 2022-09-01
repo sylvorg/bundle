@@ -27,7 +27,7 @@
             url = github:svanderburg/node2nix;
             flake = false;
         };
-        thanos.url = github:syvlorg/thanos;
+        titan.url = github:syvlorg/titan;
 
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
@@ -1128,7 +1128,7 @@
                 python3 = let
                     update = j.update.python.package.python3;
                 in j.foldToSet [
-                    inputs.thanos.overlays
+                    inputs.titan.overlays
                     {
                         hy = let
                             pname = "hy";
@@ -1744,6 +1744,10 @@
                 overlayset
                 {
                     inherit pname callPackage type' type;
+                    testType = head (flatten [
+                        (remove null (mapAttrsToList (n: v: if (elem type v) then n else null) j.attrs.versionNames))
+                        "general"
+                    ]);
                     oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems);
                 }
             ];

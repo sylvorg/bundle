@@ -1047,6 +1047,8 @@ close TAG;
 
 * makefile
 
+~Note:~ Deprecated
+
 Adapted from the following places:
 - https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/
 - https://t-ravis.com/post/nix/nix-make/
@@ -1060,7 +1062,7 @@ Adapted from the following places:
 ~Note:~ To export an environment variable for a single, multi-command command, use [[https://stackoverflow.com/a/10856211/10827766][this answer]] by [[https://stackoverflow.com/users/476371/0xc0000022l][0xC0000022L]].
 
 #+name: makefile
-#+begin_src makefile :tangle (meq/tangle-path)
+#+begin_src makefile
 .RECIPEPREFIX := |
 .DEFAULT_GOAL := tangle
 .ONESHELL:
@@ -1227,7 +1229,9 @@ use nix
 ** general
 *** makefile
 
-#+begin_src makefile :tangle (meq/tangle-path)
+~Note:~ Deprecated
+
+#+begin_src makefile
 <<makefile>>
 #+end_src
 
@@ -1294,18 +1298,14 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 ** python-app
 *** makefile
 
-#+name: cbcd9114-187b-4053-aaaf-e9b68353f8c9
-#+begin_src emacs-lisp :var elisp='nil
-(format-spec "nix eval --impure --expr %q((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath%q | tr -d '%q' 2> /dev/null"
-  `((?q . ,(if elisp "\\\"" "\""))))
-#+end_src
+~Note:~ Deprecated
 
 Adapted from [[https://stackoverflow.com/users/428803/joshua][Joshua's]] answer [[https://stackoverflow.com/a/4210080/10827766][here]],
 [[https://superuser.com/users/48602/notinlist][Notinlist's]] answer [[https://superuser.com/a/566199/1154755][here]],
 and [[https://www.cyberciti.biz/faq/how-to-show-recursive-directory-listing-on-linux-or-unix/][here]]:
 
 #+name: 8524a302-71f9-4752-9fbf-675d99285846
-#+begin_src makefile :tangle (meq/tangle-path)
+#+begin_src makefile
 <<makefile>>
 
 poetry2setup: | tu
@@ -1376,16 +1376,16 @@ in {
 #+name: shell.nix
 #+begin_src emacs-lisp :var elisp='nil
 (format-spec "with builtins; let
-    flake = if (builtins ? getFlake) then (getFlake github:syvlorg/thanos) else (import fetchTarball (let
+    flake = if (builtins ? getFlake) then (getFlake github:syvlorg/titan) else (import fetchTarball (let
         lockExists = pathExists ./flake.lock;
-        lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.thanos.locked.rev = %qmain%q; };
+        lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.titan.locked.rev = %qmain%q; };
     in {
-        url = %qhttps://github.com/syvlorg/thanos/archive/${lock.nodes.thanos.locked.rev}.tar.gz%q;
-        ${if lockExists then %qsha256%q else null} = lock.nodes.thanos.locked.narHash;
+        url = %qhttps://github.com/syvlorg/titan/archive/${lock.nodes.titan.locked.rev}.tar.gz%q;
+        ${if lockExists then %qsha256%q else null} = lock.nodes.titan.locked.narHash;
     }) { src = ./.; }).defaultNix;
     inherit (flake.${currentSystem}) pkgs;
 in with pkgs; mkShell rec {
-    buildInputs = [ thanos ];
+    buildInputs = [ titan ];
     nativeBuildInputs = buildInputs;
 }" `((?q . ,(if elisp "\\\"" "\""))))
 #+end_src
@@ -8358,7 +8358,7 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
 (defun get-README (&optional return-link setupfile lobfile) (interactive)
     (let* ((README (f-join "settings" "README.org"))
         (settings-README (f-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) "README.org"))))
-        (flake-settings (s-trim (shell-command-to-string "<<cbcd9114-187b-4053-aaaf-e9b68353f8c9(elisp='t)>>")))
+        (flake-settings (s-trim (shell-command-to-string "<<get-settings-path(elisp='t)>>")))
         (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
         (repo-README (f-expand README))
         (home-README (f-expand (f-join "~" README)))
@@ -8722,6 +8722,12 @@ extra-experimental-features = %qnix-command flakes%q%d
 %callow-unsafe-native-code-during-evaluation = true%d
 %cmin-free = 262144000%d
 %cmax-free = 1073741824%d" `((?d . ,(if flake ";" delim)) (?c . ,(if flake "# " comment)) (?q . ,(if (or flake quoted) "\"" ""))))
+#+end_src
+
+#+name: get-settings-path
+#+begin_src emacs-lisp :var elisp='nil
+(format-spec "nix eval --impure --expr %q((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath%q | tr -d '%q' 2> /dev/null"
+  `((?q . ,(if elisp "\\\"" "\""))))
 #+end_src
 
 # Adapted From: https://www.reddit.com/r/emacs/comments/4o9f0e/anyone_have_disabled_parts_of_their_config_being/d4apjey?utm_source=share&utm_medium=web2x&context=3
