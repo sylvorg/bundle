@@ -1220,8 +1220,7 @@ super-%: | tu-% push ;
 
 #+name: envrc
 #+begin_src shell :tangle (meq/tangle-path)
-make tangle update add
-nix flake info &> /dev/null && use flake --show-trace || use nix --show-trace
+use nix
 #+end_src
 
 * templates
@@ -1244,8 +1243,10 @@ nix flake info &> /dev/null && use flake --show-trace || use nix --show-trace
 
 ,* shell.nix
 
+Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
+
 ,#+begin_src nix :tangle (meq/tangle-path)
-<<shell.nix>>
+<<shell.nix(elisp='t)>>
 ,#+end_src
 
 ,* default.nix
@@ -1373,8 +1374,24 @@ in {
 * shell.nix
 
 #+name: shell.nix
+#+begin_src emacs-lisp :var elisp='nil
+(format-spec "with builtins; let
+    flake = if (builtins ? getFlake) then (getFlake github:syvlorg/thanos) else (import fetchTarball (let
+        lockExists = pathExists ./flake.lock;
+        lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.thanos.locked.rev = %qmain%q; };
+    in {
+        url = %qhttps://github.com/syvlorg/thanos/archive/${lock.nodes.thanos.locked.rev}.tar.gz%q;
+        ${if lockExists then %qsha256%q else null} = lock.nodes.thanos.locked.narHash;
+    }) { src = ./.; }).defaultNix;
+    inherit (flake.${currentSystem}) pkgs;
+in with pkgs; mkShell rec {
+    buildInputs = [ thanos ];
+    nativeBuildInputs = buildInputs;
+}" `((?q . ,(if elisp "\\\"" "\""))))
+#+end_src
+
 #+begin_src nix :tangle (meq/tangle-path)
-(import ./.).devShell.${builtins.currentSystem}
+<<shell.nix()>>
 #+end_src
 
 * .gitignore
@@ -8681,7 +8698,7 @@ nixos
 
 #+name: channel
 #+begin_src emacs-lisp :var dotted='nil
-(format "nixos-unstable" (if dotted "." "-"))
+(format "nixos-22%s05" (if dotted "." "-"))
 #+end_src
 
 Adapted from [[https://github.com/divnix/digga/blob/main/examples/devos/flake.nix#L4][here]]:

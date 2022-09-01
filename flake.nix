@@ -27,6 +27,7 @@
             url = github:svanderburg/node2nix;
             flake = false;
         };
+        thanos.url = github:syvlorg/thanos;
 
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
@@ -41,7 +42,7 @@
         nixos-master.url = github:NixOS/nixpkgs/master;
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
-        nixpkgs.url = github:NixOS/nixpkgs/nixos-unstable;
+        nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
         hy = {
             url = github:hylang/hy/035383d11b44a1731aa6c70735fa4c709979ccdb;
             flake = false;
@@ -110,7 +111,7 @@
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
-        channel = "nixos-unstable";
+        channel = "nixos-22-05";
         registry = fromJSON ''
 {
   "flakes": [
@@ -615,7 +616,7 @@
                         '';
                         postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
                         makeWrapperArgs = flatten [
-                            "--prefix PYTHONPATH : ${ppkgs.makePythonPath propagatedBuildInputs}"
+                            "--prefix PYTHONPATH : ${ppkgs.makePythonPath propagatedNativeBuildInputs}"
                             (optional (extras.appPathUseBuildInputs or false) "--prefix PATH ${with final; makeBinPath (ppkgs.${pname}.buildInputs or [])}")
                             (optional (extras.appPathUseNativeBuildInputs or false) "--prefix PATH ${with final; makeBinPath (ppkgs.${pname}.nativeBuildInputs or [])}")
                         ];
@@ -639,19 +640,42 @@
             # foldr func end list
             sequence = foldr deepSeq;
 
-            inputsToOverlays = {
-                python = rec {
-                    default = prefix: inputs': let
-                        inputs'' = filterAttrs (n: v: hasPrefix prefix n) inputs';
-                    in lself.foldToSet [
-                        (mapAttrs' (n: v: nameValuePair (removePrefix prefix n) v.overlay) inputs'')
-                        (map (v: v.overlays or {}) (attrValues inputs''))
-                    ];
-                    python2 = default "py2pkg-";
-                    python3 = default "py3pkg-";
-                    python = python3;
-                    hy = python3;
-                    xonsh = default "x3pkg";
+            inputToOverlays = prefix: inputs': lself.foldToSet (mapAttrsToList (n: v: v.overlays) (filterAttrs (n: v: hasPrefix "${prefix}-" n) inputs'));
+            # inputToOverlays = prefix: inputs': let
+            #     inputs'' = filterAttrs (n: v: hasPrefix prefix n) inputs';
+            # in lself.foldToSet [
+            #     (mapAttrs' (n: v: nameValuePair (removePrefix prefix n) v.overlay) inputs'')
+            #     (map (v: v.overlays or {}) (attrValues inputs''))
+            # ];
+
+            inputPkgsToOverlays = {
+                python = let
+                    pythons = mapAttrs (n: inputToOverlays) { "python2" = "py2pkg"; "python3" = "py3pkg"; "xonsh" = "x3pkg"; };
+                in pythons // {
+                    python = pythons.python3;
+                    hy = pythons.python3;
+                };
+            };
+
+            inputAppsToOverlays = {
+                python = let
+                    pythons = mapAttrs (n: inputToOverlays) { "python2" = "py2app"; "python3" = "py3app"; "xonsh" = "x3app"; };
+                in pythons // {
+                    python = pythons.python3;
+                    hy = pythons.python3;
+                };
+            };
+
+            inputBothToOverlays = {
+                python = let
+                    pythons = genAttrs [
+                        "python2"
+                        "python3"
+                        "xonsh"
+                    ] (python: inputs': (inputPkgsToOverlays.python.${python} inputs') // (inputAppsToOverlays.python.${python} inputs'));
+                in pythons // {
+                    python = pythons.python3;
+                    hy = pythons.python3;
                 };
             };
 
@@ -689,7 +713,7 @@
                 };
                 versionNames = mapAttrs (n: v: let
                     names = attrNames v;
-                    sets = [ "inputsToOverlays" ];
+                    sets = [ "inputPkgsToOverlays" "inputAppsToOverlays" "inputBothToOverlays" ];
                     supersets = [ "update" ];
                     stringsets = concatStringsSep ''" "'' (sets ++ supersets);
                 in if ((all (j: allSets (jn: jv: isSublist names (attrNames jv)) lself.${j}.${n}) supersets) &&
@@ -1099,11 +1123,12 @@
             pythonOverlays = rec {
                 python2 = j.foldToSet [
                     (mapAttrs (pname: j.update.python.callPython.python2 { inherit pname; } pname) callPackages.python.python2)
-                    (j.inputsToOverlays.python.python2 inputs)
+                    (j.inputBothToOverlays.python.python2 inputs)
                 ];
                 python3 = let
                     update = j.update.python.package.python3;
                 in j.foldToSet [
+                    inputs.thanos.overlays
                     {
                         hy = let
                             pname = "hy";
@@ -1143,20 +1168,19 @@
                         });
                     }
                     (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.python3)
-                    (j.inputsToOverlays.python.python3 inputs)
+                    (j.inputBothToOverlays.python.python3 inputs)
                 ];
                 python = python3;
                 hy = python3;
                 xonsh = j.foldToSet [
                     (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.xonsh)
-                    (j.inputsToOverlays.python.xonsh inputs)
+                    (j.inputBothToOverlays.python.xonsh inputs)
                 ];
             };
-            overlays = let
-                pyapps = [ "py2app-" "py3app-" ];
-            in j.foldToSet [
+            overlays = j.foldToSet [
                 (attrValues pythonOverlays)
-                (mapAttrs' (n: v: nameValuePair (j.remove.prefix pyapps) v.overlay) (filterAttrs (n: v: j.has.prefix n pyapps) inputs))
+                # (mapAttrsToList (n: v: v.overlays) (filterAttrs (n: v: j.has.prefix n pyapps) inputs))
+                # (mapAttrs' (n: v: nameValuePair (j.remove.prefix pyapps) v.overlays) (filterAttrs (n: v: j.has.prefix n pyapps) inputs))
                 nodeOverlays
                 yarnOverlays
                 calledPackages
@@ -1676,7 +1700,7 @@
                 overlay' = { ${pname} = default; };
             in {
                 overlays = j.foldToSet [
-                    (mapAttrsToList (n: map (version: j.inputsToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
+                    (mapAttrsToList (n: map (version: j.inputBothToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
                     (optionalAttrs (! settings) self.overlays)
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })
@@ -1730,25 +1754,29 @@
                 { oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems); }
             ];
             both-outputs = recursiveUpdate official-outputs extra-outputs;
+            all-outputs = j.foldToSet' [
+                both-outputs
+                (eachSystem workingSystems (system: let
+                    inherit (both-outputs.oo.${system}) pkgs made packages;
+                in rec {
+                    apps = mapAttrs made.app packages;
+                    app = apps.default;
+                    defaultApp = app;
+                    devShells = let
+                        default = pkgs.mkShell { buildInputs = attrValues packages; };
+                    in j.foldToSet [
+                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
+                        (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
+                        (made.mkfile isApp type extras pname (packages.${pname}.nativeBuildInputs or []) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
+                        { inherit default; "${pname}" = default; }
+                    ];
+                    devShell = devShells.default;
+                    defaultdevShell = devShell;
+                }))
+            ];
         in j.foldToSet' [
-            both-outputs
-            (eachSystem workingSystems (system: let
-                inherit (both-outputs.oo.${system}) pkgs made packages;
-            in rec {
-                apps = mapAttrs made.app packages;
-                app = apps.default;
-                defaultApp = app;
-                devShells = let
-                    default = pkgs.mkShell { buildInputs = attrValues packages; };
-                in j.foldToSet [
-                    (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
-                    (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
-                    (made.mkfile isApp type extras pname (packages.${pname}.nativeBuildInputs or []) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
-                    { inherit default; "${pname}" = default; }
-                ];
-                devShell = devShells.default;
-                defaultdevShell = devShell;
-            }))
+            all-outputs
+            (listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) all-outputs)) workingSystems))
             extraOutputs
         ];
         make = system: overlays: with lib; rec {
