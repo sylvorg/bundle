@@ -683,11 +683,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1662109947,
-        "narHash": "sha256-Cbsk4eT+ZhR7c6ppoAYIru2Lv/uIPxP3u1tgWt+YTsU=",
+        "lastModified": 1662110156,
+        "narHash": "sha256-0Q/l8hIqxF/DDPdZCeBL0hydORuWgc88ry56kO4A5vI=",
         "owner": "syvlorg",
         "repo": "titan",
-        "rev": "2f22367357fa781268f3aa0bc224e94872fcb4ce",
+        "rev": "d7e8ba8a30dba3615999b32448bb7d2a8fe09db0",
         "type": "github"
       },
       "original": {
