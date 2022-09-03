@@ -1698,7 +1698,6 @@
                 overlays = j.foldToSet [
                     (optionalAttrs (! settings) self.overlays)
                     (mapAttrsToList (n: map (version: j.inputBothToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
-                    (inputs.titan.overlays or {})
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })
                     (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
