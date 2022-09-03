@@ -722,10 +722,6 @@
             };
         })); });
         defaultSystem = "x86_64-linux";
-        workingSystems = with lib; subtractLists (flatten [
-            (filter (system: hasPrefix "mips" system) allSystems)
-            "x86_64-solaris"
-        ]) allSystems;
         callPackages = with lib; {
             sysget = { stdenv, installShellFiles, pname }: stdenv.mkDerivation rec {
                 inherit pname;
@@ -1666,7 +1662,7 @@
         individual-outputs = with lib; j.foldToSet [
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs defaultSystem workingSystems; }
+            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs defaultSystem; }
         ];
         mkOutputs = with lib; {
             pname,
@@ -1700,8 +1696,9 @@
                 overlay' = { ${pname} = default; };
             in {
                 overlays = j.foldToSet [
-                    (mapAttrsToList (n: map (version: j.inputBothToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
                     (optionalAttrs (! settings) self.overlays)
+                    (mapAttrsToList (n: map (version: j.inputBothToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
+                    (inputs.titan.overlays or {})
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })
                     (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
@@ -1711,7 +1708,7 @@
                 defaultOverlay = default;
             };
             official-outputs = let
-                oo = eachSystem workingSystems (system: let
+                oo = eachDefaultSystem (system: let
                     made = make system overlayset.overlays;
                 in rec {
                     inherit (made) nixpkgs pkgs legacyPackages;
@@ -1748,19 +1745,19 @@
                         (remove null (mapAttrsToList (n: v: if (elem type v) then n else null) j.attrs.versionNames))
                         "general"
                     ]);
-                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems);
+                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) defaultSystems);
                 }
             ];
             extra-outputs = let
-                oo = eachSystem workingSystems (extraSystemOutputs official-outputs.oo);
+                oo = eachDefaultSystem (extraSystemOutputs official-outputs.oo);
             in j.foldToSet [
                 oo
-                { oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems); }
+                { oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) defaultSystems); }
             ];
             both-outputs = recursiveUpdate official-outputs extra-outputs;
             all-outputs = j.foldToSet' [
                 both-outputs
-                (eachSystem workingSystems (system: let
+                (eachDefaultSystem (system: let
                     inherit (both-outputs.oo.${system}) pkgs made packages;
                 in rec {
                     apps = mapAttrs made.app packages;
@@ -1780,7 +1777,7 @@
             ];
         in j.foldToSet' [
             all-outputs
-            (listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) all-outputs)) workingSystems))
+            (listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) all-outputs)) defaultSystems))
             extraOutputs
         ];
         make = system: overlays: with lib; rec {

@@ -1271,6 +1271,7 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 
     inputs = rec {
         settings.url = github:sylvorg/settings;
+        titan.url = github:syvlorg/titan;
         flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = \"github:edolstra/flake-compat\";
@@ -1377,7 +1378,7 @@ in {
 #+begin_src emacs-lisp :var elisp='nil
 (format-spec "with builtins; let
     this-flake = import ./.;
-    flake = this-flake.inputs.settings.inputs.titan or this-flake.inputs.titan or (if (builtins ? getFlake) then (getFlake github:syvlorg/titan) else (import fetchTarball (let
+    flake = this-flake.inputs.titan or this-flake.inputs.settings.inputs.titan or (if (builtins ? getFlake) then (getFlake github:syvlorg/titan) else (import fetchTarball (let
         lockExists = pathExists ./flake.lock;
         lock = if lockExists then (fromJSON (readFile ./flake.lock)) else { nodes.titan.locked.rev = %qmain%q; };
     in {

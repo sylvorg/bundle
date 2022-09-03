@@ -876,15 +876,6 @@ Adapted from [[https://gist.github.com/CMCDragonkai/9b65cbb1989913555c203f4fa9c2
         defaultSystem = "x86_64-linux";
 #+end_src
 
-** Default System
-
-#+begin_src nix
-        workingSystems = with lib; subtractLists (flatten [
-            (filter (system: hasPrefix "mips" system) allSystems)
-            "x86_64-solaris"
-        ]) allSystems;
-#+end_src
-
 ** callPackages
 
 #+begin_src nix
@@ -2194,7 +2185,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
         individual-outputs = with lib; j.foldToSet [
             nixosModules
             templates
-            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs defaultSystem workingSystems; }
+            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs defaultSystem; }
         ];
 #+end_src
 
@@ -2233,8 +2224,9 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                 overlay' = { ${pname} = default; };
             in {
                 overlays = j.foldToSet [
-                    (mapAttrsToList (n: map (version: j.inputBothToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
                     (optionalAttrs (! settings) self.overlays)
+                    (mapAttrsToList (n: map (version: j.inputBothToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
+                    (inputs.titan.overlays or {})
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })
                     (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
@@ -2252,7 +2244,7 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
                 defaultOverlay = default;
             };
             official-outputs = let
-                oo = eachSystem workingSystems (system: let
+                oo = eachDefaultSystem (system: let
                     made = make system overlayset.overlays;
                 in rec {
                     inherit (made) nixpkgs pkgs legacyPackages;
@@ -2289,19 +2281,19 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
                         (remove null (mapAttrsToList (n: v: if (elem type v) then n else null) j.attrs.versionNames))
                         "general"
                     ]);
-                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems);
+                    oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) defaultSystems);
                 }
             ];
             extra-outputs = let
-                oo = eachSystem workingSystems (extraSystemOutputs official-outputs.oo);
+                oo = eachDefaultSystem (extraSystemOutputs official-outputs.oo);
             in j.foldToSet [
                 oo
-                { oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) workingSystems); }
+                { oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) defaultSystems); }
             ];
             both-outputs = recursiveUpdate official-outputs extra-outputs;
             all-outputs = j.foldToSet' [
                 both-outputs
-                (eachSystem workingSystems (system: let
+                (eachDefaultSystem (system: let
                     inherit (both-outputs.oo.${system}) pkgs made packages;
                 in rec {
                     apps = mapAttrs made.app packages;
@@ -2321,7 +2313,7 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
             ];
         in j.foldToSet' [
             all-outputs
-            (listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) all-outputs)) workingSystems))
+            (listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) all-outputs)) defaultSystems))
             extraOutputs
         ];
 #+end_src
