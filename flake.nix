@@ -588,7 +588,7 @@
                 };
                 recursiveNames = attrNames toOverride;
                 pselfRecursed = filterAttrs (n: v: elem n recursiveNames) pself;
-            in ppkgs.buildPythonPackage (lself.foldToSet' [
+            in ppkgs.buildPythonPackage (lself.foldToSet [
                 toOverride
                 pselfOverride
                 (foldRecursively [
