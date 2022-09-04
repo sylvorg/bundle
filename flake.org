@@ -669,28 +669,17 @@ Adapted from [[https://gist.github.com/adisbladis/2a44cded73e048458a815b5822eea1
 
             callPackages = attrs: mapAttrs (pname: v: final: prev: { "${pname}" = final.callPackage v { inherit pname; }; }) attrs;
 
-            mkPythonPackage = ppkgs: pself: let
+            mkPythonPackage = ppkgs: flake: stdenv: recursiveOverrides: pself: let
+                ppkgs = flake.pkgs.${stdenv.targetPlatform.system}.Pythons.${self.type}.pkgs;
                 inherit (pself) pname owner;
                 toOverride = rec {
                     version = pyVersion format pself.src;
                     format = "pyproject";
                     disabled = ppkgs.pythonOlder "3.9";
-                    meta = {
-                        homepage = "https://github.com/${owner}/${pname}";
-#+end_src
-
-Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/pkgs/stdenv/generic/make-derivation.nix#L134-L139][here]]:
-
-#+begin_src nix
-                        position = let pos = unsafeGetAttrPos "pname" pself; in "${pos.file}:${toString pos.line}";
-#+end_src
-
-#+begin_src nix
-                    };
                 };
                 overrideNames = attrNames toOverride;
                 pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
-                toRecurse = rec {
+                toRecurse = filterAttrs (n: v: ! (elem n recursiveOverrides)) (rec {
                     buildInputs = optional ((pself.format or toOverride.format) == "pyproject") ppkgs.poetry-core;
                     nativeBuildInputs = flatten [ buildInputs (pself.buildInputs or []) ];
                     propagatedNativeBuildInputs = pself.propagatedBuildInputs or [];
@@ -716,7 +705,19 @@ Adapted from [[https://nixos.org/manual/nixpkgs/stable/#:~:text=roughly%20transl
                         pytest-sugar
                     ];
                     pytestFlagsArray = toList "--suppress-no-test-exit-code";
-                };
+                    meta = {
+                        homepage = "https://github.com/${owner}/${pname}";
+#+end_src
+
+Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/pkgs/stdenv/generic/make-derivation.nix#L134-L139][here]]:
+
+#+begin_src nix
+                        position = let pos = unsafeGetAttrPos "pname" pself; in "${pos.file}:${toString pos.line}";
+#+end_src
+
+#+begin_src nix
+                    };
+                });
                 recursiveNames = attrNames toOverride;
                 pselfRecursed = filterAttrs (n: v: elem n recursiveNames) pself;
             in ppkgs.buildPythonPackage (lself.foldToSet [

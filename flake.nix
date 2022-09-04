@@ -555,20 +555,17 @@
 
             callPackages = attrs: mapAttrs (pname: v: final: prev: { "${pname}" = final.callPackage v { inherit pname; }; }) attrs;
 
-            mkPythonPackage = ppkgs: pself: let
+            mkPythonPackage = ppkgs: flake: stdenv: recursiveOverrides: pself: let
+                ppkgs = flake.pkgs.${stdenv.targetPlatform.system}.Pythons.${self.type}.pkgs;
                 inherit (pself) pname owner;
                 toOverride = rec {
                     version = pyVersion format pself.src;
                     format = "pyproject";
                     disabled = ppkgs.pythonOlder "3.9";
-                    meta = {
-                        homepage = "https://github.com/${owner}/${pname}";
-                        position = let pos = unsafeGetAttrPos "pname" pself; in "${pos.file}:${toString pos.line}";
-                    };
                 };
                 overrideNames = attrNames toOverride;
                 pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
-                toRecurse = rec {
+                toRecurse = filterAttrs (n: v: ! (elem n recursiveOverrides)) (rec {
                     buildInputs = optional ((pself.format or toOverride.format) == "pyproject") ppkgs.poetry-core;
                     nativeBuildInputs = flatten [ buildInputs (pself.buildInputs or []) ];
                     propagatedNativeBuildInputs = pself.propagatedBuildInputs or [];
@@ -585,7 +582,11 @@
                         pytest-sugar
                     ];
                     pytestFlagsArray = toList "--suppress-no-test-exit-code";
-                };
+                    meta = {
+                        homepage = "https://github.com/${owner}/${pname}";
+                        position = let pos = unsafeGetAttrPos "pname" pself; in "${pos.file}:${toString pos.line}";
+                    };
+                });
                 recursiveNames = attrNames toOverride;
                 pselfRecursed = filterAttrs (n: v: elem n recursiveNames) pself;
             in ppkgs.buildPythonPackage (lself.foldToSet [
