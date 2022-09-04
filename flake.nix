@@ -473,7 +473,7 @@
                         default = pv: pattrs: prev: { "${pv}" = prev.${pv}.override (super: {
                             packageOverrides = composeExtensions (super.packageOverrides or (_: _: {})) (new: old: pattrs);
                         }); };
-                        python2 = default attrs.versions.python.python2;
+                        # python2 = default attrs.versions.python.python2;
                         python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
@@ -481,7 +481,7 @@
                     };
                     callPython = rec {
                         default = pv: extrargs: name: pkg: final: update.python.python.default pv { "${name}" = final.${pv}.pkgs.callPackage pkg extrargs; };
-                        python2 = default attrs.versions.python.python2;
+                        # python2 = default attrs.versions.python.python2;
                         python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
@@ -489,7 +489,7 @@
                     };
                     callPython' = rec {
                         default = pv: extrargs: file: final: update.python.python.default pv { "${imports.name { inherit file; }}" = final.${pv}.pkgs.callPackage file extrargs; };
-                        python2 = default attrs.versions.python.python2;
+                        # python2 = default attrs.versions.python.python2;
                         python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
@@ -497,7 +497,7 @@
                     };
                     package = rec {
                         default = pv: pkg: func: prev: update.python.python.default pv { "${pkg}" = prev.${pv}.pkgs.${pkg}.overridePythonAttrs func; } prev;
-                        python2 = default attrs.versions.python.python2;
+                        # python2 = default attrs.versions.python.python2;
                         python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
@@ -505,7 +505,7 @@
                     };
                     packages = rec {
                         default = pv: dir: final: update.python.python.default pv (imports.set { call = final.${pv}.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; });
-                        python2 = default attrs.versions.python.python2;
+                        # python2 = default attrs.versions.python.python2;
                         python3 = default attrs.versions.python.python3;
                         python = python3;
                         hy = python3;
@@ -656,7 +656,11 @@
 
             inputPkgsToOverlays = {
                 python = let
-                    pythons = mapAttrs (n: inputToOverlays) { "python2" = "py2pkg"; "python3" = "py3pkg"; "xonsh" = "x3pkg"; };
+                    pythons = mapAttrs (n: inputToOverlays) {
+                        # "python2" = "py2pkg";
+                        "python3" = "py3pkg";
+                        "xonsh" = "x3pkg";
+                    };
                 in pythons // {
                     python = pythons.python3;
                     hy = pythons.python3;
@@ -665,7 +669,11 @@
 
             inputAppsToOverlays = {
                 python = let
-                    pythons = mapAttrs (n: inputToOverlays) { "python2" = "py2app"; "python3" = "py3app"; "xonsh" = "x3app"; };
+                    pythons = mapAttrs (n: inputToOverlays) {
+                        # "python2" = "py2app";
+                        "python3" = "py3app";
+                        "xonsh" = "x3app";
+                    };
                 in pythons // {
                     python = pythons.python3;
                     hy = pythons.python3;
@@ -675,7 +683,7 @@
             inputBothToOverlays = {
                 python = let
                     pythons = genAttrs [
-                        "python2"
+                        # "python2"
                         "python3"
                         "xonsh"
                     ] (python: inputs': (inputPkgsToOverlays.python.${python} inputs') // (inputAppsToOverlays.python.${python} inputs'));
@@ -699,9 +707,9 @@
                         #     makeFlagsArray+=(CFLAGS="-w")
                         #     buildFlagsArray+=(CC=cc)
                         # '';
-                        permittedInsecurePackages = [
-                            "python2.7-cryptography-2.9.2"
-                        ];
+                        # permittedInsecurePackages = [
+                        #     "python2.7-cryptography-2.9.2"
+                        # ];
                     };
                 };
                 platforms = {
@@ -710,7 +718,7 @@
                 };
                 versions = {
                     python = rec {
-                        python2 = "python27";
+                        # python2 = "python27";
                         python3 = "python310";
                         python = python3;
                         hy = python3;
@@ -945,8 +953,6 @@
                 }
             ];
             python = rec {
-                python2 = {
-                };
                 python3 = {
                     autoslot = { buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit, pname }: buildPythonPackage rec {
                         inherit pname;
@@ -1123,10 +1129,10 @@
             nodeOverlays = mapAttrs j.update.node.default callPackages.nodejs;
             yarnOverlays = mapAttrs j.update.node.yarn callPackages.yarn;
             pythonOverlays = rec {
-                python2 = j.foldToSet [
-                    (mapAttrs (pname: pkg: final: prev: j.update.python.callPython.python2 { inherit pname; } pname pkg final prev) callPackages.python.python2)
-                    (j.inputBothToOverlays.python.python2 inputs)
-                ];
+                # python2 = j.foldToSet [
+                #     (mapAttrs (pname: pkg: final: prev: j.update.python.callPython.python2 { inherit pname; } pname pkg final prev) callPackages.python.python2)
+                #     (j.inputBothToOverlays.python.python2 inputs)
+                # ];
                 python3 = let
                     update = j.update.python.package.python3;
                 in j.foldToSet [
@@ -1261,14 +1267,14 @@
                     nix-direnv = final: prev: { nix-direnv = prev.nix-direnv.override { enableFlakes = true; }; };
                     lib = final: prev: { inherit lib; };
                     Python = final: prev: rec {
-                        Python2 = final.${j.attrs.versions.python.python2};
-                        Python2Packages = Python2.pkgs;
+                        # Python2 = final.${j.attrs.versions.python.python2};
+                        # Python2Packages = Python2.pkgs;
                         Python3 = final.${j.attrs.versions.python.python3};
                         Python3Packages = Python3.pkgs;
                         Python = Python3;
                         PythonPackages = Python3Packages;
                         Pythons = rec {
-                            python2 = final.Python2;
+                            # python2 = final.Python2;
                             python3 = final.Python3;
                             python = python3;
                             hy = final.Python3.pkgs.hy;
@@ -1880,13 +1886,21 @@
                     (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pkgs.Pythons.${python} [
                         pkg
                         pkglist
-                    ])) (attrNames overlayset.pythonOverlays.${python})))) [ "python" "python2" "python3" ])
+                    ])) (attrNames overlayset.pythonOverlays.${python})))) [
+                        "python"
+                        # "python2"
+                        "python3"
+                    ])
                     (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.Pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
                     (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.Pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
                     (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pkgs.Pythons.${python} [
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
-                    ])) [ "python" "python2" "python3" ]))
+                    ])) [
+                        "python"
+                        # "python2"
+                        "python3"
+                    ]))
                     (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkPython pkgs.Pythons.hy [ pkg pkglist ])) hyOverlays))
                     {
                         xonsh = pkglist: mkPython pkgs.Pythons.xonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
