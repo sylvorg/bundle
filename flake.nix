@@ -640,6 +640,12 @@
             # foldr func end list
             sequence = foldr deepSeq;
 
+            enableGuix = flip elem [
+                "x86_64-linux"
+                "i686-linux"
+                "aarch64-linux"
+            ];
+
             inputToOverlays = prefix: inputs': lself.foldToSet (mapAttrsToList (n: v: v.overlays) (filterAttrs (n: v: hasPrefix "${prefix}-" n) inputs'));
             # inputToOverlays = prefix: inputs': let
             #     inputs'' = filterAttrs (n: v: hasPrefix prefix n) inputs';
@@ -834,15 +840,15 @@
                     maintainers = with maintainers; [ Br1ght0ne ];
                 };
             };
-            guix = { stdenv, fetchurl, pname }: stdenv.mkDerivation rec {
+            guix = { stdenv, fetchurl, pname, hello }: if (j.enableGuix stdenv.targetPlatform.system) then (stdenv.mkDerivation rec {
                 inherit pname;
                 version = "1.0.0";
                 src = fetchurl {
                     url = "https://ftp.gnu.org/gnu/guix/guix-binary-${version}.${stdenv.targetPlatform.system}.tar.xz";
                     sha256 = {
-                        "x86_64-linux" = "11y9nnicd3ah8dhi51mfrjmi8ahxgvx1mhpjvsvdzaz07iq56333";
-                        "i686-linux" = "14qkz12nsw0cm673jqx0q6ls4m2bsig022iqr0rblpfrgzx20f0i";
-                        "aarch64-linux" = "0qzlpvdkiwz4w08xvwlqdhz35mjfmf1v3q8mv7fy09bk0y3cwzqs";
+                            "x86_64-linux" = "11y9nnicd3ah8dhi51mfrjmi8ahxgvx1mhpjvsvdzaz07iq56333";
+                            "i686-linux" = "14qkz12nsw0cm673jqx0q6ls4m2bsig022iqr0rblpfrgzx20f0i";
+                            "aarch64-linux" = "0qzlpvdkiwz4w08xvwlqdhz35mjfmf1v3q8mv7fy09bk0y3cwzqs";
                         }."${stdenv.targetPlatform.system}";
                 };
                 sourceRoot = ".";
@@ -869,7 +875,7 @@
                     maintainers = [ maintainers.johnazoidberg ];
                     platforms = [ "aarch64-linux" "i686-linux" "x86_64-linux" ];
                 };
-            };
+            }) else hello;
             poetry2setup = { Python, gawk, pname }: Python.pkgs.buildPythonApplication rec {
                 inherit pname;
                 version = j.pyVersion format src;
@@ -1118,7 +1124,7 @@
             yarnOverlays = mapAttrs j.update.node.yarn callPackages.yarn;
             pythonOverlays = rec {
                 python2 = j.foldToSet [
-                    (mapAttrs (pname: j.update.python.callPython.python2 { inherit pname; } pname) callPackages.python.python2)
+                    (mapAttrs (pname: pkg: final: prev: j.update.python.callPython.python2 { inherit pname; } pname pkg final prev) callPackages.python.python2)
                     (j.inputBothToOverlays.python.python2 inputs)
                 ];
                 python3 = let
@@ -1128,7 +1134,7 @@
                     {
                         hy = let
                             pname = "hy";
-                        in final: update pname (old: let
+                        in final: prev: update pname (old: let
                             python3Packages = final.Python3.pkgs;
                         in rec {
                             inherit (Inputs.${pname}) version;
@@ -1154,22 +1160,22 @@
                                 });
                                 pkgs = python3Packages;
                             };
-                        });
+                        }) prev;
                         hyrule = let
                             pname = "hyrule";
-                        in final: update pname (old: rec {
+                        in final: prev: update pname (old: rec {
                             inherit (Inputs.${pname}) version;
                             src = inputs.${pname};
                             postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
-                        });
+                        }) prev;
                     }
-                    (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.python3)
+                    (mapAttrs (pname: pkg: final: prev: j.update.python.callPython.python3 { inherit pname; } pname pkg final prev) callPackages.python.python3)
                     (j.inputBothToOverlays.python.python3 inputs)
                 ];
                 python = python3;
                 hy = python3;
                 xonsh = j.foldToSet [
-                    (mapAttrs (pname: j.update.python.callPython.python3 { inherit pname; } pname) callPackages.python.xonsh)
+                    (mapAttrs (pname: pkg: final: prev: j.update.python.callPython.python3 { inherit pname; } pname pkg final prev) callPackages.python.xonsh)
                     (j.inputBothToOverlays.python.xonsh inputs)
                 ];
             };
@@ -1353,7 +1359,7 @@
                         openFirewall = config.variables.relay;
                     };
                 };
-                options = args@{ config, options, pkgs, ... }: {
+                options = args@{ config, options, pkgs, system, ... }: {
                     options = {
                         variables = {
                             zfs = mkOption {
@@ -1400,7 +1406,7 @@
                             };
                         };
                         services = {
-                            guix = {
+                            guix = mkIf (j.enableGuix system) {
                                 enable = mkEnableOption "GNU Guix package manager";
                                 package = mkOption {
                                     type = types.package;
