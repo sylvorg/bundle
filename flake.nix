@@ -1692,7 +1692,7 @@
                 overlays' = j.foldToSet [
                     { general = final: prev: { ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final prev final.Pythons.${type}.pkgs extras pname)
                                                                              else callPackage) inheritance; }; }
-                    (genAttrs j.attrs.versionNames.python (python: j.update.python.callPython.${python} inheritance pname callPackage))
+                    (genAttrs j.attrs.versionNames.python (python: final: prev: j.update.python.callPython.${python} inheritance pname callPackage final prev))
                 ];
                 default = if ((callPackage == null) && (overlay == null) && (((overlays == {}) || (! (overlays ? default))) && (! settings)))
                                then (abort "Sorry; one of `callPackage', `overlay', or an `overlays' set with a `default' overlay must be set!")
