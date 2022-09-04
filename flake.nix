@@ -294,7 +294,7 @@
                     prefix = ignores: filterAttrs (n: v: ! (has.prefix n (toList ignores)));
                     suffix = ignores: filterAttrs (n: v: ! (has.suffix n (toList ignores)));
                     infix = ignores: filterAttrs (n: v: ! (has.infix n (toList ignores)));
-                    elem = ignores: filterAttrs (n: v: ! (elem n (toList ignores)));
+                    elem = ignores: flip removeAttrs (toList ignores);
                     dirs = dirCon.attrs.others;
                     files = filterAttrs (n: v: v != "regular");
                     others = dirCon.attrs.dirs;
@@ -447,7 +447,7 @@
                     else if (call != null) then (call.callPackage file extrargs)
                     else if (extrargs == {}) then (import file)
                     else (import file extrargs))
-                ) (list (filterAttrs (n: v: ! (elem n [ "call" "extrargs" "files" ])) args)));
+                ) (list (removeAttrs args [ "call" "extrargs" "files" ])));
                 overlaySet = args@{
                     call ? null,
                     dir,
@@ -465,7 +465,7 @@
                     else if (call != null) then (final: prev: { "${filename}" = call.callPackage file extrargs; })
                     else if (extrargs == {}) then (import file)
                     else (import file extrargs))
-                ) (list (filterAttrs (n: v: ! (elem n [ "call" "extrargs" "func" ])) (recursiveUpdate args { ignores.dirs = true; }))));
+                ) (list (removeAttrs (recursiveUpdate args { ignores.dirs = true; }) [ "call" "extrargs" "func" ])));
             };
             update = {
                 python = {
@@ -549,14 +549,14 @@
                                                      else (v // (b.${n} or {})))
                                 else if (isList v) then (v ++ (b.${n} or []))
                                 else if (isString v) then (v + delim + (b.${n} or ""))
-                                else (b.${n} or v)) a) // (filterAttrs (n: v: ! (elem n a-names)) b);
+                                else (b.${n} or v)) a) // (removeAttrs b a-names);
             recursiveUpdateAll = recursiveUpdateAll' "\n";
             foldRecursively = attrs: foldr recursiveUpdateAll {} attrs;
 
             callPackages = attrs: mapAttrs (pname: v: final: prev: { "${pname}" = final.callPackage v { inherit pname; }; }) attrs;
 
-            mkPythonPackage = ppkgs: flake: stdenv: recursiveOverrides: pself: let
-                ppkgs = flake.pkgs.${stdenv.targetPlatform.system}.Pythons.${self.type}.pkgs;
+            mkPythonPackage = flake: stdenv: recursiveOverrides: pself: let
+                ppkgs = flake.pkgs.${stdenv.targetPlatform.system}.Pythons.${flake.type}.pkgs;
                 inherit (pself) pname owner;
                 toOverride = rec {
                     version = pyVersion format pself.src;
@@ -565,7 +565,7 @@
                 };
                 overrideNames = attrNames toOverride;
                 pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
-                toRecurse = filterAttrs (n: v: ! (elem n recursiveOverrides)) (rec {
+                toRecurse = removeAttrs (rec {
                     buildInputs = optional ((pself.format or toOverride.format) == "pyproject") ppkgs.poetry-core;
                     nativeBuildInputs = flatten [ buildInputs (pself.buildInputs or []) ];
                     propagatedNativeBuildInputs = pself.propagatedBuildInputs or [];
@@ -586,7 +586,7 @@
                         homepage = "https://github.com/${owner}/${pname}";
                         position = let pos = unsafeGetAttrPos "pname" pself; in "${pos.file}:${toString pos.line}";
                     };
-                });
+                }) recursiveOverrides;
                 recursiveNames = attrNames toOverride;
                 pselfRecursed = filterAttrs (n: v: elem n recursiveNames) pself;
             in ppkgs.buildPythonPackage (lself.foldToSet [
@@ -596,7 +596,7 @@
                     toRecurse
                     pselfRecursed
                 ])
-                (filterAttrs (n: v: ! (elem n (flatten [ overrideNames recursiveNames "owner" "pythonImportsCheck" ]))) pself)
+                (removeAttrs pself (flatten [ overrideNames recursiveNames "owner" "pythonImportsCheck" ]))
             ]);
             toPythonApplication = final: prev: ppkgs: extras: pname: args@{ ... }: ppkgs.buildPythonApplication (lself.foldToSet [
                 (filterAttrs (n: v: ! ((isDerivation v) || (elem n [
@@ -648,12 +648,6 @@
             ];
 
             inputToOverlays = prefix: inputs': lself.foldToSet (mapAttrsToList (n: v: v.overlays) (filterAttrs (n: v: hasPrefix "${prefix}-" n) inputs'));
-            # inputToOverlays = prefix: inputs': let
-            #     inputs'' = filterAttrs (n: v: hasPrefix prefix n) inputs';
-            # in lself.foldToSet [
-            #     (mapAttrs' (n: v: nameValuePair (removePrefix prefix n) v.overlay) inputs'')
-            #     (map (v: v.overlays or {}) (attrValues inputs''))
-            # ];
 
             inputPkgsToOverlays = {
                 python = let
