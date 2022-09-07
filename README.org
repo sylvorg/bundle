@@ -1,5 +1,11 @@
 #+nosetuplobfile: yes
 
+* CNAME
+
+#+begin_src text :tangle (meq/tangle-path)
+settings.syvl.org
+#+end_src
+
 * General Properties and Settings
 :PROPERTIES:
 :header-args:text+: :results raw replace drawer :exports results
@@ -1231,7 +1237,7 @@ use nix
 
 #+name: 97220a9c-af77-4056-b7f8-00e11819e210
 #+begin_src emacs-lisp :var type="" isApp=""
-(format "* .envrc
+(format ",* .envrc
 
 ,#+begin_src shell :tangle (meq/tangle-path)
 <<envrc>>
