@@ -1227,14 +1227,6 @@ use nix
 
 * templates
 ** general
-*** makefile
-
-~Note:~ Deprecated
-
-#+begin_src makefile
-<<makefile>>
-#+end_src
-
 *** nix.org
 
 #+name: 97220a9c-af77-4056-b7f8-00e11819e210
@@ -1265,6 +1257,10 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 
 ,#+begin_src nix :tangle (meq/tangle-path)
 {
+    nixConfig = {
+        # Adapted From: https://github.com/divnix/digga/blob/main/examples/devos/flake.nix#L4
+        <<generate-nix-conf(flake='t, elisp='t)>>
+    };
 
     # TODO: Change this!
     description = \"\";
@@ -1285,7 +1281,23 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
         pname = \"\";
         %s
         # TODO: Change this!
-        callPackage = {}: {};
+        callPackage = { stdenv, oreo, pname }: j.mkPythonPackage self stdenv [] (rec {
+
+            # TODO: Change this!
+            owner = \"\";
+
+            inherit pname;
+            src = ./.;
+            propagatedBuildInputs = [ oreo ];
+            postPatch = ''
+                substituteInPlace pyproject.toml --replace \"oreo = { git = \\\"https://github.com/${owner}/oreo.git\\\", branch = \\\"main\\\" }\" \"\"
+                substituteInPlace setup.py --replace \"'oreo @ git+https://github.com/${owner}/oreo.git@main'\" \"\" || :
+            '';
+
+            # TODO: Change this!
+            meta.description = \"\";
+
+        });
     };
 }
 ,#+end_src" (if (string= type "") "" (format "type = \"%s\";\n" type))
@@ -1334,6 +1346,89 @@ test-%: | tut
 super: | test push
 #+end_src
 
+*** changethis
+**** __init__.org
+
+#+begin_src org :tangle (meq/tangle-path)
+,#+property: header-args:py+ :shebang "#!/usr/bin/env python3"
+<<58ec738d-82a0-492c-95da-c7b5211864e7>>
+
+,** Click Application
+,*** Imports
+
+,#+begin_src py
+from addict import Dict
+,#+end_src
+
+,*** Main
+
+,#+begin_src py
+if __name__ == "__main__":
+    tailapi(obj=Dict(dict()))
+,#+end_src
+#+end_src
+
+**** changethis.org
+
+#+begin_src org :tangle (meq/tangle-path)
+<<a29d4c8d-f422-4bf9-8ec7-7774d935e7de>>
+
+,* Application Imports
+
+,#+begin_src hy
+(import click)
+,#+end_src
+#+end_src
+
+*** pyproject.toml
+
+#+name: 252033da-0274-4624-bc94-91e7bbbb7b31
+#+begin_src conf :tangle (meq/tangle-path)
+[tool.poetry]
+
+# Change this!
+name = ""
+
+version = "1.0.0.0"
+
+# Change this!
+description = ""
+
+authors = ["sylvorg <jeet.ray@syvl.org>"]
+license = "OREO"
+
+# Change this!
+include = [
+	"[...]/**/*.py",
+	"[...]/**/*.hy",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+oreo = { git = "https://github.com/syvlorg/oreo.git", branch = "main" }
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.0"
+poetry = "*"
+poetry2setup = "*"
+pytest-hy = "*"
+pytest-randomly = "*"
+pytest-parametrized = "*"
+pytest-sugar = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = [
+	"--strict-markers",
+]
+markers = [
+
+]
+#+end_src
+
 *** nix.org
 
 #+begin_src text :tangle (meq/tangle-path)
@@ -1341,10 +1436,104 @@ super: | test push
 #+end_src
 
 ** python-package
-*** makefile
+*** changethis
+**** __init__.org
 
-#+begin_src makefile
-<<8524a302-71f9-4752-9fbf-675d99285846>>
+#+name: 58ec738d-82a0-492c-95da-c7b5211864e7
+#+begin_src org :tangle (meq/tangle-path)
+,#+property: header-args:py+ :tangle yes
+
+,* Rich Traceback
+
+,#+begin_src py
+import rich.traceback as RichTraceback
+RichTraceback.install(show_locals = True)
+,#+end_src
+
+,* Imports
+
+,#+begin_src py
+import hy
+,#+end_src
+
+# TODO: Change this!
+,** Everything From [...]
+
+Adapted from [[https://github.com/hylang/hyrule/blob/master/hyrule/__init__.py][here]],
+with help from [[https://stackoverflow.com/users/1451346/kodiologist][Kodiologist's]] comment
+[[https://stackoverflow.com/questions/73030667/init-py-for-hy-modules-with-relative-imports#comment128994796_73030667][here]]:
+
+# TODO: Change this!
+,#+begin_src py
+hy.macros.require('[...].[...]',
+    # The Python equivalent of `(require [...].[...] *)`
+    None, assignments = 'ALL', prefix = '')
+hy.macros.require_reader('[...].[...]', None, assignments = 'ALL')
+from [...].[...] import *
+,#+end_src
+#+end_src
+
+**** changethis.org
+
+#+name: a29d4c8d-f422-4bf9-8ec7-7774d935e7de
+#+begin_src org :tangle (meq/tangle-path)
+,#+property: header-args:hy+ :tangle yes
+
+,* Rich Traceback
+
+,#+begin_src hy
+(import rich.traceback)
+(.install rich.traceback :show-locals True)
+,#+end_src
+
+,* Imports
+
+,#+begin_src hy
+,#+end_src
+
+,* Eval and Compile
+
+,#+begin_src hy
+(eval-and-compile (import os hy))
+,#+end_src
+
+,** From
+
+,#+begin_src hy
+(import rich [print])
+(import rich.pretty [pprint])
+,#+end_src
+
+,*** Coconut
+
+[[https://coconut.readthedocs.io/en/latest/index.html][Coconut]]:
+
+,#+begin_src hy
+(try (import coconut *)
+     (except [ImportError] None))
+,#+end_src
+
+,*** Toolz
+
+[[https://github.com/pytoolz/toolz][Toolz]] and [[https://github.com/pytoolz/cytoolz/][CyToolz]]:
+
+,#+begin_src hy
+(try (import cytoolz [first])
+     (except [ImportError]
+             (import toolz [first])))
+,#+end_src
+
+,* Requires
+
+,#+begin_src hy
+(require hyrule [-> assoc unless])
+,#+end_src
+#+end_src
+
+*** pyproject.toml
+
+#+begin_src conf :tangle (meq/tangle-path)
+<<252033da-0274-4624-bc94-91e7bbbb7b31>>
 #+end_src
 
 *** nix.org
@@ -1481,6 +1670,9 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
 (defvar all-blocks nil)
 (defvar and-tags nil)
 (defvar or-tags nil)
+(defvar initial-args argv)
+(defvar expanded-args (mapcar #'f-expand argv))
+(defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
 (let (srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -1489,6 +1681,8 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
         ((or "-h" "--help")
          (usage)
          (error ""))
+        ((or "-f" "--force")
+         nil)
         ((or "-a" "--all")
          (setq all-blocks t))
         ((or "-p" "--print")
@@ -1503,14 +1697,16 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
                        srcs)))
         ((guard (file-exists-p arg))
          (push arg srcs))
-        (_ (error "Unknown option or file: %s" arg)))))
+        (_ (if (or (member "-f" initial-args) (member "--force" initial-args))
+              (message "Skipping unknown option or file: %s" arg)
+              (error "Unknown option or file: %s" arg))))))
 
   (dolist (file srcs)
-                (message (format "\n\nNow exporting %s:\n" file))
+    (message (format "\n\nNow exporting %s:\n" file))
     (let ((backup (make-temp-file (file-name-base file) nil ".backup.org")))
       (unwind-protect
           ;; Prevent slow hooks from interfering
-          (let (org-mode-hook org-confirm-babel-evaluate)
+          (let (org-mode-hook org-confirm-babel-evaluate make-backup-files)
                (with-current-buffer (find-file-noselect file)
                (org-html-export-to-html)))
         (ignore-errors (delete-file backup)))))
@@ -8068,7 +8264,7 @@ suffix."
 
 Adapted from [[https://github.com/doomemacs/doomemacs/blob/master/bin/org-tangle][here]]:
 
-#+begin_src shell :tangle (meq/tangle-path) :shebang "#!/usr/bin/env sh"
+#+begin_src emacs-lisp :tangle (meq/tangle-path) :shebang "#!/usr/bin/env sh"
 ":"; exec emacs --quick --script "$0" -- "$@" # -*- mode: emacs-lisp; lexical-binding: t; -*-
 ;;; bin/org-tangle
 
@@ -8470,8 +8666,7 @@ Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's
 #+end_src
 
 #+begin_src emacs-lisp
-              (org-babel-lob-ingest current-lob-file)))))
-    (org-export-expand-include-keyword))
+              (org-babel-lob-ingest current-lob-file))))))
 
 (defun org-babel-post-tangle-hooks nil (interactive)
 #+end_src
@@ -8706,7 +8901,7 @@ nixos
 Adapted from [[https://github.com/divnix/digga/blob/main/examples/devos/flake.nix#L4][here]]:
 
 #+name: generate-nix-conf
-#+begin_src emacs-lisp :var delim="" comment="" quoted='nil flake='nil
+#+begin_src emacs-lisp :var delim="" comment="" quoted='nil flake='nil elisp='nil
 (format-spec "# extra-substituters = %qhttps://cache.nixos.org/ https://nix-community.cachix.org/%q%d
 trusted-substituters = %qhttps://cache.nixos.org/%q%d
 # extra-trusted-public-keys = %qcache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=%q%d
@@ -8723,7 +8918,7 @@ extra-experimental-features = %qnix-command flakes%q%d
 %cflake-registry = https://raw.githubusercontent.com/sylvorg/settings/main/flake-registry.json%d
 %callow-unsafe-native-code-during-evaluation = true%d
 %cmin-free = 262144000%d
-%cmax-free = 1073741824%d" `((?d . ,(if flake ";" delim)) (?c . ,(if flake "# " comment)) (?q . ,(if (or flake quoted) "\"" ""))))
+%cmax-free = 1073741824%d" `((?d . ,(if flake ";" delim)) (?c . ,(if flake "# " comment)) (?q . ,(if (or flake quoted) (if elisp "\\\"" "\"") ""))))
 #+end_src
 
 #+name: get-settings-path

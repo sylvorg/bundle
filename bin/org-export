@@ -67,6 +67,9 @@
 (defvar all-blocks nil)
 (defvar and-tags nil)
 (defvar or-tags nil)
+(defvar initial-args argv)
+(defvar expanded-args (mapcar #'f-expand argv))
+(defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
 (let (srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -75,6 +78,8 @@
         ((or "-h" "--help")
          (usage)
          (error ""))
+        ((or "-f" "--force")
+         nil)
         ((or "-a" "--all")
          (setq all-blocks t))
         ((or "-p" "--print")
@@ -89,14 +94,16 @@
                        srcs)))
         ((guard (file-exists-p arg))
          (push arg srcs))
-        (_ (error "Unknown option or file: %s" arg)))))
+        (_ (if (or (member "-f" initial-args) (member "--force" initial-args))
+              (message "Skipping unknown option or file: %s" arg)
+              (error "Unknown option or file: %s" arg))))))
 
   (dolist (file srcs)
-                (message (format "\n\nNow exporting %s:\n" file))
+    (message (format "\n\nNow exporting %s:\n" file))
     (let ((backup (make-temp-file (file-name-base file) nil ".backup.org")))
       (unwind-protect
           ;; Prevent slow hooks from interfering
-          (let (org-mode-hook org-confirm-babel-evaluate)
+          (let (org-mode-hook org-confirm-babel-evaluate make-backup-files)
                (with-current-buffer (find-file-noselect file)
                (org-html-export-to-html)))
         (ignore-errors (delete-file backup)))))

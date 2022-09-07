@@ -124,8 +124,7 @@
                                   (b (make-string l ?=)))
                             (message "\n\n%s\n%s\n%s\n\n" b m b)))
               (when (member current-lob-file expanded-args) (global-auto-revert-mode 1))
-              (org-babel-lob-ingest current-lob-file)))))
-    (org-export-expand-include-keyword))
+              (org-babel-lob-ingest current-lob-file))))))
 
 (defun org-babel-post-tangle-hooks nil (interactive)
   (when (or (member current-setup-file expanded-args) (member current-lob-file expanded-args)) (global-auto-revert-mode -1))

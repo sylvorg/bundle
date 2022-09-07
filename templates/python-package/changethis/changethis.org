@@ -1,0 +1,51 @@
+#+property: header-args:hy+ :tangle yes
+
+* Rich Traceback
+
+#+begin_src hy
+(import rich.traceback)
+(.install rich.traceback :show-locals True)
+#+end_src
+
+* Imports
+
+#+begin_src hy
+#+end_src
+
+* Eval and Compile
+
+#+begin_src hy
+(eval-and-compile (import os hy))
+#+end_src
+
+** From
+
+#+begin_src hy
+(import rich [print])
+(import rich.pretty [pprint])
+#+end_src
+
+*** Coconut
+
+[[https://coconut.readthedocs.io/en/latest/index.html][Coconut]]:
+
+#+begin_src hy
+(try (import coconut *)
+     (except [ImportError] None))
+#+end_src
+
+*** Toolz
+
+[[https://github.com/pytoolz/toolz][Toolz]] and [[https://github.com/pytoolz/cytoolz/][CyToolz]]:
+
+#+begin_src hy
+(try (import cytoolz [first])
+     (except [ImportError]
+             (import toolz [first])))
+#+end_src
+
+* Requires
+
+#+begin_src hy
+(require hyrule [-> assoc unless])
+#+end_src

@@ -92,10 +92,6 @@
             url = github:caddyserver/caddy/v2.5.1;
             flake = false;
         };
-        poetry2setup = {
-            url = github:abersheeran/poetry2setup;
-            flake = false;
-        };
         pytest-reverse = {
             url = github:adamchainz/pytest-reverse/1.5.0;
             flake = false;
@@ -230,26 +226,23 @@
                 suffix = string: any (flip hasSuffix string);
                 infix = string: any (flip hasInfix string);
             };
+            getAttrs' = attrs: list: filterAttrs (n: v: elem n list) attrs;
             filters = {
                 has = {
                     attrs = list: attrs: let
                         l = unique (flatten list);
                     in lself.foldToSet [
-                        (filterAttrs (n: v: elem n l) attrs)
+                        (getAttrs' attrs l)
                         (genAttrNames (filter isDerivation l) (drv: drv.pname or drv.name))
                     ];
                     list = list: attrs: attrValues (filters.has.attrs list attrs);
-
-                    # Roger, roger!
-                    attr-attr = attrs: filterAttrs (n: v: elem n (attrNames attrs));
-
                 };
 
                 keep = {
                     prefix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.prefix n (toList keeping)) attrs);
                     suffix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.suffix n (toList keeping)) attrs);
                     infix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.infix n (toList keeping)) attrs);
-                    elem = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: elem n (toList keeping)) attrs);
+                    elem = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (getAttrs' attrs (toList keeping));
                     inherit (dirCon.attrs) dirs others files sym unknown;
                     readDir = {
                         dirs = {
@@ -564,7 +557,7 @@
                     disabled = ppkgs.pythonOlder "3.9";
                 };
                 overrideNames = attrNames toOverride;
-                pselfOverride = filterAttrs (n: v: elem n overrideNames) pself;
+                pselfOverride = j.getAttrs' pself overrideNames;
                 toRecurse = removeAttrs (rec {
                     buildInputs = optional ((pself.format or toOverride.format) == "pyproject") ppkgs.poetry-core;
                     nativeBuildInputs = flatten [ buildInputs (pself.buildInputs or []) ];
@@ -582,13 +575,17 @@
                         pytest-sugar
                     ];
                     pytestFlagsArray = toList "--suppress-no-test-exit-code";
+                    passthru = {
+                        format = pself.format or toOverride.format;
+                        disabled = pself.disabled or toOverride.disabled;
+                    };
                     meta = {
                         homepage = "https://github.com/${owner}/${pname}";
                         position = let pos = unsafeGetAttrPos "pname" pself; in "${pos.file}:${toString pos.line}";
                     };
                 }) recursiveOverrides;
                 recursiveNames = attrNames toOverride;
-                pselfRecursed = filterAttrs (n: v: elem n recursiveNames) pself;
+                pselfRecursed = j.getAttrs' pself recursiveNames;
             in ppkgs.buildPythonPackage (lself.foldToSet [
                 toOverride
                 pselfOverride
@@ -618,8 +615,8 @@
                         postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
                         makeWrapperArgs = flatten [
                             "--prefix PYTHONPATH : ${ppkgs.makePythonPath propagatedNativeBuildInputs}"
-                            (optional (extras.appPathUseBuildInputs or false) "--prefix PATH ${with final; makeBinPath (ppkgs.${pname}.buildInputs or [])}")
-                            (optional (extras.appPathUseNativeBuildInputs or false) "--prefix PATH ${with final; makeBinPath (ppkgs.${pname}.nativeBuildInputs or [])}")
+                            (optional (extras.appPathUseBuildInputs or false) "--prefix PATH : ${with final; makeBinPath (ppkgs.${pname}.buildInputs or [])}")
+                            (optional (extras.appPathUseNativeBuildInputs or false) "--prefix PATH : ${with final; makeBinPath (ppkgs.${pname}.nativeBuildInputs or [])}")
                         ];
                     })
                     ((extras.appSettings or (final: prev: {})) final prev)
@@ -879,28 +876,6 @@
                     platforms = [ "aarch64-linux" "i686-linux" "x86_64-linux" ];
                 };
             }) else hello;
-            poetry2setup = { Python, gawk, pname }: Python.pkgs.buildPythonApplication rec {
-                inherit pname;
-                version = j.pyVersion format src;
-                format = "pyproject";
-                src = inputs.${pname};
-                propagatedBuildInputs = with Python.pkgs; [ poetry-core ];
-                buildInputs = with Python.pkgs; [ poetry-core ];
-                installPhase = ''
-                    mkdir --parents $out/bin
-                    cp $src/${pname}.py $out/bin/${pname}
-                    chmod +x $out/bin/${pname}
-                    ${gawk}/bin/awk -i inplace 'BEGINFILE{print "#!/usr/bin/env python3"}{print}' $out/bin/${pname}
-                '';
-
-                postFixup = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-                makeWrapperArgs = [ "--prefix PYTHONPATH : ${placeholder "out"}/lib/${Python.pkgs.python.libPrefix}/site-packages" ];
-                meta = {
-                    description = "Convert python-poetry(pyproject.toml) to setup.py.";
-                    homepage = "https://github.com/${Inputs.${pname}.owner}/${pname}";
-                    license = licenses.mit;
-                };
-            };
             saku = { buildGoApplication, pname }: buildGoApplication rec {
                 inherit pname;
                 inherit (Inputs.${pname}) version;
@@ -948,6 +923,8 @@
                 }
             ];
             python = rec {
+                # python2 = {
+                # };
                 python3 = {
                     autoslot = { buildPythonPackage, fetchFromGitHub, pytestCheckHook, flit, pname }: buildPythonPackage rec {
                         inherit pname;
@@ -1182,8 +1159,6 @@
             };
             overlays = j.foldToSet [
                 (attrValues pythonOverlays)
-                # (mapAttrsToList (n: v: v.overlays) (filterAttrs (n: v: j.has.prefix n pyapps) inputs))
-                # (mapAttrs' (n: v: nameValuePair (j.remove.prefix pyapps) v.overlays) (filterAttrs (n: v: j.has.prefix n pyapps) inputs))
                 nodeOverlays
                 yarnOverlays
                 calledPackages
@@ -1828,7 +1803,11 @@
             in lib.j.foldToSet [
                 {
                     default = flatten [ buildInputSet.envrc ];
-                    inherit general;
+                    general = flatten [
+                        general
+                        pkgs.titan
+                        pkgs.settings
+                    ];
                 }
                 (mapAttrs (n: v: func: extras: pname: ppkglist: flatten [
                     (extras."makefile-${n}".buildInputs or [])
@@ -1841,7 +1820,12 @@
                 ]) pkgs.Pythons)
             ];
             mkfilefunk = let
-                func = old: { doCheck = false; };
+                func = old: {
+                    doCheck = false;
+                    pythonImportsCheck = [];
+                    postCheck = "";
+                    checkPhase = "";
+                };
             in mapAttrs (n: v: isApp: type: extras: pname: pkglist: ppkglist: j.foldToShell pkgs [
                 (pkgs.mkShell (j.recursiveUpdateAll { buildInputs = [
                     mkbuildinputs.default
