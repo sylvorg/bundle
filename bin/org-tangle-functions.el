@@ -89,7 +89,7 @@
 (defvar current-lob-file nil)
 (defvar current-setup-file nil)
 
-(defun org-babel-pre-tangle-hooks nil (interactive)
+(defun org-babel-pre-tangle-hooks (&optional html) (interactive)
     (setq org-elements (let* (
             (headlines (org-element-map
                         (org-element-parse-buffer 'headline)

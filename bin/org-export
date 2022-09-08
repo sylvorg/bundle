@@ -80,6 +80,8 @@
          (error ""))
         ((or "-f" "--force")
          nil)
+        ((or "-d" "--debug")
+         nil)
         ((or "-a" "--all")
          (setq all-blocks t))
         ((or "-p" "--print")

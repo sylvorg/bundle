@@ -1689,6 +1689,8 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
          (error ""))
         ((or "-f" "--force")
          nil)
+        ((or "-d" "--debug")
+         nil)
         ((or "-a" "--all")
          (setq all-blocks t))
         ((or "-p" "--print")
@@ -8593,7 +8595,7 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
 (defvar current-lob-file nil)
 (defvar current-setup-file nil)
 
-(defun org-babel-pre-tangle-hooks nil (interactive)
+(defun org-babel-pre-tangle-hooks (&optional html) (interactive)
     (setq org-elements (let* (
 #+end_src
 
