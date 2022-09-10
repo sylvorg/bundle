@@ -2203,6 +2203,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })
                     (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
+                    (optionalAttrs (! settings) { inherit (self.overlays) settings; })
 #+end_src
 
 Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.

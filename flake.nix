@@ -1683,6 +1683,7 @@
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })
                     (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
+                    (optionalAttrs (! settings) { inherit (self.overlays) settings; })
                     overlays
                 ];
                 overlay = default;

@@ -1,4 +1,4 @@
-,* .envrc
+* .envrc
 
 #+begin_src shell :tangle (meq/tangle-path)
 use nix
