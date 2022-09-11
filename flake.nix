@@ -226,7 +226,7 @@
                 suffix = string: any (flip hasSuffix string);
                 infix = string: any (flip hasInfix string);
             };
-            getAttrs' = attrs: list: filterAttrs (n: v: elem n list) attrs;
+            getAttrs' = attrs: list: filterAttrs (n: v: elem n (unique (flatten list))) attrs;
             filters = {
                 has = {
                     attrs = list: attrs: let
@@ -1683,7 +1683,7 @@
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })
                     (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
-                    (optionalAttrs (! settings) { inherit (self.overlays) settings; })
+                    (optionalAttrs (! settings) (j.getAttrs' self.overlays [ (extras.settings.overlays or []) "settings" ]))
                     overlays
                 ];
                 overlay = default;

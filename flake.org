@@ -308,7 +308,7 @@ These are kept separately so that they're easier to debug:
                 suffix = string: any (flip hasSuffix string);
                 infix = string: any (flip hasInfix string);
             };
-            getAttrs' = attrs: list: filterAttrs (n: v: elem n list) attrs;
+            getAttrs' = attrs: list: filterAttrs (n: v: elem n (unique (flatten list))) attrs;
             filters = {
                 has = {
                     attrs = list: attrs: let
@@ -2203,7 +2203,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })
                     (optionalAttrs isApp { "${pname}-lib" = overlays'.${type}; })
-                    (optionalAttrs (! settings) { inherit (self.overlays) settings; })
+                    (optionalAttrs (! settings) (j.getAttrs' self.overlays [ (extras.settings.overlays or []) "settings" ]))
 #+end_src
 
 Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
