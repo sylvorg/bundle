@@ -1233,6 +1233,13 @@ use nix
 
 * templates
 ** general
+*** index.org
+
+#+name: 4833c5bd-7acc-44bf-a9ee-05ce467e6f0e
+#+begin_src org :tangle (meq/tangle-path)
+,#+include: ./README.org
+#+end_src
+
 *** nix.org
 
 #+name: 97220a9c-af77-4056-b7f8-00e11819e210
@@ -1315,6 +1322,12 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 #+end_src
 
 ** python-app
+*** index.org
+
+#+begin_src org :tangle (meq/tangle-path)
+<<4833c5bd-7acc-44bf-a9ee-05ce467e6f0e>>
+#+end_src
+
 *** makefile
 
 ~Note:~ Deprecated
@@ -1370,7 +1383,7 @@ from addict import Dict
 
 ,#+begin_src py
 if __name__ == "__main__":
-    tailapi(obj=Dict(dict()))
+    main(obj=Dict(dict()))
 ,#+end_src
 #+end_src
 
@@ -1442,6 +1455,12 @@ markers = [
 #+end_src
 
 ** python-package
+*** index.org
+
+#+begin_src org :tangle (meq/tangle-path)
+<<4833c5bd-7acc-44bf-a9ee-05ce467e6f0e>>
+#+end_src
+
 *** changethis
 **** __init__.org
 
