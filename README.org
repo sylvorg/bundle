@@ -1294,7 +1294,12 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
         pname = \"\";
         %s
         # TODO: Change this!
-        callPackage = { stdenv, oreo, pname }: j.mkPythonPackage self stdenv [] (rec {
+        callPackage = %s
+    };
+}
+,#+end_src" (if (string= type "") "" (format "type = \"%s\";\n" type))
+            (if (string= isApp "") "" (format "\n        isApp = %s;\n" isApp))
+            (cond ((member type '("python" "python2" "python3" "hy" "xonsh")) "{ stdenv, oreo, pname }: j.mkPythonPackage self stdenv [] (rec {
 
             # TODO: Change this!
             owner = \"\";
@@ -1310,15 +1315,39 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
             # TODO: Change this!
             meta.description = \"\";
 
-        });
-    };
-}
-,#+end_src" (if (string= type "") "" (format "type = \"%s\";\n" type))
-            (if (string= isApp "") "" (format "\n        isApp = %s;\n" isApp)))
+        });")
+                ((string= type "emacs") "{ trivialBuild, emacs, pname }: trivialBuild rec {
+            inherit pname;
+            src = ./.;
+            buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
+            propagatedUserEnvPkgs = with emacs.pkgs; [  ];
+            meta = {
+              inherit (emacs.meta) platforms;
+              homepage = \"https://github.com/syvlorg/${pname}\";
+
+              # TODO: Change this!
+              description = \"\";
+
+            };
+        };")
+                (t "{ pname }: {  };")))
 #+end_src
 
 #+begin_src text :tangle (meq/tangle-path)
 <<97220a9c-af77-4056-b7f8-00e11819e210()>>
+#+end_src
+
+** emacs
+*** index.org
+
+#+begin_src org :tangle (meq/tangle-path)
+<<4833c5bd-7acc-44bf-a9ee-05ce467e6f0e>>
+#+end_src
+
+*** nix.org
+
+#+begin_src text :tangle (meq/tangle-path)
+<<97220a9c-af77-4056-b7f8-00e11819e210(type="emacs")>>
 #+end_src
 
 ** python-app

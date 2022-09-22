@@ -78,12 +78,26 @@ in {
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
         inherit inputs;
-        
+        type = "emacs";
+
         # TODO: Change this!
         pname = "";
         
         # TODO: Change this!
-        callPackage = { pname }: {  };
+        callPackage = { trivialBuild, emacs, pname }: trivialBuild rec {
+            inherit pname;
+            src = ./.;
+            buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
+            propagatedUserEnvPkgs = with emacs.pkgs; [  ];
+            meta = {
+              inherit (emacs.meta) platforms;
+              homepage = "https://github.com/syvlorg/${pname}";
+
+              # TODO: Change this!
+              description = "";
+
+            };
+        };
     };
 }
 #+end_src

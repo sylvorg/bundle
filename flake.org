@@ -133,6 +133,10 @@ Deprecated; circular imports are much too confusing...
             url = github:yashtodi94/pytest-custom_exit_code/0.3.0;
             flake = false;
         };
+        org = {
+            url = github:bzg/org-mode;
+            flake = false;
+        };
     };
 #+end_src
 
@@ -319,7 +323,6 @@ These are kept separately so that they're easier to debug:
                     ];
                     list = list: attrs: attrValues (filters.has.attrs list attrs);
                 };
-
                 keep = {
                     prefix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.prefix n (toList keeping)) attrs);
                     suffix = keeping: attrs: if ((keeping == []) || (keeping == "")) then attrs else (filterAttrs (n: v: has.suffix n (toList keeping)) attrs);
@@ -616,6 +619,51 @@ Adapted from [[https://github.com/svanderburg/node2nix/issues/252#issuecomment-8
 #+end_src
 
 #+begin_src nix
+                emacs = {
+#+end_src
+
+Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/536/4][here]],
+[[https://discourse.nixos.org/t/use-multiple-instances-of-prev-python-override/20066/2][here]], and
+[[https://discourse.nixos.org/t/override-a-transitive-emacs-dependency/6700/3][here]]:
+
+# TODO: Simplify this
+
+#+begin_src nix
+                    emacs = name: value: pkg: final: prev: let
+                        emacs-overlays = inputs.emacs.overlay prev prev;
+                        emacsen = genAttrs (filter (emacs: (hasPrefix "emacs" emacs) &&
+                                                           (! (hasInfix "Packages" emacs)) &&
+                                                           (! (elem emacs [
+                                                                "emacs-all-the-icons-fonts"
+                                                                "emacsMacport"
+                                                                "emacsen"
+                                                            ]))) (flatten [
+                                                                (attrNames prev)
+                                                                (attrNames (inputs.emacs.overlay prev prev))
+                                                            ])) (emacs: final.${emacs});
+                    in { emacsen = prev.emacsen or emacsen; } // (genAttrs (attrNames emacsen) (emacs: let
+                        emacs' = emacs-overlays.${emacs} or prev.${emacs};
+                        pkgs = let
+                            pkgs' = fix (extends (emacs-final: emacs-prev: recursiveUpdate emacs-prev (if (name == null) then value else {
+                                ${name} = if (pkg == null) then value else (final.callPackage pkg (value // { emacs = emacs'; }));
+                            })) (emacs-final: emacs'.pkgs));
+                        in pkgs' // (rec {
+                            emacsWithPackages = f1: pkgs'.emacsWithPackages (f2: f1 pkgs');
+                            withPackages = emacsWithPackages;
+                        });
+                    in emacs' // {
+                        inherit (pkgs) emacsWithPackages withPackages;
+                        inherit pkgs;
+                        passthru = emacs'.passthru // { inherit pkgs; };
+                    }));
+                    callEmacs = extrargs: name: pkg: final: update.emacs.emacs name extrargs pkg final;
+                    callEmacs' = extrargs: file: final: update.emacs.emacs (imports.name { inherit file; }) extrargs file final;
+#+end_src
+
+#+begin_src nix
+                    package = pkg: func: final: prev: update.emacs.emacs pkg (prev.emacs.pkgs.${pkg}.overrideAttrs func) null final prev;
+                    packages = dir: final: update.emacs.emacs null (imports.set { call = final.emacs.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; }) null final;
+                };
             };
 #+end_src
 
@@ -982,12 +1030,14 @@ Adapted from [[https://gist.github.com/CMCDragonkai/9b65cbb1989913555c203f4fa9c2
 Adapted from [[https://github.com/NixOS/nixpkgs/issues/14671#issuecomment-1016376290][here]]; allows us to build ~caddy~ with plugins:
 
 #+begin_src nix
-            caddy = { buildGoModule, pname }: let
-                imports = concatMapStrings (pkg: "\t\t\t_ \"${pkg}\"\n") [
+            caddy = { callPackage, buildGoModule, pname, caddyPackages ? [], withDefaultPackages ? true, sha256 ? "" }: let
+                noPackages = caddyPackages == [];
+                defaultPackages = [
                     "github.com/mholt/${pname}-l4"
                     "github.com/abiosoft/${pname}-yaml"
                     "github.com/${pname}-dns/cloudflare"
                 ];
+                imports = concatMapStrings (pkg: "\t\t\t_ \"${pkg}\"\n") (if withDefaultPackages then (defaultPackages ++ caddyPackages) else caddyPackages);
                 main = ''
                     package main
 
@@ -1006,7 +1056,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/issues/14671#issuecomment-101637
                 inherit (Inputs.${pname}) version;
                 subPackages = [ "cmd/${pname}" ];
                 src = inputs.${pname};
-                vendorSha256 = "sha256-/uBSdVkcyKMhO6KNaZkzN9eP2jCIKgetsookWaGLF5A=";
+                vendorSha256 = if noPackages then "sha256-sNwXjeKqcKCxf9mktlSN6YL/xw+E1KZZ2e3mhrloZFc=" else sha256;
                 overrideModAttrs = (_: {
                     preBuild    = postPatch;
                     postInstall = "cp go.sum go.mod $out/";
@@ -1016,7 +1066,15 @@ Adapted from [[https://github.com/NixOS/nixpkgs/issues/14671#issuecomment-101637
                     cp vendor/go.sum ./
                     cp vendor/go.mod ./
                 '';
-                passthru.tests."${pname}" = nixosTests.${pname};
+                passthru = {
+                    withPackages = caddyPackages': withDefaultPackages': sha256': callPackage callPackages.caddy {
+                        inherit pname;
+                        caddyPackages = caddyPackages';
+                        sha256 = sha256';
+                        withDefaultPackages = withDefaultPackages';
+                    };
+                    tests."${pname}" = nixosTests.${pname};
+                };
                 meta = {
                     homepage = https://caddyserver.com;
                     description = "Fast, cross-platform HTTP/2 web server with automatic HTTPS";
@@ -1134,6 +1192,69 @@ Most of these package derivations were generated by [[https://nixos.wiki/wiki/No
                     };
                 }
             ];
+#+end_src
+
+*** Emacs
+
+#+begin_src nix
+            emacs = {
+                packages = {
+                    naked = { emacs, pname }: emacs.pkgs.trivialBuild rec {
+                        inherit pname;
+                        version = "0";
+                        src = fetchurl {
+                            url = "https://www.emacswiki.org/emacs/download/naked.el";
+                            sha256 = "sha256:0v8dv3qkiyr4vkrcmyp55l04z82sr45xai6lxbfr1wbibhz4m6j2";
+                        };
+                        buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
+                        propagatedUserEnvPkgs = with emacs.pkgs; [ ];
+                        meta = {
+                            homepage = "https://www.emacswiki.org/emacs/naked.el";
+                            description = "Provide for naked key descriptions: no angle brackets.";
+                            inherit (emacs.meta) platforms;
+                        };
+                    };
+                    org = { emacs, pname }: emacs.pkgs.trivialBuild rec {
+                        inherit pname;
+                        ename = pname;
+                        version = "master";
+                        src = inputs.${pname};
+                        buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
+                        propagatedUserEnvPkgs = with emacs.pkgs; [ ];
+#+end_src
+
+Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/emacs/trivial.nix#L10][here]] and [[https://github.com/NixOS/nix/issues/670#issuecomment-1211700127][here]]:
+
+#+begin_src nix
+                        buildPhase = ''
+                            runHook preBuild
+                            HOME=$(pwd)
+                            make
+                            make autoloads
+                            runHook postBuild
+                        '';
+#+end_src
+
+Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/emacs/trivial.nix#L18][here]]:
+
+#+begin_src nix
+                        installPhase = ''
+                            runHook preInstall
+                            LISPDIR=$out/share/emacs/site-lisp
+                            install -d $LISPDIR
+                            install lisp/* $LISPDIR
+                            runHook postInstall
+                        '';
+#+end_src
+
+#+begin_src nix
+                        meta = {
+                            homepage = "https://elpa.gnu.org/packages/org.html";
+                            license = lib.licenses.free;
+                        };
+                    };
+                };
+            };
 #+end_src
 
 *** Python
@@ -1434,6 +1555,18 @@ Most of these package derivations were generated by [[https://nixos.wiki/wiki/No
             yarnOverlays = mapAttrs j.update.node.yarn callPackages.yarn;
 #+end_src
 
+*** Emacs
+
+#+begin_src nix
+            emacsOverlays = {
+                packages = let
+                    update = j.update.emacs.package;
+                in j.foldToSet [
+                    (mapAttrs (pname: pkg: final: prev: j.update.emacs.callEmacs { inherit pname; } pname pkg final prev) callPackages.emacs.packages)
+                ];
+            };
+#+end_src
+
 *** Python
 
 #+begin_src nix
@@ -1520,6 +1653,7 @@ Deprecated; replaced by the block below:
 #+begin_src nix
             overlays = j.foldToSet [
                 (attrValues pythonOverlays)
+                (attrValues emacsOverlays)
                 nodeOverlays
                 yarnOverlays
                 calledPackages
@@ -1616,7 +1750,7 @@ When the ~sandbox~ is disabled, other ~go~ builds will fail if this is enabled: 
 #+end_src
 
 #+begin_src nix
-                    emacs = inputs.emacs.overlay;
+                    emacs-overlays = inputs.emacs.overlay;
                     gomod2nix = inputs.gomod2nix.overlays.default;
                     nur = final: prev: { nur = import inputs.nur { nurpkgs = inputs.nixpkgs; pkgs = final; }; };
                     # nix = inputs.nix.overlay;
@@ -2153,16 +2287,6 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
         };
 #+end_src
 
-** Individual Outputs
-
-#+begin_src nix
-        individual-outputs = with lib; j.foldToSet [
-            nixosModules
-            templates
-            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs defaultSystem; }
-        ];
-#+end_src
-
 ** Template Outputs
 
 #+begin_src nix
@@ -2179,6 +2303,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
             extras ? {},
             settings ? false,
             make ? self.make,
+            config ? false,
             ...
         }: let
             type' = if isApp then "general" else type;
@@ -2186,8 +2311,13 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
             overlayset = let
                 inheritance = { inherit pname; };
                 overlays' = j.foldToSet [
-                    { general = final: prev: { ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final prev final.Pythons.${type}.pkgs extras pname)
-                                                                             else callPackage) inheritance; }; }
+                    {
+                        general = final: prev: {
+                            ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final prev final.Pythons.${type}.pkgs extras pname)
+                                                                             else callPackage) inheritance;
+                        };
+                        emacs = final: prev: j.update.emacs.callEmacs inheritance pname callPackage final prev;
+                    }
                     (genAttrs j.attrs.versionNames.python (python: final: prev: j.update.python.callPython.${python} inheritance pname callPackage final prev))
                 ];
                 default = if ((callPackage == null) && (overlay == null) && (((overlays == {}) || (! (overlays ? default))) && (! settings)))
@@ -2226,18 +2356,35 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
                     packages = let
                         packages' = j.foldToSet [
                             {
-                                general = {
+                                general = rec {
                                     default = pkgs.${pname};
-                                    ${pname} = pkgs.${pname};
+                                    ${pname} = default;
                                 };
                             }
-                            (let
-                                pythons = mapAttrs (n: v: made.mkPython v [] pname) pkgs.Pythons;
+                            (with pkgs; map (group: let
+                                versions = mapAttrs (n: v: made.mkWithPackages v [] pname) group;
                             in mapAttrs (n: v: j.foldToSet [
-                                pythons
-                                (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
-                                { default = pythons.${type}; "${pname}" = pythons.${type}; }
-                            ]) pythons)
+                                versions
+                                (j.mapAttrNames (n: v: "${n}-${pname}") versions)
+                                { default = versions.${type}; "${pname}" = versions.${type}; }
+                            ]) versions) [ Pythons emacsen ])
+
+                            # TODO: What's happening here?
+                            # (let
+                            #     pythons = mapAttrs (n: v: made.mkWithPackages v [] pname) pkgs.Pythons;
+                            # in mapAttrs (n: v: j.foldToSet [
+                            #     pythons
+                            #     (j.mapAttrNames (n: v: "${n}-${pname}") pythons)
+                            #     { default = pythons.${type}; "${pname}" = pythons.${type}; }
+                            # ]) pythons)
+                            # (let
+                            #     emacsen = mapAttrs (n: v: made.mkWithPackages v [] pname) pkgs.emacsen;
+                            # in mapAttrs (n: v: j.foldToSet [
+                            #     emacsen
+                            #     (j.mapAttrNames (n: v: "${n}-${pname}") emacsen)
+                            #     { default = emacsen.${type}; "${pname}" = emacsen.${type}; }
+                            # ]) emacsen)
+
                         ];
                     in flattenTree (j.foldToSet [
                         packages'.${type'}
@@ -2286,8 +2433,11 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
                 }))
             ];
         in j.foldToSet' [
+            (optionalAttrs config self)
+            { inherit inputs; }
             all-outputs
             (listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) all-outputs)) defaultSystems))
+            (optionalAttrs config (j.getAttrs' self (extras.settings.outputs or [])))
             extraOutputs
         ];
 #+end_src
@@ -2317,23 +2467,20 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
             legacyPackages = pkgs;
             nixpkgs = config'.overlayed;
             specialArgs = j.foldToSet [
-                individual-outputs
-                (rec {
-                    inherit inputs;
-                    made = make system overlays;
-                    nixpkgs = made.config'.overlayed;
-                    pkgs = made.pkgs'.overlayed;
-                    legacyPackages = pkgs;
-                })
+                self
+                self.${system}
+                { inherit inputs; }
             ];
             app = name: drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name or name}"}"; };
 #+end_src
 
-~j.filters.has.list~ is an incomplete function; the general form of ~withPackages~ is ~(ppkgs: ...)~,
-where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list [...] ppkgs)~:
+~j.filters.has.list~ is an incomplete function; the general form of ~withPackages~ is ~(pkgs: ...)~,
+where the full form of ~j.filters.has.list~ would be ~(pkgs: j.filters.has.list [...] pkgs)~.
+
+~mkWithPackages~ has been adapted from [[https://github.com/NixOS/nixpkgs/blob/master/doc/builders/packages/emacs.section.md#configuring-emacs-sec-emacs-config][here]]:
 
 #+begin_src nix
-            mkPython = python: pkglist: pname: python.withPackages (j.filters.has.list [
+            mkWithPackages = pkg: pkglist: pname: pkg.withPackages (j.filters.has.list [
                 pkglist
                 pname
             ]);
@@ -2355,7 +2502,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
                 (mapAttrs (n: v: func: extras: pname: ppkglist: flatten [
                     (extras."makefile-${n}".buildInputs or [])
                     pkgs.poetry2setup
-                    (mkPython v (flatten [
+                    (mkWithPackages v (flatten [
                         general
                         ppkglist
                         (extras."makefile-${n}".pythonPackages or [])
@@ -2378,7 +2525,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
             ]) (j.foldToSet [
                 { general = isApp: type: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
                     buildInputs = j.filters.has.list [
-                        (mkPython pkgs.Python3 [
+                        (mkWithPackages pkgs.Python3 [
                             mkbuildinputs.general
                             ppkglist
                             (extras.general.pythonPackages or [])
@@ -2405,7 +2552,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
                 python = let
                     hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
                 in j.foldToSet [
-                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkPython pkgs.Pythons.${python} [
+                    (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkWithPackages pkgs.Pythons.${python} [
                         pkg
                         pkglist
                     ])) (attrNames overlayset.pythonOverlays.${python})))) [
@@ -2413,9 +2560,9 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
                         # "python2"
                         "python3"
                     ])
-                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.Pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
-                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkPython pkgs.Pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
-                    (listToAttrs (map (python: nameValuePair python (pkglist: mkPython pkgs.Pythons.${python} [
+                    (map (os: (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkWithPackages pkgs.Pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.${os})))) [ "python3" "xonsh" ])
+                    (listToAttrs (map (pkg: nameValuePair "xonsh-${pkg}" (pkglist: mkWithPackages pkgs.Pythons.xonsh [ pkg pkglist ])) (attrNames overlayset.pythonOverlays.xonsh)))
+                    (listToAttrs (map (python: nameValuePair python (pkglist: mkWithPackages pkgs.Pythons.${python} [
                         (attrNames overlayset.pythonOverlays.${python})
                         pkglist
                     ])) [
@@ -2423,11 +2570,21 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
                         # "python2"
                         "python3"
                     ]))
-                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkPython pkgs.Pythons.hy [ pkg pkglist ])) hyOverlays))
+                    (listToAttrs (map (pkg: nameValuePair "hy-${pkg}" (pkglist: mkWithPackages pkgs.Pythons.hy [ pkg pkglist ])) hyOverlays))
                     {
-                        xonsh = pkglist: mkPython pkgs.Pythons.xonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
-                        hy = pkglist: mkPython pkgs.Pythons.hy [ hyOverlays pkglist ];
+                        xonsh = pkglist: mkWithPackages pkgs.Pythons.xonsh [ (attrNames overlayset.pythonOverlays.xonsh) pkglist ];
+                        hy = pkglist: mkWithPackages pkgs.Pythons.hy [ hyOverlays pkglist ];
                     }
+                ];
+                emacs = j.foldToSet [
+                    (listToAttrs (flatten (map (emacs: map (pkg: nameValuePair "${emacs}-${pkg}" (pkglist: mkWithPackages pkgs.${emacs} [
+                        pkglist
+                        pkg
+                    ])) (attrNames overlayset.emacsOverlays.packages)) (attrNames pkgs.emacsen))))
+                    (mapAttrs (n: v: pkglist: mkWithPackages v [
+                        (attrNames overlayset.emacsOverlays.packages)
+                        pkglist
+                    ]) pkgs.emacsen)
                 ];
             };
             mkPackages = {
@@ -2437,6 +2594,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
                 ] pkgs;
                 node = nodeOverlays: j.mapAttrNames (n: v: "nodejs-${n}") (j.filters.has.attrs (map attrNames nodeOverlays) pkgs.nodePackages);
                 python = mapAttrs (n: v: v [] null) withPackages.python;
+                emacs = mapAttrs (n: v: v [] null) withPackages.emacs;
             };
         };
 #+end_src
@@ -2472,6 +2630,7 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
                 (made.mkPackages.default inputs.nixpkgs)
                 (made.mkPackages.node [ overlayset.nodeOverlays overlayset.yarnOverlays ])
                 made.mkPackages.python
+                made.mkPackages.emacs
             ]);
             devShells = with pkgs; {
                 all = mkShell { buildInputs = flatten [
@@ -2481,7 +2640,11 @@ where the full form of ~j.filters.has.list~ would be ~(ppkgs: j.filters.has.list
                 site = mkShell { buildInputs = with nodePackages; [ uglifycss uglify-js sd ]; };
             };
         };
-        extraOutputs = individual-outputs;
+        extraOutputs = j.foldToSet [
+            nixosModules
+            templates
+            { inherit make lib lockfile channel registry profiles devices mkOutputs Inputs defaultSystem; }
+        ];
     };
 #+end_src
 
