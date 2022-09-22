@@ -1803,13 +1803,13 @@
                                     ${pname} = default;
                                 };
                             }
-                            (with pkgs; map (group: let
+                            (map (group: let
                                 versions = mapAttrs (n: v: made.mkWithPackages v [] pname) group;
                             in mapAttrs (n: v: j.foldToSet [
                                 versions
                                 (j.mapAttrNames (n: v: "${n}-${pname}") versions)
                                 { default = versions.${type}; "${pname}" = versions.${type}; }
-                            ]) versions) [ Pythons emacsen ])
+                            ]) versions) (with pkgs; [ Pythons emacsen ]))
 
                             # TODO: What's happening here?
                             # (let
