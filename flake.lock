@@ -700,11 +700,11 @@
         "poetry2setup": "poetry2setup"
       },
       "locked": {
-        "lastModified": 1663971596,
-        "narHash": "sha256-OpuPrsbtDWLMEXxOJea949VRCjNHUcI7VX/SWADlVxc=",
+        "lastModified": 1663974535,
+        "narHash": "sha256-MzDgrgKg+CR3ufC/pZd05Tu6Y5ylZtrbYOc5JhMzvHg=",
         "owner": "syvlorg",
         "repo": "titan",
-        "rev": "3b4a00978d32bd8809bf4825122311a0265792bb",
+        "rev": "458706f79a4621ba20d8a14e64bd945731ae0c75",
         "type": "github"
       },
       "original": {
