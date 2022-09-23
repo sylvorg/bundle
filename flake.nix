@@ -1799,7 +1799,7 @@
                         packages' = j.foldToSet [
                             {
                                 general = rec {
-                                    default = pkgs.${pname};
+                                    default = pkgs.${pname} or pkgs.default or (trace "Sorry; no package `${pname}' or `default' has been found in `pkgs'!" pkgs.settings);
                                     ${pname} = default;
                                 };
                             }
