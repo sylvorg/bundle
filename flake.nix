@@ -1945,7 +1945,7 @@
             in mapAttrs (n: v: isApp: type: extras: pname: pkglist: ppkglist: j.foldToShell pkgs [
                 (pkgs.mkShell (j.recursiveUpdateAll { buildInputs = [
                     mkbuildinputs.default
-                    (optionals (isApp || (type == "general")) (if (pname == null) then pname else (pkgs.${pname}.overrideAttrs func)))
+                    (optionals (isApp || (type == "general")) (if (pname == null) then pname else ((pkgs.${pname} or pkgs.default or (trace "Sorry; no package `${pname}' or `default' has been found in `pkgs'!" pkgs.settings)).overrideAttrs func)))
                 ]; } (extras.global or {})))
                 (v isApp type extras pname pkglist ppkglist)
             ]) (j.foldToSet [
