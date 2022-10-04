@@ -1282,6 +1282,8 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
         settings.url = github:sylvorg/settings;
         titan.url = github:syvlorg/titan;
         flake-utils.url = github:numtide/flake-utils;
+        py3pkg-oreo.url = github:syvlorg/oreo;
+        py3pkg-pytest-hy.url = github:syvlorg/pytest-hy;
         flake-compat = {
             url = \"github:edolstra/flake-compat\";
             flake = false;
@@ -1289,15 +1291,15 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
         inherit inputs;
-        %s
+%s
         # TODO: Change this!
         pname = \"\";
-        %s
+%s
         # TODO: Change this!
         callPackage = %s
     };
 }
-,#+end_src" (if (string= type "") "" (format "type = \"%s\";\n" type))
+,#+end_src" (if (string= type "") "" (format "        type = \"%s\";\n" type))
             (if (string= isApp "") "" (format "\n        isApp = %s;\n" isApp))
             (cond ((member type '("python" "python2" "python3" "hy" "xonsh")) "{ stdenv, oreo, pname }: j.mkPythonPackage self stdenv [] (rec {
 
@@ -1412,7 +1414,7 @@ from addict import Dict
 
 ,#+begin_src py
 if __name__ == "__main__":
-    main(obj=Dict(dict()))
+    main(obj=Dict())
 ,#+end_src
 #+end_src
 
@@ -1426,6 +1428,10 @@ if __name__ == "__main__":
 ,#+begin_src hy
 (import click)
 ,#+end_src
+
+,* Click
+
+
 #+end_src
 
 *** pyproject.toml
@@ -1459,7 +1465,7 @@ oreo = { git = "https://github.com/syvlorg/oreo.git", branch = "main" }
 pytest = "^3.0"
 poetry = "*"
 poetry2setup = "*"
-pytest-hy = "*"
+pytest-hy = { git = "https://github.com/syvlorg/pytest-hy.git", branch = "maaster" }
 pytest-randomly = "*"
 pytest-parametrized = "*"
 pytest-sugar = "*"

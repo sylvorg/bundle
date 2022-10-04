@@ -21,6 +21,7 @@
     };
     inputs = rec {
         emacs.url = github:nix-community/emacs-overlay;
+        doom-emacs.url = github:nix-community/nix-doom-emacs;
         nix.url = github:nixos/nix;
         nur.url = github:nix-community/nur;
         node2nix = {
@@ -521,31 +522,45 @@
                 emacs = {
                     emacs = name: value: pkg: final: prev: let
                         emacs-overlays = inputs.emacs.overlay prev prev;
-                        emacsen = genAttrs (filter (emacs: (hasPrefix "emacs" emacs) &&
-                                                           (! (hasInfix "Packages" emacs)) &&
-                                                           (! (elem emacs [
-                                                                "emacs-all-the-icons-fonts"
-                                                                "emacsMacport"
-                                                                "emacsen"
-                                                            ]))) (flatten [
-                                                                (attrNames prev)
-                                                                (attrNames (inputs.emacs.overlay prev prev))
-                                                            ])) (emacs: final.${emacs});
-                    in { emacsen = prev.emacsen or emacsen; } // (genAttrs (attrNames emacsen) (emacs: let
+                        emacsen' = filter (emacs: (hasPrefix "emacs" emacs) &&
+                                                  (! (hasInfix "Packages" emacs)) &&
+                                                  (! (elem emacs [
+                                                      "emacs-all-the-icons-fonts"
+                                                      "emacsMacport"
+                                                      "emacsen"
+                                                  ]))) (flatten [
+                                                      (attrNames prev)
+                                                      (attrNames emacs-overlays)
+                                                  ]);
+                        emacsen = genAttrs (flatten [
+                            emacsen'
+                            "doom-emacs"
+                            # "emacsMacport"
+                        ]) (emacs: final.${emacs});
+                    in { emacsen = prev.emacsen or emacsen; } // (genAttrs emacsen' (emacs: let
                         emacs' = emacs-overlays.${emacs} or prev.${emacs};
-                        pkgs = let
-                            pkgs' = fix (extends (emacs-final: emacs-prev: recursiveUpdate emacs-prev (if (name == null) then value else {
-                                ${name} = if (pkg == null) then value else (final.callPackage pkg (value // { emacs = emacs'; }));
-                            })) (emacs-final: emacs'.pkgs));
-                        in pkgs' // (rec {
-                            emacsWithPackages = f1: pkgs'.emacsWithPackages (f2: f1 pkgs');
-                            withPackages = emacsWithPackages;
-                        });
-                    in emacs' // {
-                        inherit (pkgs) emacsWithPackages withPackages;
-                        inherit pkgs;
-                        passthru = emacs'.passthru // { inherit pkgs; };
-                    }));
+                        pkgs = fix (extends (emacs-final: emacs-prev: recursiveUpdate emacs-prev (if (name == null) then value else {
+                            ${name} = if (pkg == null) then value else (final.callPackage pkg (value // { emacs = emacs'; }));
+                        })) (emacs-final: emacs'.pkgs));
+                        passthru = let
+                            emacsWith = rec {
+                                emacsWithPackages = f1: j.foldToSet [
+                                    (pkgs.emacsWithPackages (f2: f1 pkgs))
+                                    passthru
+                                    { inherit passthru; }
+                                ];
+                                withPackages = emacsWithPackages;
+                            };
+                        in j.foldToSet [
+                            emacs'.passthru
+                            emacsWith
+                            { pkgs = pkgs // emacsWith; }
+                        ];
+                    in j.foldToSet [
+                        emacs'
+                        passthru
+                        { inherit passthru; }
+                    ]));
                     callEmacs = extrargs: name: pkg: final: update.emacs.emacs name extrargs pkg final;
                     callEmacs' = extrargs: file: final: update.emacs.emacs (imports.name { inherit file; }) extrargs file final;
                     package = pkg: func: final: prev: update.emacs.emacs pkg (prev.emacs.pkgs.${pkg}.overrideAttrs func) null final prev;
@@ -597,14 +612,15 @@
                 toRecurse = removeAttrs (rec {
                     buildInputs = optional ((pself.format or toOverride.format) == "pyproject") ppkgs.poetry-core;
                     nativeBuildInputs = flatten [ buildInputs (pself.buildInputs or []) ];
-                    propagatedNativeBuildInputs = pself.propagatedBuildInputs or [];
+                    propagatedBuildInputs = flatten [ ppkgs.rich (optionals (flake.type == "hy") (with ppkgs; [ hy hyrule ])) ];
+                    propagatedNativeBuildInputs = flatten [ propagatedBuildInputs (pself.propagatedBuildInputs or []) ];
                     postCheck = ''
                         PYTHONPATH=${ppkgs.makePythonPath (flatten [ propagatedNativeBuildInputs (pself.propagatedNativeBuildInputs or []) ])}:$PYTHONPATH
-                        python -c "import ${concatStringsSep "; import " (flatten [ pname (pself.pythonImportsCheck or []) ])}"
+                        python -c "import ${replaceStrings ["-"] ["_"] (concatStringsSep "; import " (flatten [ pname (pself.pythonImportsCheck or []) ]))}"
                     '';
                     checkInputs = with ppkgs; flatten [
                         pytestCheckHook
-                        (optional (pname != "pytest-hy") pytest-hy)
+                        (optional ((pname != "pytest-hy") && (flake.type == "hy")) pytest-hy)
                         pytest-randomly
                         pytest-parametrized
                         pytest-custom_exit_code
@@ -681,6 +697,16 @@
             ];
 
             inputToOverlays = prefix: inputs': lself.foldToSet (mapAttrsToList (n: v: v.overlays) (filterAttrs (n: v: hasPrefix "${prefix}-" n) inputs'));
+
+            inputIndividualPkgsToOverlays = mapAttrs (n: inputToOverlays) {
+                emacs = "epkg";
+            };
+
+            inputIndividualAppsToOverlays = mapAttrs (n: inputToOverlays) {
+                emacs = "eapp";
+            };
+
+            inputIndividualBothToOverlays = genAttrs (attrNames inputIndividualPkgsToOverlays) (pkg: inputs': (inputIndividualPkgsToOverlays.${pkg} inputs') // (inputIndividualAppsToOverlays.${pkg} inputs'));
 
             inputPkgsToOverlays = {
                 python = let
@@ -972,6 +998,7 @@
                 packages = {
                     naked = { emacs, pname }: emacs.pkgs.trivialBuild rec {
                         inherit pname;
+                        ename = pname;
                         version = "0";
                         src = fetchurl {
                             url = "https://www.emacswiki.org/emacs/download/naked.el";
@@ -988,15 +1015,20 @@
                     org = { emacs, pname }: emacs.pkgs.trivialBuild rec {
                         inherit pname;
                         ename = pname;
-                        version = "master";
+                        version = "9.5.6";
                         src = inputs.${pname};
                         buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
                         propagatedUserEnvPkgs = with emacs.pkgs; [ ];
                         buildPhase = ''
                             runHook preBuild
                             HOME=$(pwd)
-                            make
-                            make autoloads
+                            make all
+                            make ORGVERSION=${version} GITVERSION=org-${version} autoloads
+                            # for dir in "mk/org-fixup.el lisp/org-version.el"; do
+                            #     substituteInPlace $dir --replace "N/A" "${version}"
+                            # done
+                            # substituteInPlace mk/org-fixup.el --replace "N/A" "${version}"
+                            # substituteInPlace lisp/org-version.el --replace "N/A" "${version}"
                             runHook postBuild
                         '';
                         installPhase = ''
@@ -1195,6 +1227,7 @@
                 packages = let
                     update = j.update.emacs.package;
                 in j.foldToSet [
+                    (j.inputIndividualBothToOverlays.emacs inputs)
                     (mapAttrs (pname: pkg: final: prev: j.update.emacs.callEmacs { inherit pname; } pname pkg final prev) callPackages.emacs.packages)
                 ];
             };
@@ -1330,6 +1363,61 @@
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
                     emacs-overlays = inputs.emacs.overlay;
+                    emacsDefault = final: prev: { emacsDefault = final.emacsNativeComp; };
+                    doom-emacs = final: prev: let
+                        harbinger = inputs.doom-emacs.package.${prev.stdenv.targetPlatform.system};
+                        # defaultDoomDir = path { path = "${inputs.doom-emacs}/test/doom.d"; };
+                        # defaultDoomDir = /home/shadowrylander/.doom.d;
+                        defaultDoomDir = ./.doom.d;
+                        default = harbinger { doomPrivateDir = defaultDoomDir; };
+                        passthru = let
+                            emacs = final.emacsDefault;
+                            emacsWith = rec {
+                                emacsWithPackages = func: j.foldToSet [
+                                    (harbinger { doomPrivateDir = defaultDoomDir; extraPackages = f: func emacs.pkgs; emacsPackagesOverlay = self: super: { inherit (emacs.pkgs) org; }; })
+                                    passthru
+                                    # {
+                                    #     emacs = emacs.withPackages func;
+                                    #     inherit passthru;
+                                    # }
+                                ];
+                                withPackages = emacsWithPackages;
+                                emacsWithDir = doomPrivateDir: j.foldToSet [
+                                    (harbinger { inherit doomPrivateDir; })
+                                    passthru
+                                    { inherit passthru; }
+                                ];
+                                withDir = emacsWithDir;
+                                emacsWithDirPkgs = doomPrivateDir: func: j.foldToSet [
+                                    (harbinger { inherit doomPrivateDir; extraPackages = f: func emacs.pkgs; emacsPackagesOverlay = self: super: { inherit (emacs.pkgs) org; }; })
+                                    passthru
+                                    # {
+                                    #     emacs = emacs.withPackages func;
+                                    #     inherit passthru;
+                                    # }
+                                ];
+                                withDirPkgs = emacsWithDirPkgs;
+                            };
+                        in j.foldToSet [
+                            default.passthru
+                            emacsWith
+                            {
+                                inherit emacs;
+                                pkgs = emacs.pkgs // emacsWith;
+                            }
+                        ];
+                    in { doom-emacs = j.foldToSet [
+                            default
+                            passthru
+                            { inherit passthru; }
+                        ]; };
+                    # emacsMacport = final: prev: {
+                    #     emacsMacport = prev.emacsMacport // (rec {
+                    #         emacs = final.emacsDefault;
+                    #         emacsWithPackages = epkgs: prev.emacsMacport // { emacsName = final.emacsDefault.withPackages epkgs; };
+                    #         withPackages = emacsWithPackages;
+                    #     });
+                    # };
                     gomod2nix = inputs.gomod2nix.overlays.default;
                     nur = final: prev: { nur = import inputs.nur { nurpkgs = inputs.nixpkgs; pkgs = final; }; };
                     # nix = inputs.nix.overlay;
@@ -1779,6 +1867,7 @@
             in {
                 overlays = j.foldToSet [
                     (optionalAttrs (! settings) self.overlays)
+                    (map (pkg: pkg inputs) (attrValues j.inputIndividualBothToOverlays))
                     (mapAttrsToList (n: map (version: j.inputBothToOverlays.${n}.${version} inputs)) j.attrs.versionNames)
                     overlay'
                     (optionalAttrs (! (overlays ? default)) { inherit default; })

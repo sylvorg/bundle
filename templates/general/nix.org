@@ -71,6 +71,8 @@ in {
         settings.url = github:sylvorg/settings;
         titan.url = github:syvlorg/titan;
         flake-utils.url = github:numtide/flake-utils;
+        py3pkg-oreo.url = github:syvlorg/oreo;
+        py3pkg-pytest-hy.url = github:syvlorg/pytest-hy;
         flake-compat = {
             url = "github:edolstra/flake-compat";
             flake = false;
@@ -78,10 +80,10 @@ in {
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
         inherit inputs;
-        
+
         # TODO: Change this!
         pname = "";
-        
+
         # TODO: Change this!
         callPackage = { pname }: {  };
     };
