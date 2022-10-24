@@ -93,12 +93,12 @@ Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/maste
 
 #+RESULTS:
 :results:
-#+html_head: <link rel="stylesheet" type="text/css" href="https://combinatronics.com/sylvorg/settings/main/src/styles/primary/syvl.css" />
-#+html_head: <link rel="icon" href="https://combinatronics.com/sylvorg/settings/main/src/icons/favicons/shiny-sandshrew-alola.ico" sizes="any" />
-#+html_head: <link rel="icon" href="https://combinatronics.com/sylvorg/settings/main/src/icons/favicons/shiny-sandshrew-alola.svg" />
-#+html_head: <link rel="manifest" href="https://combinatronics.com/sylvorg/settings/main/manifest.json" />
-#+html_head: <link rel="stylesheet" type="text/css" href="https://combinatronics.com/sylvorg/settings/main/src/styles/highlight/paraiso-dark.min.css" />
-#+html_head: <script src="https://combinatronics.com/sylvorg/settings/main/src/scripts/highlight/highlight.min.js"></script>
+#+html_head: <link rel="stylesheet" type="text/css" href="https://combinatronics.io/sylvorg/settings/main/src/styles/primary/syvl.css" />
+#+html_head: <link rel="icon" href="https://combinatronics.io/sylvorg/settings/main/src/icons/favicons/shiny-zigzagoon-galar.ico" sizes="any" />
+#+html_head: <link rel="icon" href="https://combinatronics.io/sylvorg/settings/main/src/icons/favicons/shiny-zigzagoon-galar.svg" />
+#+html_head: <link rel="manifest" href="https://combinatronics.io/sylvorg/settings/main/manifest.json" />
+#+html_head: <link rel="stylesheet" type="text/css" href="https://combinatronics.io/sylvorg/settings/main/src/styles/highlight/paraiso-dark.min.css" />
+#+html_head: <script src="https://combinatronics.io/sylvorg/settings/main/src/scripts/highlight/highlight.min.js"></script>
 #+html_head: <script>hljs.highlightAll();</script>
 #+html_head: <div class="header">
 #+html_head: <h1>We Are Syvlorg.</h1>
@@ -113,20 +113,20 @@ Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/maste
 *** Syvl Stylesheet
 
 #+begin_src html
-<link rel="stylesheet" type="text/css" href="https://combinatronics.com/sylvorg/settings/main/src/styles/primary/syvl.css" />
+<link rel="stylesheet" type="text/css" href="https://combinatronics.io/sylvorg/settings/main/src/styles/primary/syvl.css" />
 #+end_src
 
 *** Favicons
 
 #+begin_src html
-<link rel="icon" href="https://combinatronics.com/sylvorg/settings/main/src/icons/favicons/shiny-sandshrew-alola.ico" sizes="any" />
-<link rel="icon" href="https://combinatronics.com/sylvorg/settings/main/src/icons/favicons/shiny-sandshrew-alola.svg" />
+<link rel="icon" href="https://combinatronics.io/sylvorg/settings/main/src/icons/favicons/shiny-zigzagoon-galar.ico" sizes="any" />
+<link rel="icon" href="https://combinatronics.io/sylvorg/settings/main/src/icons/favicons/shiny-zigzagoon-galar.svg" />
 #+end_src
 
 *** Manifest
 
 #+begin_src html
-<link rel="manifest" href="https://combinatronics.com/sylvorg/settings/main/manifest.json" />
+<link rel="manifest" href="https://combinatronics.io/sylvorg/settings/main/manifest.json" />
 #+end_src
 
 *** Highlightjs
@@ -145,7 +145,7 @@ Unminify using [[https://unminify.com/][this]].
 Highlightjs theme for development:
 
 #+begin_src html
-<link rel="stylesheet" type="text/css" href="https://combinatronics.com/sylvorg/settings/main/src/styles/highlight/paraiso-dark.min.css" />
+<link rel="stylesheet" type="text/css" href="https://combinatronics.io/sylvorg/settings/main/src/styles/highlight/paraiso-dark.min.css" />
 #+end_src
 
 Custom bundle of languages, built using the instructions from [[https://github.com/highlightjs/highlight.js/issues/3033#issuecomment-943846001][here]]:
@@ -157,7 +157,7 @@ node tools/build.js -t browser bash css diff dockerfile hy ini json lisp makefil
 Highlightjs for development:
 
 #+begin_src html
-<script src="https://combinatronics.com/sylvorg/settings/main/src/scripts/highlight/highlight.min.js"></script>
+<script src="https://combinatronics.io/sylvorg/settings/main/src/scripts/highlight/highlight.min.js"></script>
 #+end_src
 
 #+begin_src html
@@ -221,8 +221,8 @@ Adapted from [[https://developer.mozilla.org/en-US/docs/Web/Manifest][here]] and
   "display": "standalone",
   "description": "A readable Syvlorg.",
   "icons": [
-    { "src": "https://combinatronics.com/sylvorg/settings/main/src/icons/favicons/shiny-sandshrew-alola-192.png", "type": "image/png", "sizes": "192x192" },
-    { "src": "https://combinatronics.com/sylvorg/settings/main/src/icons/favicons/shiny-sandshrew-alola-512.png", "type": "image/png", "sizes": "512x512" }
+    { "src": "https://combinatronics.io/sylvorg/settings/main/src/icons/favicons/shiny-zigzagoon-galar-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "https://combinatronics.io/sylvorg/settings/main/src/icons/favicons/shiny-zigzagoon-galar-512.png", "type": "image/png", "sizes": "512x512" }
   ]
 }
 #+end_src

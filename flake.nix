@@ -21,7 +21,6 @@
     };
     inputs = rec {
         emacs.url = github:nix-community/emacs-overlay;
-        doom-emacs.url = github:nix-community/nix-doom-emacs;
         nix.url = github:nixos/nix;
         nur.url = github:nix-community/nur;
         node2nix = {
@@ -40,18 +39,10 @@
         nixos-21-11.url = github:NixOS/nixpkgs/nixos-21.11;
         nixos-22-05-small.url = github:NixOS/nixpkgs/nixos-22.05-small;
         nixos-22-05.url = github:NixOS/nixpkgs/nixos-22.05;
-        nixos-master.url = github:NixOS/nixpkgs/master;
+        nixos-master.url = github:NixOS/nixpkgs;
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
-        hy = {
-            url = github:hylang/hy/035383d11b44a1731aa6c70735fa4c709979ccdb;
-            flake = false;
-        };
-        hyrule = {
-            url = github:hylang/hyrule/0.2;
-            flake = false;
-        };
         sysget = {
             url = github:emilengler/sysget/v2.3;
             flake = false;
@@ -142,6 +133,12 @@
   "version": 2
 }
         '';
+        patches = lib.j.imports.set {
+            dir = ./patches;
+            ignores.dirs = true;
+            suffix = ".patch";
+            files = true;
+        };
         J = with inputs.nixpkgs.lib; {
             patch = {
                 nixpkgs = let
@@ -164,8 +161,8 @@
                     extras = src: config: patches: import (J.patch.nixpkgs.extras src config patches) config;
                 };
             };
-            foldToSet = list: foldr (new: old: new // old) {} (flatten list);
-            foldToSet' = list: foldr (new: old: recursiveUpdate new old) {} (flatten list);
+            foldToSet = list: foldr mergeAttrs {} (flatten list);
+            foldToSet' = list: foldr recursiveUpdate {} (flatten list);
             fpipe = pipe-list: flip pipe (flatten pipe-list);
             remove = let
                 sortFunc = sort (a: b: (length a) > (length b));
@@ -476,6 +473,14 @@
                         hy = python3;
                         xonsh = python3;
                     };
+                    replace = rec {
+                        default = pv: name: value: prev: update.python.python.default pv { ${name} = value; } prev;
+                        # python2 = default attrs.versions.python.python2;
+                        python3 = default attrs.versions.python.python3;
+                        python = python3;
+                        hy = python3;
+                        xonsh = python3;
+                    };
                     callPython = rec {
                         default = pv: extrargs: name: pkg: final: update.python.python.default pv { "${name}" = final.${pv}.pkgs.callPackage pkg extrargs; };
                         # python2 = default attrs.versions.python.python2;
@@ -534,8 +539,6 @@
                                                   ]);
                         emacsen = genAttrs (flatten [
                             emacsen'
-                            "doom-emacs"
-                            # "emacsMacport"
                         ]) (emacs: final.${emacs});
                     in { emacsen = prev.emacsen or emacsen; } // (genAttrs emacsen' (emacs: let
                         emacs' = emacs-overlays.${emacs} or prev.${emacs};
@@ -554,7 +557,10 @@
                         in j.foldToSet [
                             emacs'.passthru
                             emacsWith
-                            { pkgs = pkgs // emacsWith; }
+                            {
+                                pkgs = pkgs // emacsWith;
+                                executable = emacs'.executable or "emacs";
+                            }
                         ];
                     in j.foldToSet [
                         emacs'
@@ -995,7 +1001,7 @@
                 }
             ];
             emacs = {
-                packages = {
+                packages = removeAttrs {
                     naked = { emacs, pname }: emacs.pkgs.trivialBuild rec {
                         inherit pname;
                         ename = pname;
@@ -1021,14 +1027,12 @@
                         propagatedUserEnvPkgs = with emacs.pkgs; [ ];
                         buildPhase = ''
                             runHook preBuild
-                            HOME=$(pwd)
+
+                            # TODO: Do I need this?
+                            # HOME=$(pwd)
+                            
                             make all
-                            make ORGVERSION=${version} GITVERSION=org-${version} autoloads
-                            # for dir in "mk/org-fixup.el lisp/org-version.el"; do
-                            #     substituteInPlace $dir --replace "N/A" "${version}"
-                            # done
-                            # substituteInPlace mk/org-fixup.el --replace "N/A" "${version}"
-                            # substituteInPlace lisp/org-version.el --replace "N/A" "${version}"
+                            make autoloads
                             runHook postBuild
                         '';
                         installPhase = ''
@@ -1043,7 +1047,9 @@
                             license = lib.licenses.free;
                         };
                     };
-                };
+                } [
+                    # "org"
+                ];
             };
             python = rec {
                 # python2 = {
@@ -1212,12 +1218,6 @@
                 };
             };
         };
-        patches = lib.j.imports.set {
-            dir = ./patches;
-            ignores.dirs = true;
-            suffix = ".patch";
-            files = true;
-        };
         overlayset = with lib; let
             calledPackages = j.callPackages (filterAttrs (n: isFunction) callPackages);
         in rec {
@@ -1241,43 +1241,27 @@
                 in j.foldToSet [
                     inputs.titan.overlays
                     {
-                        hy = let
+                        hy = final: prev: let
                             pname = "hy";
-                        in final: prev: update pname (old: let
-                            python3Packages = final.Python3.pkgs;
-                        in rec {
-                            inherit (Inputs.${pname}) version;
-                            HY_VERSION = version;
-                            src = inputs.${pname};
-                            postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'' + (old.postPatch or "");
-                            disabledTestPaths = [ "tests/test_bin.py" ] ++ (old.disabledTestPaths or []);
-                            disabledTests = [ "test_ellipsis" "test_ast_expression_basics" ] ++ (old.disabledTests or []);
-                            pytestFlagsArray = [
-                                "-p"
-                                "no:randomly"
-                            ];
-                            passthru = old.passthru // {
-                                tests.version = testers.testVersion {
-                                    package = python3Packages.${pname};
-                                    command = "${pname} -v";
-                                };
-                                withPackages = python-packages: (python3Packages.toPythonApplication python3Packages.${pname}).overrideAttrs (old: {
-                                    propagatedBuildInputs = flatten [
-                                        (python-packages python3Packages)
-                                        (old.propagatedBuildInputs or [])
-                                    ];
-                                });
-                                pkgs = python3Packages;
+                            nixpkgs-hy = inputs.nixpkgs.legacyPackages.${prev.stdenv.targetPlatform.system}.${j.attrs.versions.python.${pname}}.pkgs.${pname};
+                            master-hy = inputs.nixos-master.legacyPackages.${prev.stdenv.targetPlatform.system}.${j.attrs.versions.python.${pname}}.pkgs.${pname};
+                            func = old: {
+                                passthru = old.passthru // { inherit (final.Python3) pkgs; };
+                                pytestFlagsArray = [
+                                    "-p"
+                                    "no:randomly"
+                                ];
                             };
-                        }) prev;
-                        hyrule = let
-                            pname = "hyrule";
-                        in final: prev: update pname (old: rec {
-                            inherit (Inputs.${pname}) version;
-                            src = inputs.${pname};
-                            postPatch = ''substituteInPlace setup.py --replace "'hy == 0.24.0'," ""'' + (old.postPatch or "");
-                        }) prev;
+                        in if ((! (hasInfix "a" nixpkgs-hy.version)) && (versionAtLeast nixpkgs-hy.version "0.24.0"))
+                           then (update pname func prev)
+                           else (j.update.python.replace.${pname} pname (master-hy.overridePythonAttrs func) prev);
                     }
+                    (filterAttrs (n: v: elem n [ "hyrule" ]) {
+                        hyrule = final: prev: let
+                            pname = "hyrule";
+                            hyrule = inputs.nixos-master.legacyPackages.${prev.stdenv.targetPlatform.system}.${j.attrs.versions.python.python3}.pkgs.${pname};
+                        in j.update.python.replace.python3 pname hyrule prev;
+                    })
                     (mapAttrs (pname: pkg: final: prev: j.update.python.callPython.python3 { inherit pname; } pname pkg final prev) callPackages.python.python3)
                     (j.inputBothToOverlays.python.python3 inputs)
                 ];
@@ -1363,61 +1347,7 @@
                     nodeEnv = final: prev: { nodeEnv = final.callPackage "${inputs.node2nix}/nix/node-env.nix" {}; };
                     systemd = final: prev: { systemd = prev.systemd.overrideAttrs (old: { withHomed = true; }); };
                     emacs-overlays = inputs.emacs.overlay;
-                    emacsDefault = final: prev: { emacsDefault = final.emacsNativeComp; };
-                    doom-emacs = final: prev: let
-                        harbinger = inputs.doom-emacs.package.${prev.stdenv.targetPlatform.system};
-                        # defaultDoomDir = path { path = "${inputs.doom-emacs}/test/doom.d"; };
-                        # defaultDoomDir = /home/shadowrylander/.doom.d;
-                        defaultDoomDir = ./.doom.d;
-                        default = harbinger { doomPrivateDir = defaultDoomDir; };
-                        passthru = let
-                            emacs = final.emacsDefault;
-                            emacsWith = rec {
-                                emacsWithPackages = func: j.foldToSet [
-                                    (harbinger { doomPrivateDir = defaultDoomDir; extraPackages = f: func emacs.pkgs; emacsPackagesOverlay = self: super: { inherit (emacs.pkgs) org; }; })
-                                    passthru
-                                    # {
-                                    #     emacs = emacs.withPackages func;
-                                    #     inherit passthru;
-                                    # }
-                                ];
-                                withPackages = emacsWithPackages;
-                                emacsWithDir = doomPrivateDir: j.foldToSet [
-                                    (harbinger { inherit doomPrivateDir; })
-                                    passthru
-                                    { inherit passthru; }
-                                ];
-                                withDir = emacsWithDir;
-                                emacsWithDirPkgs = doomPrivateDir: func: j.foldToSet [
-                                    (harbinger { inherit doomPrivateDir; extraPackages = f: func emacs.pkgs; emacsPackagesOverlay = self: super: { inherit (emacs.pkgs) org; }; })
-                                    passthru
-                                    # {
-                                    #     emacs = emacs.withPackages func;
-                                    #     inherit passthru;
-                                    # }
-                                ];
-                                withDirPkgs = emacsWithDirPkgs;
-                            };
-                        in j.foldToSet [
-                            default.passthru
-                            emacsWith
-                            {
-                                inherit emacs;
-                                pkgs = emacs.pkgs // emacsWith;
-                            }
-                        ];
-                    in { doom-emacs = j.foldToSet [
-                            default
-                            passthru
-                            { inherit passthru; }
-                        ]; };
-                    # emacsMacport = final: prev: {
-                    #     emacsMacport = prev.emacsMacport // (rec {
-                    #         emacs = final.emacsDefault;
-                    #         emacsWithPackages = epkgs: prev.emacsMacport // { emacsName = final.emacsDefault.withPackages epkgs; };
-                    #         withPackages = emacsWithPackages;
-                    #     });
-                    # };
+                    emacs = final: prev: { emacs = final.emacsNativeComp; };
                     gomod2nix = inputs.gomod2nix.overlays.default;
                     nur = final: prev: { nur = import inputs.nur { nurpkgs = inputs.nixpkgs; pkgs = final; }; };
                     # nix = inputs.nix.overlay;
@@ -1588,7 +1518,7 @@
                         })
                         (let cfg = config.services.guix; in mkIf cfg.enable {
                             users = {
-                                extraUsers = lib.fold (a: b: a // b) {} (builtins.map buildGuixUser (lib.range 1 10));
+                                extraUsers = j.foldToSet (map buildGuixUser (lib.range 1 10));
                                 extraGroups.guixbuild = {name = "guixbuild";};
                             };
                             systemd.services.guix-daemon = {
@@ -1997,7 +1927,7 @@
                 self.${system}
                 { inherit inputs; }
             ];
-            app = name: drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.executable or drv.pname or drv.name or name}"}"; };
+            app = name: drv: { type = "app"; program = "${drv}${drv.passthru.exePath or "/bin/${drv.meta.mainprogram or drv.meta.mainProgram or drv.executable or drv.pname or drv.name or name}"}"; };
             mkWithPackages = pkg: pkglist: pname: pkg.withPackages (j.filters.has.list [
                 pkglist
                 pname
@@ -2065,7 +1995,7 @@
             };
             withPackages = {
                 python = let
-                    hyOverlays = filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3);
+                    hyOverlays = (filter (pkg: pkg != "hy") (attrNames overlayset.pythonOverlays.python3)) ++ [ "hyrule" ];
                 in j.foldToSet [
                     (map (python: (listToAttrs (map (pkg: nameValuePair "${python}-${pkg}" (pkglist: mkWithPackages pkgs.Pythons.${python} [
                         pkg
@@ -2125,11 +2055,7 @@
                 cp -r $src/bin $out/bin
                 chmod +x $out/bin/*
             '';
-            meta.mainprogram = "org-tangle";
-            postInstall = "wrapProgram $out/bin/${pname} $makeWrapperArgs";
-            makeWrapperArgs = toList "--set PATH ${makeBinPath [
-                (if (elem stdenv.targetPlatform.system (attrNames inputs.nixpkgs.legacyPackages)) then inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs-nox else emacs-nox)
-            ]}";
+            meta.mainProgram = "org-tangle";
         };
         inherit (overlayset) overlays;
         settings = true;

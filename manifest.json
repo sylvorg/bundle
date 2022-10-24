@@ -6,7 +6,7 @@
   "display": "standalone",
   "description": "A readable Syvlorg.",
   "icons": [
-    { "src": "https://combinatronics.com/sylvorg/settings/main/src/icons/favicons/shiny-sandshrew-alola-192.png", "type": "image/png", "sizes": "192x192" },
-    { "src": "https://combinatronics.com/sylvorg/settings/main/src/icons/favicons/shiny-sandshrew-alola-512.png", "type": "image/png", "sizes": "512x512" }
+    { "src": "https://combinatronics.io/sylvorg/settings/main/src/icons/favicons/shiny-zigzagoon-galar-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "https://combinatronics.io/sylvorg/settings/main/src/icons/favicons/shiny-zigzagoon-galar-512.png", "type": "image/png", "sizes": "512x512" }
   ]
 }
