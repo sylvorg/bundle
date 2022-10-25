@@ -2317,7 +2317,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                             ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final prev final.Pythons.${type}.pkgs extras pname)
                                                                              else callPackage) inheritance;
                         };
-                        emacs = final: prev: j.update.emacs.callEmacs inheritance pname callPackage final prev;
+                        ${if (hasPrefix "emacs" type') then type' else null} = final: prev: j.update.emacs.callEmacs inheritance pname callPackage final prev;
                     }
                     (genAttrs j.attrs.versionNames.python (python: final: prev: j.update.python.callPython.${python} inheritance pname callPackage final prev))
                 ];

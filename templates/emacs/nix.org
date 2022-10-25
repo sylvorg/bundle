@@ -80,13 +80,13 @@ in {
     };
     outputs = inputs@{ self, flake-utils, settings, ... }: with builtins; with settings.lib; with flake-utils.lib; settings.mkOutputs {
         inherit inputs;
-        type = "emacs";
+        type = "emacs-nox";
 
         # TODO: Change this!
         pname = "";
 
         # TODO: Change this!
-        callPackage = { trivialBuild, emacs, pname }: trivialBuild rec {
+        callPackage = { emacs, pname }: emacs.pkgs.trivialBuild rec {
             inherit pname;
             src = ./.;
             buildInputs = flatten [ emacs propagatedUserEnvPkgs ];

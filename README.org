@@ -1318,7 +1318,7 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
             meta.description = \"\";
 
         });")
-                ((string= type "emacs") "{ trivialBuild, emacs, pname }: trivialBuild rec {
+                ((s-contains? "emacs" type) "{ emacs, pname }: emacs.pkgs.trivialBuild rec {
             inherit pname;
             src = ./.;
             buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
@@ -1349,7 +1349,7 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 *** nix.org
 
 #+begin_src text :tangle (meq/tangle-path)
-<<97220a9c-af77-4056-b7f8-00e11819e210(type="emacs")>>
+<<97220a9c-af77-4056-b7f8-00e11819e210(type="emacs-nox")>>
 #+end_src
 
 ** python-app
