@@ -51,7 +51,7 @@
         nixos-master.url = github:NixOS/nixpkgs;
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
-        nixpkgs.url = github:NixOS/nixpkgs/<<channel(dotted='t)>>;
+        nixpkgs.follows = "<<channel()>>";
 #+end_src
 
 Deprecated; circular imports are much too confusing...

@@ -42,7 +42,7 @@
         nixos-master.url = github:NixOS/nixpkgs;
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
-        nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
+        nixpkgs.follows = "nixos-22-05";
         sysget = {
             url = github:emilengler/sysget/v2.3;
             flake = false;

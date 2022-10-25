@@ -1231,8 +1231,48 @@ super-%: | tu-% push ;
 use nix
 #+end_src
 
+* .gitignore
+
+#+name: gitignore
+#+begin_src gitignore :tangle (meq/tangle-path)
+**/__pycache__
+**/_build
+**/.vscode
+**/.zfs/snapshot
+**/*.!sync
+**/*.bts
+**/*.direnv
+**/*.envrc:*
+**/*.*~
+**/*.swp
+**/*.sync
+**/*.tmp
+**/deprecated
+**/dist
+**/result
+**/result-*
+**/.pytest_cache
+**/.mypy_cache
+**/*.egg-info
+**/build
+**/unfinished
+/_gsdata_
+/.boar
+/.git
+/.hg
+/etc/nixos/configuration.nix
+/etc/nixos/hardware-configuration.nix
+temp
+#+end_src
+
 * templates
 ** general
+*** .gitignore
+
+#+begin_src gitignore :tangle (meq/tangle-path)
+<<gitignore>>
+#+end_src
+
 *** index.org
 
 #+name: 4833c5bd-7acc-44bf-a9ee-05ce467e6f0e
@@ -1280,7 +1320,8 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 
     inputs = rec {
         settings.url = github:sylvorg/settings;
-        titan.url = github:syvlorg/titan;
+        titan.follows = \"settings/titan\";
+        nixpkgs.follows = \"settings/nixpkgs\";
         flake-utils.url = github:numtide/flake-utils;
         py3pkg-oreo.url = github:syvlorg/oreo;
         py3pkg-pytest-hy.url = github:syvlorg/pytest-hy;
@@ -1340,6 +1381,12 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 #+end_src
 
 ** emacs
+*** .gitignore
+
+#+begin_src gitignore :tangle (meq/tangle-path)
+<<gitignore>>
+#+end_src
+
 *** index.org
 
 #+begin_src org :tangle (meq/tangle-path)
@@ -1353,6 +1400,13 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
 #+end_src
 
 ** python-app
+*** .gitignore
+
+#+name: 524faf2f-e85e-4564-ae5f-431429b6e9e3
+#+begin_src gitignore :tangle (meq/tangle-path)
+<<gitignore>>
+#+end_src
+
 *** index.org
 
 #+begin_src org :tangle (meq/tangle-path)
@@ -1490,6 +1544,12 @@ markers = [
 #+end_src
 
 ** python-package
+*** .gitignore
+
+#+begin_src gitignore :tangle (meq/tangle-path)
+<<524faf2f-e85e-4564-ae5f-431429b6e9e3>>
+#+end_src
+
 *** index.org
 
 #+begin_src org :tangle (meq/tangle-path)

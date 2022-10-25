@@ -69,7 +69,8 @@ in {
 
     inputs = rec {
         settings.url = github:sylvorg/settings;
-        titan.url = github:syvlorg/titan;
+        titan.follows = "settings/titan";
+        nixpkgs.follows = "settings/nixpkgs";
         flake-utils.url = github:numtide/flake-utils;
         py3pkg-oreo.url = github:syvlorg/oreo;
         py3pkg-pytest-hy.url = github:syvlorg/pytest-hy;
