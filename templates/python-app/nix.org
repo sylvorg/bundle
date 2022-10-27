@@ -71,9 +71,11 @@ in {
         settings.url = github:sylvorg/settings;
         titan.follows = "settings/titan";
         nixpkgs.follows = "settings/nixpkgs";
-        flake-utils.url = github:numtide/flake-utils;
+
         py3pkg-oreo.url = github:syvlorg/oreo;
         py3pkg-pytest-hy.url = github:syvlorg/pytest-hy;
+
+        flake-utils.url = github:numtide/flake-utils;
         flake-compat = {
             url = "github:edolstra/flake-compat";
             flake = false;

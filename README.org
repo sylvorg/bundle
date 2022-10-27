@@ -1322,9 +1322,8 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
         settings.url = github:sylvorg/settings;
         titan.follows = \"settings/titan\";
         nixpkgs.follows = \"settings/nixpkgs\";
+%s
         flake-utils.url = github:numtide/flake-utils;
-        py3pkg-oreo.url = github:syvlorg/oreo;
-        py3pkg-pytest-hy.url = github:syvlorg/pytest-hy;
         flake-compat = {
             url = \"github:edolstra/flake-compat\";
             flake = false;
@@ -1340,7 +1339,11 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
         callPackage = %s
     };
 }
-,#+end_src" (if (string= type "") "" (format "        type = \"%s\";\n" type))
+,#+end_src" (cond ((member type '("python" "python2" "python3" "hy" "xonsh")) "\n        py3pkg-oreo.url = github:syvlorg/oreo;
+        py3pkg-pytest-hy.url = github:syvlorg/pytest-hy;\n")
+                ((s-contains? "emacs" type) "\n        epkg-meq.url = github:syvlorg/meq;\n")
+                (t ""))
+            (if (string= type "") "" (format "        type = \"%s\";\n" type))
             (if (string= isApp "") "" (format "\n        isApp = %s;\n" isApp))
             (cond ((member type '("python" "python2" "python3" "hy" "xonsh")) "{ stdenv, oreo, pname }: j.mkPythonPackage self stdenv [] (rec {
 
@@ -1363,7 +1366,7 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
             inherit pname;
             src = ./.;
             buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
-            propagatedUserEnvPkgs = with emacs.pkgs; [  ];
+            propagatedUserEnvPkgs = with emacs.pkgs; flatten [ meq meq.propagatedUserEnvPkgs ];
             meta = {
               inherit (emacs.meta) platforms;
               homepage = \"https://github.com/syvlorg/${pname}\";

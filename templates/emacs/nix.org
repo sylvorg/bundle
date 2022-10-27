@@ -71,9 +71,10 @@ in {
         settings.url = github:sylvorg/settings;
         titan.follows = "settings/titan";
         nixpkgs.follows = "settings/nixpkgs";
+
+        epkg-meq.url = github:syvlorg/meq;
+
         flake-utils.url = github:numtide/flake-utils;
-        py3pkg-oreo.url = github:syvlorg/oreo;
-        py3pkg-pytest-hy.url = github:syvlorg/pytest-hy;
         flake-compat = {
             url = "github:edolstra/flake-compat";
             flake = false;
@@ -91,7 +92,7 @@ in {
             inherit pname;
             src = ./.;
             buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
-            propagatedUserEnvPkgs = with emacs.pkgs; [  ];
+            propagatedUserEnvPkgs = with emacs.pkgs; flatten [ meq meq.propagatedUserEnvPkgs ];
             meta = {
               inherit (emacs.meta) platforms;
               homepage = "https://github.com/syvlorg/${pname}";
