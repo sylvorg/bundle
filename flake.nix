@@ -1824,7 +1824,8 @@
                 {
                     inherit pname callPackage type' type;
                     testType = head (flatten [
-                        (remove null (mapAttrsToList (n: v: if (elem type v) then n else null) j.attrs.versionNames))
+                        (attrNames (filterAttrs (n: elem type) j.attrs.versionNames))
+                        (optional (hasPrefix "emacs" type) "emacs")
                         "general"
                     ]);
                     oo = listToAttrs (map (system: nameValuePair system (mapAttrs (n: v: v.${system}) oo)) defaultSystems);
