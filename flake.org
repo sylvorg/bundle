@@ -2317,7 +2317,7 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system
                             ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final prev final.Pythons.${type}.pkgs extras pname)
                                                                              else callPackage) inheritance;
                         };
-                        ${if (hasPrefix "emacs" type') then type' else null} = final: prev: j.update.emacs.callEmacs inheritance pname callPackage final prev;
+                        ${if (hasPrefix "emacs" type) then type else null} = final: prev: j.update.emacs.callEmacs inheritance pname callPackage final prev;
                     }
                     (genAttrs j.attrs.versionNames.python (python: final: prev: j.update.python.callPython.${python} inheritance pname callPackage final prev))
                 ];
@@ -2428,7 +2428,7 @@ Since ~overlayset~ isn't recursive, ~overlays~ refers to the argument instead.
                     in j.foldToSet [
                         (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                         (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
-                        (made.mkfile isApp type extras pname (packages.${pname}.nativeBuildInputs or []) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
+                        (made.mkfile isApp type extras pname (optionals (type' == "general") (packages.${pname}.nativeBuildInputs or [])) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
                         { inherit default; "${pname}" = default; }
                     ];
                     devShell = devShells.default;
@@ -2505,12 +2505,35 @@ where the full form of ~j.filters.has.list~ would be ~(pkgs: j.filters.has.list 
                 (mapAttrs (n: v: func: extras: pname: ppkglist: flatten [
                     (extras."makefile-${n}".buildInputs or [])
                     pkgs.poetry2setup
+#+end_src
+
+Note that, instead of passing in the ~pname~ to ~mkWithPackages~ as a string, we're passing it in as a derivation instead:
+
+#+begin_src nix
                     (mkWithPackages v (flatten [
                         general
                         ppkglist
                         (extras."makefile-${n}".pythonPackages or [])
                     ]) ((v.pkgs or pkgs.Pythons.python.pkgs).${pname}.overridePythonAttrs func))
+#+end_src
+
+#+begin_src nix
                 ]) pkgs.Pythons)
+                (mapAttrs (n: v: func: extras: pname: ppkglist: flatten [
+                    (extras."makefile-${n}".buildInputs or [])
+#+end_src
+
+Note that, instead of passing in the ~pname~ to ~mkWithPackages~ as a string, we're passing it in as a derivation instead:
+
+#+begin_src nix
+                    (mkWithPackages v (flatten [
+                        ppkglist
+                        (extras."makefile-${n}".emacsPackages or [])
+                    ]) ((v.pkgs or pkgs.emacsen.emacs-nox.pkgs).${pname}.overrideAttrs func))
+#+end_src
+
+#+begin_src nix
+                ]) pkgs.emacsen)
             ];
             mkfilefunk = let
                 func = old: {
@@ -2536,12 +2559,15 @@ where the full form of ~j.filters.has.list~ would be ~(pkgs: j.filters.has.list 
                         pkglist
                     ] pkgs;
                 } (extras.general or {})); }
-                (genAttrs j.attrs.versionNames.python (python: isApp: type: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
+                (genAttrs (flatten [
+                    j.attrs.versionNames.python
+                    (attrNames pkgs.emacsen)
+                ]) (pkg: isApp: type: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
                     buildInputs = j.filters.has.list [
-                        (mkbuildinputs.${python} func extras pname ppkglist)
+                        (mkbuildinputs.${pkg} func extras pname ppkglist)
                         pkglist
                     ] pkgs;
-                } (extras."makefile-${python}" or {}))))
+                } (extras."makefile-${pkg}" or {}))))
             ]);
             mkfile = isApp: type: extras: pname: pkglist: ppkglist: let
                 default = mkfilefunk.${type} isApp type extras pname pkglist ppkglist;

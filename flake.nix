@@ -1748,7 +1748,7 @@
                             ${pname} = final.callPackage (if isPythonApp then (j.toPythonApplication final prev final.Pythons.${type}.pkgs extras pname)
                                                                              else callPackage) inheritance;
                         };
-                        ${if (hasPrefix "emacs" type') then type' else null} = final: prev: j.update.emacs.callEmacs inheritance pname callPackage final prev;
+                        ${if (hasPrefix "emacs" type) then type else null} = final: prev: j.update.emacs.callEmacs inheritance pname callPackage final prev;
                     }
                     (genAttrs j.attrs.versionNames.python (python: final: prev: j.update.python.callPython.${python} inheritance pname callPackage final prev))
                 ];
@@ -1851,7 +1851,7 @@
                     in j.foldToSet [
                         (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) packages)
                         (mapAttrs (n: v: pkgs.mkShell { buildInputs = toList v; }) made.buildInputSet)
-                        (made.mkfile isApp type extras pname (packages.${pname}.nativeBuildInputs or []) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
+                        (made.mkfile isApp type extras pname (optionals (type' == "general") (packages.${pname}.nativeBuildInputs or [])) (packages.${type}.pkgs.${pname}.nativeBuildInputs or []))
                         { inherit default; "${pname}" = default; }
                     ];
                     devShell = devShells.default;
@@ -1918,6 +1918,13 @@
                         (extras."makefile-${n}".pythonPackages or [])
                     ]) ((v.pkgs or pkgs.Pythons.python.pkgs).${pname}.overridePythonAttrs func))
                 ]) pkgs.Pythons)
+                (mapAttrs (n: v: func: extras: pname: ppkglist: flatten [
+                    (extras."makefile-${n}".buildInputs or [])
+                    (mkWithPackages v (flatten [
+                        ppkglist
+                        (extras."makefile-${n}".emacsPackages or [])
+                    ]) ((v.pkgs or pkgs.emacsen.emacs-nox.pkgs).${pname}.overrideAttrs func))
+                ]) pkgs.emacsen)
             ];
             mkfilefunk = let
                 func = old: {
@@ -1943,12 +1950,15 @@
                         pkglist
                     ] pkgs;
                 } (extras.general or {})); }
-                (genAttrs j.attrs.versionNames.python (python: isApp: type: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
+                (genAttrs (flatten [
+                    j.attrs.versionNames.python
+                    (attrNames pkgs.emacsen)
+                ]) (pkg: isApp: type: extras: pname: pkglist: ppkglist: pkgs.mkShell (j.recursiveUpdateAll {
                     buildInputs = j.filters.has.list [
-                        (mkbuildinputs.${python} func extras pname ppkglist)
+                        (mkbuildinputs.${pkg} func extras pname ppkglist)
                         pkglist
                     ] pkgs;
-                } (extras."makefile-${python}" or {}))))
+                } (extras."makefile-${pkg}" or {}))))
             ]);
             mkfile = isApp: type: extras: pname: pkglist: ppkglist: let
                 default = mkfilefunk.${type} isApp type extras pname pkglist ppkglist;
