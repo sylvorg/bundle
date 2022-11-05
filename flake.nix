@@ -43,6 +43,7 @@
         nixos-unstable-small.url = github:NixOS/nixpkgs/nixos-unstable-small;
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.follows = "nixos-22-05";
+        nix-mode.url = github:syvlorg/nix-mode;
         sysget = {
             url = github:emilengler/sysget/v2.3;
             flake = false;
@@ -492,16 +493,7 @@
                 emacs = {
                     emacs = name: value: pkg: final: prev: let
                         emacs-overlays = inputs.emacs.overlay prev prev;
-                        emacsen' = filter (emacs: (hasPrefix "emacs" emacs) &&
-                                                  (! (hasInfix "Packages" emacs)) &&
-                                                  (! (elem emacs [
-                                                      "emacs-all-the-icons-fonts"
-                                                      "emacsMacport"
-                                                      "emacsen"
-                                                  ]))) (flatten [
-                                                      (attrNames prev)
-                                                      (attrNames emacs-overlays)
-                                                  ]);
+                        emacsen' = emacsenGen prev emacs-overlays;
                         emacsen = genAttrs (flatten [
                             emacsen'
                         ]) (emacs: final.${emacs});
@@ -538,6 +530,16 @@
                     packages = dir: final: update.emacs.emacs null (imports.set { call = final.emacs.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; }) null final;
                 };
             };
+            emacsenGen = prev: emacs-overlays: filter (emacs: (hasPrefix "emacs" emacs) &&
+                                                                (! (hasInfix "Packages" emacs)) &&
+                                                                (! (elem emacs [
+                                                                    "emacs-all-the-icons-fonts"
+                                                                    "emacsMacport"
+                                                                    "emacsen"
+                                                                ]))) (flatten [
+                                                                    (attrNames prev)
+                                                                    (attrNames emacs-overlays)
+                                                                ]);
             multiSplitString = splits: string: if splits == [] then string
                                                else (remove "" (flatten (map (multiSplitString (init splits)) (splitString (last splits) string))));
             pyVersion' = format: string: if (format == "pyproject") then (fromTOML string).tool.poetry.version
@@ -1194,6 +1196,13 @@
                 in j.foldToSet [
                     (j.inputIndividualBothToOverlays.emacs inputs)
                     (mapAttrs (pname: pkg: final: prev: j.update.emacs.callEmacs { inherit pname; } pname pkg final prev) callPackages.emacs.packages)
+                    {
+                        nix-mode = final: prev: let
+                            pname = "nix-mode";
+                        in update pname (old: {
+                            src = inputs.nix-mode;
+                        }) final prev;
+                    }
                 ];
             };
             pythonOverlays = let
@@ -1208,7 +1217,9 @@
                     xonsh = [];
                     python3 = [ "hyrule" ];
                 };
-                python3 = j.foldToSet [
+                python3 = let
+                    update = j.update.python.package.python3;
+                in j.foldToSet [
                     inputs.titan.overlays
                     base.python3
                     {

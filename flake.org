@@ -72,6 +72,7 @@ Deprecated; circular imports are much too confusing...
 #+end_src
 
 #+begin_src nix
+        nix-mode.url = github:syvlorg/nix-mode;
         sysget = {
             url = github:emilengler/sysget/v2.3;
             flake = false;
@@ -604,16 +605,7 @@ Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/53
 #+begin_src nix
                     emacs = name: value: pkg: final: prev: let
                         emacs-overlays = inputs.emacs.overlay prev prev;
-                        emacsen' = filter (emacs: (hasPrefix "emacs" emacs) &&
-                                                  (! (hasInfix "Packages" emacs)) &&
-                                                  (! (elem emacs [
-                                                      "emacs-all-the-icons-fonts"
-                                                      "emacsMacport"
-                                                      "emacsen"
-                                                  ]))) (flatten [
-                                                      (attrNames prev)
-                                                      (attrNames emacs-overlays)
-                                                  ]);
+                        emacsen' = emacsenGen prev emacs-overlays;
                         emacsen = genAttrs (flatten [
                             emacsen'
                         ]) (emacs: final.${emacs});
@@ -653,6 +645,16 @@ Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/53
                     packages = dir: final: update.emacs.emacs null (imports.set { call = final.emacs.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; }) null final;
                 };
             };
+            emacsenGen = prev: emacs-overlays: filter (emacs: (hasPrefix "emacs" emacs) &&
+                                                                (! (hasInfix "Packages" emacs)) &&
+                                                                (! (elem emacs [
+                                                                    "emacs-all-the-icons-fonts"
+                                                                    "emacsMacport"
+                                                                    "emacsen"
+                                                                ]))) (flatten [
+                                                                    (attrNames prev)
+                                                                    (attrNames emacs-overlays)
+                                                                ]);
 #+end_src
 
 # TODO: Implement the formats from here: https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/interpreters/python/mk-python-derivation.nix#L81
@@ -1572,6 +1574,18 @@ Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/e
                 in j.foldToSet [
                     (j.inputIndividualBothToOverlays.emacs inputs)
                     (mapAttrs (pname: pkg: final: prev: j.update.emacs.callEmacs { inherit pname; } pname pkg final prev) callPackages.emacs.packages)
+#+end_src
+
+Unfortunately, you can't use incomplete functions here; they mess with ~nix flake check~:
+
+#+begin_src nix
+                    {
+                        nix-mode = final: prev: let
+                            pname = "nix-mode";
+                        in update pname (old: {
+                            src = inputs.nix-mode;
+                        }) final prev;
+                    }
                 ];
             };
 #+end_src
@@ -1599,7 +1613,9 @@ This allows me to select which python packages I want from master at the moment:
                     xonsh = [];
                     python3 = [ "hyrule" ];
                 };
-                python3 = j.foldToSet [
+                python3 = let
+                    update = j.update.python.package.python3;
+                in j.foldToSet [
                     inputs.titan.overlays
                     base.python3
 #+end_src

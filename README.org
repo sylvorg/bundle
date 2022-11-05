@@ -1239,6 +1239,7 @@ use nix
 **/_build
 **/.#*
 **/.cask
+**/.DS_Store
 **/.mypy_cache
 **/.pytest_cache
 **/.vscode
