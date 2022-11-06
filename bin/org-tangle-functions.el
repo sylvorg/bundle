@@ -58,7 +58,7 @@
 (defun get-README (&optional return-link setupfile lobfile) (interactive)
     (let* ((README (f-join "settings" "README.org"))
         (settings-README (f-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) "README.org"))))
-        (flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
+        (flake-settings (s-trim (or settings-path (shell-command-to-string "nix eval --impure --expr \"((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null"))))
         (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
         (repo-README (f-expand README))
         (home-README (f-expand (f-join "~" README)))

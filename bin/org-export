@@ -70,6 +70,7 @@
 (defvar initial-args argv)
 (defvar expanded-args (mapcar #'f-expand argv))
 (defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
+(defvar settings-path nil)
 (let (srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -80,6 +81,8 @@
          (error ""))
         ((or "-f" "--force")
          nil)
+        ((or "-s" "--settings-path")
+         (setq settings-path (pop argv)))
         ((or "-d" "--debug")
          nil)
         ((or "-a" "--all")
