@@ -1803,7 +1803,9 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
 (defvar initial-args argv)
 (defvar expanded-args (mapcar #'f-expand argv))
 (defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
+(defvar force (or (member "-f" initial-args) (member "--force" initial-args)))
 (defvar settings-path nil)
+(defvar titan-settings nil)
 (let (srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -1816,6 +1818,8 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
          nil)
         ((or "-s" "--settings-path")
          (setq settings-path (pop argv)))
+        ((or "-T" "--titan-settings")
+         (setq titan-settings (pop argv)))
         ((or "-d" "--debug")
          nil)
         ((or "-a" "--all")
@@ -1832,7 +1836,7 @@ Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle
                        srcs)))
         ((guard (file-exists-p arg))
          (push arg srcs))
-        (_ (if (or (member "-f" initial-args) (member "--force" initial-args))
+        (_ (if force
               (message "Skipping unknown option or file: %s" arg)
               (error "Unknown option or file: %s" arg))))))
 
@@ -8518,7 +8522,9 @@ trees with the :notangle: tag."
 (defvar initial-args argv)
 (defvar expanded-args (mapcar #'f-expand argv))
 (defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
+(defvar force (or (member "-f" initial-args) (member "--force" initial-args)))
 (defvar settings-path nil)
+(defvar titan-settings nil)
 (let (lang srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -8531,6 +8537,8 @@ trees with the :notangle: tag."
          nil)
         ((or "-s" "--settings-path")
          (setq settings-path (pop argv)))
+        ((or "-T" "--titan-settings")
+         (setq titan-settings (pop argv)))
         ((or "-d" "--debug")
          nil)
         ((or "-a" "--all")
@@ -8551,7 +8559,7 @@ trees with the :notangle: tag."
                        srcs)))
         ((guard (file-exists-p arg))
          (push arg srcs))
-        (_ (if (or (member "-f" initial-args) (member "--force" initial-args))
+        (_ (if force
               (message "Skipping unknown option or file: %s" arg)
               (error "Unknown option or file: %s" arg))))))
 
@@ -8691,36 +8699,45 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
 #+end_src
 
 #+begin_src emacs-lisp
+(defun link-or-file (lf return-link &optional substitute is-link) (interactive)
+    (when (and lf (not (s-blank? lf)))
+        (if (and (not is-link) (f-exists? (setq expanded-lf (f-expand (if substitute (substitute-in-file-name lf) lf)))))
+            expanded-lf
+            (if return-link
+                lf
+                (let* ((curl-README (shell-command-to-string (format "curl -fsSL %s 2> /dev/null" lf))))
+                    (unless (s-blank? curl-README)
+                        (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
+                            (f-write curl-README 'utf-8 temp)
+                            temp)))))))
+(defvar settings-path nil)
+(defvar titan-settings nil)
 (defun get-README (&optional return-link setupfile lobfile) (interactive)
-    (let* ((README (f-join "settings" "README.org"))
-        (settings-README (f-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) "README.org"))))
-        (flake-settings (s-trim (or settings-path (shell-command-to-string "<<get-settings-path(elisp='t)>>"))))
-        (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
-        (repo-README (f-expand README))
-        (home-README (f-expand (f-join "~" README)))
-        (user-README (f-expand (f-join "/home/shadowrylander/aiern" README)))
-        (root-README (f-expand (f-join "/" README)))
-        (env (getenv "SETTINGS_README"))
-        (env-README (unless (s-blank? env) (f-expand (substitute-in-file-name env))))
-        (file (or (when setupfile (f-expand setupfile))
-                  (when lobfile (f-expand lobfile))
-                  (cond
-                    ((f-exists? README) (concat "./" README))
-                    ((and (f-exists? settings-README) (equal (last (f-split settings-README) 2) '("settings" "README.org"))) settings-README)
-                    ((f-exists? flake-README) flake-README)
-                    ((f-exists? repo-README) repo-README)
-                    ((f-exists? home-README) home-README)
-                    ((f-exists? user-README) user-README)
-                    ((f-exists? root-README) root-README)
-                    ((unless (s-blank? env) (f-exists? env-README)) env-README)
-                    (t (if return-link
-                        "https://raw.githubusercontent.com/sylvorg/settings/main/README.org"
-                        (let* ((curl-README (shell-command-to-string "curl -fsSL https://raw.githubusercontent.com/sylvorg/settings/main/README.org 2> /dev/null")))
-                            (unless (s-blank? curl-README)
-                                (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
-                                    (f-write curl-README 'utf-8 temp)
-                                    temp)))))))))
-    file))
+    (or (link-or-file settings-path return-link)
+        (link-or-file (getenv "SETTINGS_README") return-link t)
+        (link-or-file setupfile return-link)
+        (link-or-file lobfile return-link)
+        (link-or-file titan-settings return-link)
+        (let* ((README (f-join "settings" "README.org"))
+
+                ;; TODO: What is this again? Comment here as a note.
+                (settings-README (f-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) "README.org"))))
+
+                (flake-settings (s-trim (shell-command-to-string "<<get-settings-path(elisp='t)>>")))
+                (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
+                (repo-README (f-expand README))
+                (home-README (f-expand (f-join "~" README)))
+                (user-README (f-expand (f-join "<<userrepo>>" README)))
+                (root-README (f-expand (f-join "/" README))))
+            (cond
+              ((f-exists? README) (concat "./" README))
+              ((and (f-exists? settings-README) (equal (last (f-split settings-README) 2) '("settings" "README.org"))) settings-README)
+              ((f-exists? flake-README) flake-README)
+              ((f-exists? repo-README) repo-README)
+              ((f-exists? home-README) home-README)
+              ((f-exists? user-README) user-README)
+              ((f-exists? root-README) root-README)
+              (t (link-or-file "https://raw.githubusercontent.com/sylvorg/settings/main/README.org" return-link t))))))
 
 (defvar current-lob-file nil)
 (defvar current-setup-file nil)

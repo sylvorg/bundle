@@ -70,7 +70,9 @@
 (defvar initial-args argv)
 (defvar expanded-args (mapcar #'f-expand argv))
 (defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
+(defvar force (or (member "-f" initial-args) (member "--force" initial-args)))
 (defvar settings-path nil)
+(defvar titan-settings nil)
 (let (srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -83,6 +85,8 @@
          nil)
         ((or "-s" "--settings-path")
          (setq settings-path (pop argv)))
+        ((or "-T" "--titan-settings")
+         (setq titan-settings (pop argv)))
         ((or "-d" "--debug")
          nil)
         ((or "-a" "--all")
@@ -99,7 +103,7 @@
                        srcs)))
         ((guard (file-exists-p arg))
          (push arg srcs))
-        (_ (if (or (member "-f" initial-args) (member "--force" initial-args))
+        (_ (if force
               (message "Skipping unknown option or file: %s" arg)
               (error "Unknown option or file: %s" arg))))))
 
