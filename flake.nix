@@ -44,6 +44,10 @@
         nixos-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
         nixpkgs.follows = "nixos-22-05";
         nix-mode.url = github:syvlorg/nix-mode;
+        ob-hy = {
+            url = github:allison-casey/ob-hy;
+            flake = false;
+        };
         sysget = {
             url = github:emilengler/sysget/v2.3;
             flake = false;
@@ -99,6 +103,10 @@
         };
         org = {
             url = github:bzg/org-mode;
+            flake = false;
+        };
+        emacswiki = {
+            url = github:emacsmirror/emacswiki.org/master;
             flake = false;
         };
     };
@@ -648,6 +656,13 @@
                 ])
             ]);
 
+            mkEmacsInstallPhase = files: ''
+                runHook preInstall
+                LISPDIR=$out/share/emacs/site-lisp
+                install -d $LISPDIR
+                install ${files} $LISPDIR
+                runHook postInstall
+            '';
             baseVersion = head (splitString "p" (concatStringsSep "." (take 2 (splitString "." version))));
             zipToSet = names: values: listToAttrs (
                 map (nv: nameValuePair nv.fst nv.snd) (let hasAttrs = any isAttrs values; in zipLists (
@@ -973,15 +988,40 @@
                         inherit pname;
                         ename = pname;
                         version = "0";
-                        src = fetchurl {
-                            url = "https://www.emacswiki.org/emacs/download/naked.el";
-                            sha256 = "sha256:0v8dv3qkiyr4vkrcmyp55l04z82sr45xai6lxbfr1wbibhz4m6j2";
-                        };
+                        src = inputs.emacswiki;
+                        postPatch = ''
+                            TEMP=$(mktemp)
+                            trap "rm -rf $TEMP" EXIT
+                            mv naked.el $TEMP
+                            rm -rf *
+                            mv $TEMP naked.el
+                        '';
                         buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
                         propagatedUserEnvPkgs = with emacs.pkgs; [ ];
                         meta = {
                             homepage = "https://www.emacswiki.org/emacs/naked.el";
                             description = "Provide for naked key descriptions: no angle brackets.";
+                            inherit (emacs.meta) platforms;
+                        };
+                    };
+                    dired-plus = { emacs, pname, fetchgit }: emacs.pkgs.trivialBuild rec {
+                        inherit pname;
+                        ename = pname;
+                        version = "2022.11.04";
+                        src = inputs.emacswiki;
+                        buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
+                        propagatedUserEnvPkgs = with emacs.pkgs; [ ];
+                        postPatch = ''
+                            TEMP=$(mktemp)
+                            trap "rm -rf $TEMP" EXIT
+                            mv dired+.el $TEMP
+                            rm -rf *
+                            mv $TEMP dired+.el
+                        '';
+                        installPhase = j.mkEmacsInstallPhase "dired+.el";
+                        meta = {
+                            homepage = "https://www.emacswiki.org/emacs/dired%2b.el";
+                            description = "Extensions to Dired.";
                             inherit (emacs.meta) platforms;
                         };
                     };
@@ -1002,13 +1042,7 @@
                             make autoloads
                             runHook postBuild
                         '';
-                        installPhase = ''
-                            runHook preInstall
-                            LISPDIR=$out/share/emacs/site-lisp
-                            install -d $LISPDIR
-                            install lisp/* $LISPDIR
-                            runHook postInstall
-                        '';
+                        installPhase = j.mkEmacsInstallPhase "lisp/*";
                         meta = {
                             homepage = "https://elpa.gnu.org/packages/org.html";
                             license = lib.licenses.free;
@@ -1200,7 +1234,12 @@
                         nix-mode = final: prev: let
                             pname = "nix-mode";
                         in update pname (old: {
-                            src = inputs.nix-mode;
+                            src = inputs.${pname};
+                        }) final prev;
+                        ob-hy = final: prev: let
+                            pname = "ob-hy";
+                        in update pname (old: {
+                            src = inputs.${pname};
                         }) final prev;
                     }
                 ];
