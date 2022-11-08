@@ -56,11 +56,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1667901730,
-        "narHash": "sha256-uqeF9nZzGX6Zj+7OtApQ2xmHSHNi6BS7SFlkqlnSBDs=",
+        "lastModified": 1667937848,
+        "narHash": "sha256-c8TlhsDfqM2Zk6EzRaR2V30AOMdLTH84en9+wetDj1I=",
         "owner": "nix-community",
         "repo": "emacs-overlay",
-        "rev": "88749da29c07c2ae565c9906565dbc895d736282",
+        "rev": "cff0588fd51f95b9f87b95540ea35640b14cd133",
         "type": "github"
       },
       "original": {
@@ -399,11 +399,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1667909632,
-        "narHash": "sha256-p9ZTU29fRA0KNQVGIFTA06IcVeoCqYNRvegRdxGZd8k=",
+        "lastModified": 1667939680,
+        "narHash": "sha256-nu3zSaTsdhjSs0F8WTzFBlJ9Q2tNaw7A1EIPRhniqnw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "bc5ad970780580ec272b3a6bc5f9bddf4e250d3c",
+        "rev": "9f1f990aee8ca8bc847bf41feabe0d91d8a59dc4",
         "type": "github"
       },
       "original": {
@@ -673,7 +673,8 @@
         "saku": "saku",
         "sysget": "sysget",
         "titan": "titan",
-        "uglifycss": "uglifycss"
+        "uglifycss": "uglifycss",
+        "vlfi": "vlfi"
       }
     },
     "saku": {
@@ -755,6 +756,22 @@
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "vlfi": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1574808622,
+        "narHash": "sha256-91+gCMTQ9MYYVDoQCdaA28V4GMp086GefjySO3rCmAM=",
+        "owner": "m00natic",
+        "repo": "vlfi",
+        "rev": "cc02f2533782d6b9b628cec7e2dcf25b2d05a27c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "m00natic",
+        "repo": "vlfi",
         "type": "github"
       }
     }

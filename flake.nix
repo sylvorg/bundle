@@ -109,6 +109,10 @@
             url = github:emacsmirror/emacswiki.org/master;
             flake = false;
         };
+        vlfi = {
+            url = github:m00natic/vlfi;
+            flake = false;
+        };
     };
     outputs = inputs@{ self, flake-utils, ... }: with builtins; with flake-utils.lib; let
         lockfile = fromJSON (readFile ./flake.lock);
@@ -1040,7 +1044,20 @@
                         '';
                         meta = {
                             homepage = "https://www.emacswiki.org/emacs/help-fns+.el";
-                            description = "Extensions to Dired.";
+                            description = "Extensions to `help-fns.el'.";
+                            inherit (emacs.meta) platforms;
+                        };
+                    };
+                    vlfi = { emacs, pname }: emacs.pkgs.trivialBuild rec {
+                        inherit pname;
+                        ename = pname;
+                        version = "2022.11.04";
+                        src = inputs.vlfi;
+                        buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
+                        propagatedUserEnvPkgs = with emacs.pkgs; [ ];
+                        meta = {
+                            homepage = "https://github.com/m00natic/vlfi";
+                            description = "View Large Files in Emacs";
                             inherit (emacs.meta) platforms;
                         };
                     };
