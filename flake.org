@@ -1269,9 +1269,28 @@ Deprecated:
                             rm -rf *
                             mv $TEMP dired+.el
                         '';
-                        installPhase = j.mkEmacsInstallPhase "dired+.el";
                         meta = {
                             homepage = "https://www.emacswiki.org/emacs/dired%2b.el";
+                            description = "Extensions to Dired.";
+                            inherit (emacs.meta) platforms;
+                        };
+                    };
+                    help-fns-plus = { emacs, pname, fetchgit }: emacs.pkgs.trivialBuild rec {
+                        inherit pname;
+                        ename = pname;
+                        version = "2022.11.04";
+                        src = inputs.emacswiki;
+                        buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
+                        propagatedUserEnvPkgs = with emacs.pkgs; [ ];
+                        postPatch = ''
+                            TEMP=$(mktemp)
+                            trap "rm -rf $TEMP" EXIT
+                            mv help-fns+.el $TEMP
+                            rm -rf *
+                            mv $TEMP help-fns+.el
+                        '';
+                        meta = {
+                            homepage = "https://www.emacswiki.org/emacs/help-fns+.el";
                             description = "Extensions to Dired.";
                             inherit (emacs.meta) platforms;
                         };
