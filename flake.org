@@ -624,7 +624,8 @@ Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/53
                     in { emacsen = prev.emacsen or emacsen; } // (genAttrs emacsen' (emacs: let
                         emacs' = emacs-overlays.${emacs} or prev.${emacs};
                         pkgs = fix (extends (emacs-final: emacs-prev: recursiveUpdate emacs-prev (if (name == null) then value else {
-                            ${name} = if (pkg == null) then value else (final.callPackage pkg (value // { emacs = final.${emacs}; }));
+                            ${name} = if (pkg == null) then (if (isFunction value) then (value emacs-prev) else value)
+                                      else (final.callPackage pkg (value // { emacs = final.${emacs}; }));
                         })) (emacs-final: emacs'.pkgs));
                         passthru = let
                             emacsWith = rec {
@@ -653,8 +654,11 @@ Adapted from [[https://discourse.nixos.org/t/how-to-add-custom-python-package/53
 #+begin_src nix
                     callEmacs = extrargs: name: pkg: final: update.emacs.emacs name extrargs pkg final;
                     callEmacs' = extrargs: file: final: update.emacs.emacs (imports.name { inherit file; }) extrargs file final;
-                    package = pkg: func: final: prev: update.emacs.emacs pkg (prev.emacs.pkgs.${pkg}.overrideAttrs func) null final prev;
+                    package = pkg: func: final: prev: update.emacs.emacs pkg (emacs-prev: emacs-prev.emacs.pkgs.${pkg}.overrideAttrs func) null final prev;
+
+                    # TODO: The `call' value here doesn't work; `final.emacs.pkgs.callPackage' does not exist
                     packages = dir: final: update.emacs.emacs null (imports.set { call = final.emacs.pkgs; inherit dir; ignores.elem = dirCon.dirs dir; }) null final;
+
                 };
             };
             emacsenGen = prev: emacs-overlays: filter (emacs: (hasPrefix "emacs" emacs) &&
