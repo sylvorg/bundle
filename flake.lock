@@ -56,11 +56,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1667969964,
-        "narHash": "sha256-doa7lAKtXloFbBq9FVEco3Ls4aaEMZNJuyh4tRCmnps=",
+        "lastModified": 1668024141,
+        "narHash": "sha256-pAA9M3C7nDXs3Kf4Tvz0+GAmyeSTziW+XdS0BWzA4DQ=",
         "owner": "nix-community",
         "repo": "emacs-overlay",
-        "rev": "dd48b16890264f6b033796c2c809e177f510c66d",
+        "rev": "3f3be217a2342f706705b7de4a7cae6e7a5b1140",
         "type": "github"
       },
       "original": {
@@ -255,11 +255,11 @@
         "nixpkgs-regression": "nixpkgs-regression"
       },
       "locked": {
-        "lastModified": 1667951573,
-        "narHash": "sha256-lc5HVVCe8IRtiNmgitoJ7xGYA/kxJ0b+r/1Ftn7b04I=",
+        "lastModified": 1667989406,
+        "narHash": "sha256-ZnHZBY1eoaxteLErjrazd+C+hEl4oDebTd/SdfRFs5k=",
         "owner": "nixos",
         "repo": "nix",
-        "rev": "ffca3e34cb59a5cd18669805d968eaeaa158c0f0",
+        "rev": "f225f4307662fe9a57543d0c86c28aa9fddaf0d2",
         "type": "github"
       },
       "original": {
@@ -508,11 +508,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1667986374,
-        "narHash": "sha256-49W4HrAdym6uA2z+0e54wyFD+9ZE1qTQXPRovemv9dw=",
+        "lastModified": 1668014053,
+        "narHash": "sha256-GK5q9L2c9TzcbH/E8tekhrrLEEk9+/mGpJmpqB8a2tU=",
         "owner": "nix-community",
         "repo": "nur",
-        "rev": "49e540ef28411fbff2f2f24023b7eb37b3603096",
+        "rev": "b2c91c3639a5f42e4f12abbe41b1d82b2aca079b",
         "type": "github"
       },
       "original": {
@@ -550,6 +550,22 @@
       "original": {
         "owner": "bzg",
         "repo": "org-mode",
+        "type": "github"
+      }
+    },
+    "org-contrib": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1664301003,
+        "narHash": "sha256-8CAq/EB52RMQHNLZM0uc/1N5gKTfxGhf7WFt9sMKoD8=",
+        "owner": "emacsmirror",
+        "repo": "org-contrib",
+        "rev": "aa104c0bbc3113f6d3d167b20bd8d6bf6a285f0f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "emacsmirror",
+        "repo": "org-contrib",
         "type": "github"
       }
     },
@@ -666,6 +682,7 @@
         "nur": "nur",
         "ob-hy": "ob-hy",
         "org": "org",
+        "org-contrib": "org-contrib",
         "pacapt": "pacapt",
         "pytest-custom_exit_code": "pytest-custom_exit_code",
         "pytest-parametrized": "pytest-parametrized",

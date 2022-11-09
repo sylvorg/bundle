@@ -105,6 +105,10 @@
             url = github:bzg/org-mode;
             flake = false;
         };
+        org-contrib = {
+            url = github:emacsmirror/org-contrib;
+            flake = false;
+        };
         emacswiki = {
             url = github:emacsmirror/emacswiki.org/master;
             flake = false;
@@ -1085,6 +1089,19 @@
                         installPhase = j.mkEmacsInstallPhase "lisp/*";
                         meta = {
                             homepage = "https://elpa.gnu.org/packages/org.html";
+                            license = lib.licenses.free;
+                        };
+                    };
+                    org-contrib = { emacs, pname }: emacs.pkgs.trivialBuild rec {
+                        inherit pname;
+                        ename = pname;
+                        version = "0.3";
+                        src = inputs.${pname};
+                        buildInputs = flatten [ emacs propagatedUserEnvPkgs ];
+                        propagatedUserEnvPkgs = with emacs.pkgs; [ ];
+                        installPhase = j.mkEmacsInstallPhase "lisp/*";
+                        meta = {
+                            homepage = "https://elpa.gnu.org/packages/org-contrib.html";
                             license = lib.licenses.free;
                         };
                     };
