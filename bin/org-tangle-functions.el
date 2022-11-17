@@ -74,12 +74,12 @@
             (link-or-file (getenv "SETTINGS_README") return-link t)
             (link-or-file setupfile return-link)
             (link-or-file lobfile return-link)
-            (link-or-file titan-settings return-link)
             (let* (;; TODO: What is this again? Comment here as a note.
                    (settings-README (f-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) "README.org")))))
                 (cond
                   ((f-exists? README) (concat "./" README))
                   ((and (f-exists? settings-README) (equal (last (f-split settings-README) 2) '("settings" "README.org"))) settings-README)))
+            (link-or-file titan-settings return-link)
             (let* ((flake-settings (s-trim (shell-command-to-string "nix eval --impure --expr \"((builtins.getFlake or import) (toString ./.)).inputs.settings.outPath\" | tr -d '\"' 2> /dev/null")))
                     (flake-README (unless (s-blank? flake-settings) (f-expand (f-join flake-settings "README.org"))))
                     (repo-README (f-expand README))
