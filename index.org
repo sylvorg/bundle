@@ -1,1 +1,2681 @@
-#+include: ./README.org
+#+setupfile: ./README.org
+#+nosetuplobfile: yes
+
+* CNAME
+
+#+begin_src text :tangle (meq/tangle-path)
+bundle.syvl.org
+#+end_src
+
+* General Properties and Settings
+:PROPERTIES:
+:header-args:text+: :results raw replace drawer :exports results
+:ID:       c821137f-41fe-46e8-aeb6-bb288400d272
+:CUSTOM_ID:       c821137f-41fe-46e8-aeb6-bb288400d272
+:END:
+
+If setting this up again, use ~C-c C-c~ on the results of the ~emacs-lisp~ code block; taken from [[https://emacs.stackexchange.com/users/91/mankoff][mankoff's]] answer [[https://emacs.stackexchange.com/a/60223/31428][here]]:
+
+#+name: eedc8905-e04c-40d9-97c1-88b840473eaf
+#+begin_src text
+#+property: header-args -n -r -l "[{(<%s>)}]" :noweb yes :mkdirp yes :cache yes
+# #+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes :cache yes
+# #+property: header-args:emacs-lisp+ :comments both
+#+end_src
+
+#+RESULTS: eedc8905-e04c-40d9-97c1-88b840473eaf
+:results:
+#+property: header-args -n -r -l "[{(<%s>)}]" :noweb yes :mkdirp yes :cache yes
+# #+property: header-args -n -r -l "[{(<%s>)}]" :tangle-mode (identity #o444) :noweb yes :mkdirp yes :cache yes
+# #+property: header-args:emacs-lisp+ :comments both
+:end:
+
+Adapted from [[https://stackoverflow.com/users/776405/whil][Whil's]] answer [[https://stackoverflow.com/a/65232183/10827766][here]]:
+
+#+name: de0dd529-e632-4a70-b31b-8830795d51b7
+#+begin_src text
+#+startup: show3levels
+#+end_src
+
+#+RESULTS: de0dd529-e632-4a70-b31b-8830795d51b7
+:results:
+#+startup: show3levels
+:end:
+
+* HTML Export Options
+:PROPERTIES:
+:header-args:text+: :results raw replace drawer :exports results
+:ID:       0ee9b692-e89d-46f4-9f34-bffa599bf068
+:CUSTOM_ID:       0ee9b692-e89d-46f4-9f34-bffa599bf068
+:END:
+
+More options can be found [[https://orgmode.org/manual/Export-Settings.html][on the orgmode website]]:
+
+#+name: 20220212070000334862280
+#+begin_src text
+#+options: num:nil html-style:nil pri:t
+#+end_src
+
+#+RESULTS: 20220212070000334862280
+:results:
+#+options: num:nil html-style:nil pri:t
+:end:
+
+** Mathjax
+
+More ~mathjax~ options can be found [[https://orgmode.org/manual/Math-formatting-in-HTML-export.html][on the orgmode website]] and [[http://doc.endlessparentheses.com/Var/org-html-mathjax-options.html][doc.endlessparentheses.com]]:
+
+#+name: 20220212070406770093600
+#+begin_src text
+#+html_mathjax: align: left indent: 5%
+#+end_src
+
+#+RESULTS: 20220212070406770093600
+:results:
+#+html_mathjax: align: left indent: 5%
+:end:
+
+** HTML Headers
+:PROPERTIES:
+:header-args:html+: :noweb-ref html-head
+:END:
+
+More ~html~ options can be found on the orgmode website:
+- https://orgmode.org/manual/HTML-specific-export-settings.html
+- https://orgmode.org/manual/Publishing-options.html#:~:text=HTML%20specific%20properties
+- https://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html#org2656e9f
+- https://orgmode.org/guide/HTML-Export.html
+- https://orgmode.org/manual/Quoting-HTML-tags.html
+
+Adapted from [[https://raw.githubusercontent.com/alhassy/alhassy.github.io/master/AlBasmala.org#:~:text=HTML%2DPreamble%0A%20%20%3AEND%3A-,%23%2BBEGIN_SRC%20emacs%2Dlisp%20%3Aexports%20results%20%3Aresults%20raw%20replace%20drawer,-(s%2Djoin%20%22%5Cn][here]]:
+
+#+begin_src hy :results raw replace drawer :exports results
+(.join "\n" (gfor line (.split #[html-head[
+<<html-head>>]html-head] "\n") (+ "#+html_head: " line)))
+#+end_src
+
+#+RESULTS:
+:results:
+#+html_head: <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/styles/primary/syvl.css" />
+#+html_head: <link rel="icon" href="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/icons/favicons/shiny-zigzagoon-galar.ico" sizes="any" />
+#+html_head: <link rel="icon" href="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/icons/favicons/shiny-zigzagoon-galar.svg" />
+#+html_head: <link rel="manifest" href="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/manifest.json" />
+#+html_head: <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/paraiso-dark.min.css" />
+#+html_head: <script src="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/scripts/highlight/highlight.min.js"></script>
+#+html_head: <script>hljs.highlightAll();</script>
+#+html_head: <div class="header">
+#+html_head: <h1>We Are Syvlorg.</h1>
+#+html_head: <a href="">About Me</a>
+#+html_head: <a href="">About This Website</a>
+#+html_head: <a href="">About Syvlorg</a>
+#+html_head: <a href="https://resume.syvl.org">Résumé</a>
+#+html_head: <a href="https://index.syvl.org">Index</a>
+#+html_head: </div>
+:end:
+
+*** Syvl Stylesheet
+
+#+begin_src html
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/styles/primary/syvl.css" />
+#+end_src
+
+*** Favicons
+
+#+begin_src html
+<link rel="icon" href="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/icons/favicons/shiny-zigzagoon-galar.ico" sizes="any" />
+<link rel="icon" href="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/icons/favicons/shiny-zigzagoon-galar.svg" />
+#+end_src
+
+*** Manifest
+
+#+begin_src html
+<link rel="manifest" href="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/manifest.json" />
+#+end_src
+
+*** Highlightjs
+
+Check out more styles here: https://highlightjs.org/static/demo/
+Favorites include:
+- https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/gradient-dark.min.css
+- https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/kimbie-dark.min.css
+- https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/paraiso-dark.min.css
+- https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/base16/gruvbox-dark-hard.min.css
+
+Unminify using [[https://unminify.com/][this]].
+
+~Note:~ If just ~rel="stylesheet"~ and the ~href~ don't work, add ~type="text/css"~ as well.
+
+Highlightjs theme for development:
+
+#+begin_src html
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/paraiso-dark.min.css" />
+#+end_src
+
+Custom bundle of languages, built using the instructions from [[https://github.com/highlightjs/highlight.js/issues/3033#issuecomment-943846001][here]]:
+
+#+begin_src sh
+node tools/build.js -t browser bash css diff dockerfile hy ini json lisp makefile nim nix plaintext python xml yaml
+#+end_src
+
+Highlightjs for development:
+
+#+begin_src html
+<script src="https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/scripts/highlight/highlight.min.js"></script>
+#+end_src
+
+#+begin_src html
+<script>hljs.highlightAll();</script>
+#+end_src
+
+*** Header
+
+#+begin_src html
+<div class="header">
+<h1>We Are Syvlorg.</h1>
+#+end_src
+
+**** About
+***** Me
+
+#+begin_src html
+<a href="">About Me</a>
+#+end_src
+
+***** This Website
+
+#+begin_src html
+<a href="">About This Website</a>
+#+end_src
+
+***** Syvlorg
+
+#+begin_src html
+<a href="">About Syvlorg</a>
+#+end_src
+
+**** Résumé
+
+#+begin_src html
+<a href="https://resume.syvl.org">Résumé</a>
+#+end_src
+
+**** Index
+
+#+begin_src html
+<a href="https://index.syvl.org">Index</a>
+#+end_src
+
+**** End of Header
+
+#+begin_src html
+</div>
+#+end_src
+
+* manifest.json
+
+Adapted from [[https://developer.mozilla.org/en-US/docs/Web/Manifest][here]] and [[https://css-tricks.com/svg-favicons-and-all-the-fun-things-we-can-do-with-them/][here]]:
+
+#+begin_src json :tangle (meq/tangle-path)
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "Syvl",
+  "short_name": "Syvl",
+  "start_url": ".",
+  "display": "standalone",
+  "description": "A readable Syvlorg.",
+  "icons": [
+    { "src": "https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/icons/favicons/shiny-zigzagoon-galar-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "https://cdn.jsdelivr.net/gh/sylvorg/bundle@main/src/icons/favicons/shiny-zigzagoon-galar-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
+#+end_src
+
+* src
+** icons
+*** favicons
+**** shiny-sandshrew-alola.svg
+
+#+begin_src xml :tangle (meq/tangle-path)
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 68 56" shape-rendering="crispEdges">
+<metadata>Made with Pixels to Svg https://codepen.io/shshaw/pen/XbxvNj</metadata>
+<path stroke="#000000" d="M26 35h1M28 35h4M25 36h1M27 36h1M32 36h3M25 37h1M34 37h1M25 38h1M33 38h1M35 38h2M24 39h1M33 39h1M37 39h1M24 40h1M38 40h1M43 40h2M24 41h1M30 41h2M39 41h1M42 41h1M44 41h1M24 42h1M29 42h1M40 42h2M44 42h1M25 43h1M29 43h1M43 43h1M25 44h1M43 44h1M25 45h1M42 45h1M26 46h2M41 46h1M27 47h1M40 47h1M28 48h1M39 48h1M28 49h1M32 49h2M39 49h1M29 50h3M34 50h1M38 50h1M34 51h1M38 51h1M35 52h3" />
+<path stroke="#c5e6f6" d="M26 36h1M29 36h1M27 37h4M28 38h1M31 38h1M25 39h1M30 39h1M36 39h1M34 40h1M36 40h2M33 41h3M37 41h1M25 42h1M28 42h1M33 42h1M35 42h4M42 42h1M26 43h2M34 43h2M38 43h1M40 43h2M38 44h1M41 44h2M34 45h1M38 45h2M41 45h1M34 46h2M39 46h1M38 47h1M38 48h1M34 49h1M37 49h1" />
+<path stroke="#ffffff" d="M28 36h1M30 36h2M32 37h1M26 38h2M29 38h2M32 38h1M31 39h1M26 41h3M36 41h1M43 41h1M26 42h2M30 42h1M43 42h1M36 43h2M42 43h1M35 44h2M39 44h1M35 45h2M37 46h1M36 47h2M34 48h4M35 49h2M35 51h1M37 51h1" />
+<path stroke="#7b94ac" d="M26 37h1M31 37h1M33 37h1M34 38h1M26 39h4M32 39h1M34 39h1M25 40h9M25 41h1M29 41h1M32 41h1M32 42h1M32 43h1M34 44h1M38 46h1M28 47h2M39 47h1M33 48h1M30 49h2M38 49h1M35 50h3" />
+<path stroke="#414141" d="M35 39h1M35 40h1M38 41h1M34 42h1M39 42h1M33 43h1M39 43h1M31 44h2M37 44h1M40 44h1M29 45h2M33 45h1M37 45h1M40 45h1M28 46h2M33 46h1M36 46h1M40 46h1M30 47h1M34 47h2M29 48h3" />
+<path stroke="#314183" d="M31 42h1M30 43h1" />
+<path stroke="#7bbbe1" d="M28 43h1M31 43h1M26 44h5M27 45h1M31 47h3M32 48h1" />
+<path stroke="#5696bc" d="M33 44h1M28 45h1M31 45h2M30 46h3" />
+<path stroke="#7b7b7b" d="M26 45h1" />
+<path stroke="#bdbdb4" d="M29 49h1M36 51h1" />
+</svg>
+#+end_src
+
+**** shiny-zigzagoon-galar.svg
+
+#+begin_src xml :tangle (meq/tangle-path)
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 68 56" shape-rendering="crispEdges">
+<metadata>Made with Pixels to Svg https://codepen.io/shshaw/pen/XbxvNj</metadata>
+<path stroke="#000000" d="M41 37h2M32 38h2M36 38h2M40 38h1M42 38h1M27 39h1M29 39h1M31 39h1M34 39h2M37 39h1M39 39h1M43 39h2M26 40h1M28 40h1M30 40h1M38 40h1M44 40h1M26 41h1M45 41h1M45 42h1M25 43h1M44 43h1M25 44h1M42 44h1M25 45h1M41 45h1M24 46h1M40 46h1M24 47h1M40 47h1M24 48h1M37 48h1M40 48h1M25 49h1M36 49h1M25 50h1M28 50h3M34 50h1M25 51h1M30 51h1M33 51h1M26 52h1M31 52h2" />
+<path stroke="#d10048" d="M41 38h1M36 39h1M40 39h2M32 40h2M32 41h1M44 42h1M40 43h1M35 44h1M40 44h1M34 45h2M40 45h1" />
+<path stroke="#d5004d" d="M32 39h1" />
+<path stroke="#bdbebd" d="M33 39h1M38 43h1M37 44h1M36 45h2M25 48h1M36 48h1" />
+<path stroke="#313031" d="M42 39h1M44 41h1M26 49h1" />
+<path stroke="#ffffff" d="M27 40h1M29 40h1M35 40h1M40 40h1M27 41h1M35 41h3M41 41h2M28 42h2M33 42h1M36 42h2M27 43h4M32 43h3M36 43h1M28 44h1M30 44h4M31 45h2M25 46h2M32 46h2M26 47h1M31 47h2M26 48h2M31 48h3M39 48h1M28 49h3" />
+<path stroke="#d20049" d="M31 40h1M31 41h1M38 41h2" />
+<path stroke="#c0bfc0" d="M34 40h1M30 42h1M37 43h1M30 45h1" />
+<path stroke="#d00047" d="M36 40h2M42 40h2M43 41h1M38 42h2M39 43h1M36 44h1" />
+<path stroke="#3c3e3c" d="M39 40h1M30 41h1" />
+<path stroke="#c4003b" d="M41 40h1M40 41h1M35 46h1M34 47h2M32 50h2M32 51h1" />
+<path stroke="#aaaaaa" d="M28 41h1" />
+<path stroke="#ca0042" d="M29 41h1M25 47h1" />
+<path stroke="#424142" d="M33 41h2M31 42h2M34 42h2M40 42h2M31 43h1M35 43h1M41 43h1M34 44h1M33 45h1M34 46h1M33 47h1M32 49h2" />
+<path stroke="#080808" d="M26 42h1M43 43h1" />
+<path stroke="#acacac" d="M27 42h1M26 43h1" />
+<path stroke="#bcc3bc" d="M42 42h1M42 43h1" />
+<path stroke="#444644" d="M43 42h1" />
+<path stroke="#c7003e" d="M26 44h2M26 45h2" />
+<path stroke="#c6003d" d="M29 44h1M28 45h2M27 46h1M30 46h2M30 47h1M28 48h1M30 48h1" />
+<path stroke="#c0bec0" d="M38 44h1" />
+<path stroke="#c90040" d="M39 44h1M38 45h2" />
+<path stroke="#b5b6b5" d="M41 44h1" />
+<path stroke="#00afb6" d="M28 46h1M28 47h1" />
+<path stroke="#ffeeff" d="M29 46h1" />
+<path stroke="#bdbfbd" d="M36 46h3M39 47h1" />
+<path stroke="#be0034" d="M39 46h1M36 47h3" />
+<path stroke="#a8a8a8" d="M27 47h1M29 48h1" />
+<path stroke="#5de4e7" d="M29 47h1" />
+<path stroke="#474347" d="M34 48h2" />
+<path stroke="#aaabaa" d="M38 48h1" />
+<path stroke="#bababa" d="M27 49h1" />
+<path stroke="#c5c5c5" d="M31 49h1" />
+<path stroke="#c6c3c6" d="M34 49h1" />
+<path stroke="#090409" d="M35 49h1" />
+<path stroke="#000400" d="M38 49h2" />
+<path stroke="#229ea4" d="M26 50h1" />
+<path stroke="#6cdde3" d="M27 50h1M26 51h1" />
+<path stroke="#c8003f" d="M31 50h1" />
+<path stroke="#090400" d="M27 51h1" />
+<path stroke="#f6fbf6" d="M31 51h1" />
+</svg>
+#+end_src
+
+**** shiny-linoone-galar.svg
+
+#+begin_src xml :tangle (meq/tangle-path)
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 68 56" shape-rendering="crispEdges">
+<metadata>Made with Pixels to Svg https://codepen.io/shshaw/pen/XbxvNj</metadata>
+<path stroke="#000000" d="M38 33h4M37 34h1M42 34h1M36 35h1M41 35h1M36 36h1M41 36h1M37 37h1M42 37h1M28 39h1M33 39h3M44 39h1M27 40h1M29 40h1M31 40h2M44 40h1M26 41h1M30 41h1M44 41h1M26 42h1M43 42h1M25 43h1M43 43h1M24 44h1M44 44h1M24 45h1M44 45h1M23 46h1M44 46h1M23 47h1M39 47h2M43 47h1M23 48h1M28 48h1M37 48h2M41 48h2M36 49h1M24 50h1M27 50h3M34 50h1M24 51h1M26 51h1M33 51h1M25 52h1M31 52h2" />
+<path stroke="#c4aab1" d="M38 34h1M38 38h1M38 39h1M28 42h2M38 44h1M38 45h2M33 47h1M31 48h1M30 49h2" />
+<path stroke="#ffffff" d="M39 34h3M38 35h2M38 36h3M39 37h3M40 38h2M36 39h2M40 39h3M28 40h1M33 40h3M40 40h3M27 41h2M31 41h1M39 41h4M27 42h1M33 42h1M38 42h4M26 43h1M32 43h2M35 43h5M30 44h4M28 45h4M24 46h1M24 47h2" />
+<path stroke="#c7aab3" d="M37 35h1M25 44h1M25 48h1M34 48h2" />
+<path stroke="#bea1a9" d="M40 35h1M32 41h1M27 43h1" />
+<path stroke="#936e79" d="M37 36h1" />
+<path stroke="#d00047" d="M38 37h1M38 40h2M43 40h1M38 41h1M43 41h1M25 46h1" />
+<path stroke="#181818" d="M36 38h2" />
+<path stroke="#ce0046" d="M39 38h1M39 39h1M28 43h2M39 44h1M25 45h1M32 46h2M32 47h1M30 48h1" />
+<path stroke="#bea2a9" d="M42 38h1" />
+<path stroke="#000400" d="M43 38h1M24 49h1M35 49h1" />
+<path stroke="#cb0043" d="M43 39h1" />
+<path stroke="#f6fbf6" d="M36 40h1" />
+<path stroke="#a27f86" d="M37 40h1" />
+<path stroke="#ca0042" d="M29 41h1M33 41h1M42 42h1M42 43h1" />
+<path stroke="#946d79" d="M34 41h2M27 45h1M32 50h2" />
+<path stroke="#c90040" d="M36 41h2" />
+<path stroke="#d10048" d="M30 42h2M30 43h1M26 44h2M40 44h3M26 45h1M40 45h3" />
+<path stroke="#424142" d="M32 42h1M31 43h1M43 44h1M43 45h1M26 47h2M36 48h1M32 49h2" />
+<path stroke="#be0034" d="M34 42h2M34 43h1" />
+<path stroke="#d20049" d="M36 42h1M41 43h1M28 44h1M33 45h1M38 46h1M40 46h2M38 47h1" />
+<path stroke="#c0a5ab" d="M37 42h1M40 43h1M29 44h1M32 45h1" />
+<path stroke="#c0a5ac" d="M34 44h1M30 46h1M37 46h1M34 47h1" />
+<path stroke="#d5004d" d="M35 44h1M34 45h1M31 46h1M34 46h2M31 47h1M36 47h2" />
+<path stroke="#393c39" d="M36 44h1" />
+<path stroke="#f7f7f7" d="M37 44h1M27 46h1" />
+<path stroke="#393839" d="M35 45h1M36 46h1M30 47h1M35 47h1" />
+<path stroke="#c7b0b6" d="M36 45h2" />
+<path stroke="#cab2b9" d="M26 46h1" />
+<path stroke="#67394a" d="M28 46h2" />
+<path stroke="#3c3e3c" d="M39 46h1M41 47h1M24 48h1M25 49h1M34 49h1" />
+<path stroke="#3d3e3d" d="M42 46h1" />
+<path stroke="#947078" d="M43 46h1" />
+<path stroke="#ffeeff" d="M28 47h1" />
+<path stroke="#9b7587" d="M29 47h1" />
+<path stroke="#00b0b8" d="M42 47h1" />
+<path stroke="#407072" d="M26 48h1" />
+<path stroke="#00d9e1" d="M27 48h1" />
+<path stroke="#3f3e3f" d="M29 48h1M29 49h1" />
+<path stroke="#c3a9af" d="M32 48h2" />
+<path stroke="#485652" d="M26 49h2" />
+<path stroke="#97707c" d="M28 49h1" />
+<path stroke="#009ca4" d="M25 50h1" />
+<path stroke="#00d5dd" d="M26 50h1" />
+<path stroke="#413e41" d="M30 50h2" />
+<path stroke="#00dbe2" d="M25 51h1" />
+<path stroke="#090409" d="M30 51h1" />
+<path stroke="#00e8f0" d="M31 51h1" />
+<path stroke="#00767b" d="M32 51h1" />
+</svg>
+#+end_src
+
+**** shiny-obstagoon.svg
+
+#+begin_src xml :tangle (meq/tangle-path)
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.5 68 56" shape-rendering="crispEdges">
+<metadata>Made with Pixels to Svg https://codepen.io/shshaw/pen/XbxvNj</metadata>
+<path stroke="#181818" d="M30 22h3M26 23h1M28 23h2M33 23h4M24 24h2M27 24h1M37 24h1M23 25h1M36 25h1M22 26h1M37 26h2M21 27h1M39 27h1M21 28h1M40 28h1M42 28h3M21 29h1M41 29h1M45 29h1M20 30h1M46 30h1M20 31h1M46 31h1M20 32h1M46 32h1M20 33h1M25 33h1M45 33h1M46 34h1M19 35h1M46 35h1M46 36h1M19 38h1M22 38h1M26 38h2M29 38h1M44 38h1M23 39h1M28 39h1M44 39h1M25 40h1M28 40h1M43 40h1M25 41h1M29 41h1M42 41h1M22 42h1M24 42h1M30 42h1M42 42h1M23 43h1M31 43h1M43 43h1M30 44h1M35 44h3M43 44h1M30 45h1M34 45h1M44 45h1M29 46h1M34 46h1M39 46h1M45 46h1M28 47h2M34 47h1M39 47h1M45 47h1M27 48h1M33 48h1M39 48h1M46 48h1M28 49h5M40 49h1M45 49h1M40 50h1M46 50h1M40 51h1M46 51h1M41 52h5" />
+<path stroke="#c52550" d="M30 23h2M28 24h2M24 25h2M28 25h2M24 26h6M32 26h4M24 27h1M26 27h4M35 27h1M22 28h5M22 29h4M21 30h4M21 31h3M21 32h2M24 32h2M21 33h1M24 33h1" />
+<path stroke="#c4244f" d="M32 23h1M26 24h1M30 24h2M33 24h4M26 25h1M30 25h1M32 25h2M30 26h2M22 27h1M29 30h1M22 34h2M22 35h1" />
+<path stroke="#414041" d="M32 24h1M31 25h1M23 35h1" />
+<path stroke="#6f1f35" d="M27 25h1M23 26h1M23 27h1M30 32h2M32 48h1" />
+<path stroke="#424142" d="M34 25h2M40 30h1M43 30h1M30 31h1M43 31h1M38 32h1M42 32h1M38 33h1M28 34h1M29 35h1M32 35h1M41 35h1M40 36h1M40 46h3M30 47h1" />
+<path stroke="#a82045" d="M36 26h1M36 27h2" />
+<path stroke="#d37f99" d="M25 27h1" />
+<path stroke="#313031" d="M30 27h2M28 30h1M32 30h1M32 31h1M26 32h1M38 34h1M39 35h1M28 36h1M30 36h1M32 36h3M39 36h1M29 37h3M35 37h1M39 37h1M36 38h1M37 39h1M35 40h2M38 40h2M34 41h1M40 41h2M31 42h5M39 42h1M36 43h3" />
+<path stroke="#ffffff" d="M32 27h3M27 28h1M30 28h2M33 28h3M26 29h2M31 29h1M34 29h2M25 30h1M24 31h2M23 32h1M22 33h2M30 33h2M21 34h1M29 34h2M20 35h1M20 36h2M42 36h1M42 37h1" />
+<path stroke="#a21a3f" d="M38 27h1M38 28h2M38 29h2M34 30h3M34 31h3M28 32h2M34 32h1M28 33h2M34 33h1M27 34h1M26 35h2M31 36h1M41 36h1M43 36h1M40 37h2M43 37h1M33 38h2M34 39h2M40 39h2M43 39h1M40 40h2M40 42h2M32 43h1M40 43h3M40 44h2M40 45h2" />
+<path stroke="#f7f7f7" d="M28 28h1M26 30h1M19 36h1" />
+<path stroke="#292829" d="M29 28h1M28 29h1" />
+<path stroke="#393839" d="M32 28h1M32 29h2M36 34h1" />
+<path stroke="#f7ffff" d="M36 28h1" />
+<path stroke="#a31c40" d="M37 28h1M20 37h1M39 39h1M42 44h1M42 45h1" />
+<path stroke="#0c92ae" d="M29 29h1" />
+<path stroke="#32b8d4" d="M30 29h1M30 30h1M39 32h1M37 34h1M36 35h1M37 36h1M32 37h1M41 47h1" />
+<path stroke="#cccccc" d="M36 29h2M33 30h1M37 30h2M33 31h1M37 31h2M35 32h2M33 33h1M35 33h2M32 34h2M28 35h1M31 35h1M33 35h2M22 36h1M27 36h1M21 37h1M20 38h1M40 38h4M42 39h1M42 40h1M34 43h2M33 44h2M38 44h1M33 45h1M39 45h1" />
+<path stroke="#414241" d="M40 29h1M42 29h1M42 35h2M23 38h1M41 50h5" />
+<path stroke="#34bad6" d="M43 29h2M44 32h2M44 33h1M38 35h1M34 40h1M44 46h1M41 51h1M43 51h1M45 51h1" />
+<path stroke="#686768" d="M27 30h1M26 31h1" />
+<path stroke="#c72752" d="M31 30h1M31 31h1" />
+<path stroke="#9e163b" d="M39 30h1M39 31h1M32 44h1M32 45h1" />
+<path stroke="#33b9d5" d="M41 30h2M44 30h2M40 31h3M44 31h2M40 32h2M43 32h1M41 33h3M31 38h2M31 39h3M32 40h2M43 46h1M42 47h2" />
+<path stroke="#212021" d="M27 31h1" />
+<path stroke="#a1193d" d="M28 31h2" />
+<path stroke="#34edf0" d="M27 32h1M26 33h2M26 34h1" />
+<path stroke="#9e173b" d="M32 32h2M32 33h1M23 36h1M22 37h2" />
+<path stroke="#c62651" d="M37 32h1" />
+<path stroke="#292429" d="M37 33h1" />
+<path stroke="#169cb8" d="M39 33h1M40 47h1" />
+<path stroke="#1197b3" d="M40 33h1M29 36h1M28 37h1M38 37h1M30 38h1M37 38h1M30 39h1M37 40h1M32 41h2M36 41h4M36 42h3" />
+<path stroke="#101410" d="M20 34h1" />
+<path stroke="#4aecef" d="M24 34h1" />
+<path stroke="#082821" d="M25 34h1" />
+<path stroke="#393c39" d="M31 34h1M30 35h1" />
+<path stroke="#c2224d" d="M34 34h2" />
+<path stroke="#1399b5" d="M39 34h1M42 34h2M35 36h1M36 37h1M35 41h1M40 48h2M44 48h2" />
+<path stroke="#1298b4" d="M40 34h2M44 34h2M40 35h1M44 35h2M28 38h1M29 39h1M30 40h2M30 41h1M30 46h4M31 47h3M28 48h2M42 48h2" />
+<path stroke="#cc2c57" d="M21 35h1" />
+<path stroke="#324d4e" d="M24 35h2" />
+<path stroke="#292021" d="M35 35h1" />
+<path stroke="#014d5e" d="M37 35h1M36 36h1M37 37h1M29 40h1M31 41h1M42 51h1M44 51h1" />
+<path stroke="#101010" d="M18 36h1M18 37h1" />
+<path stroke="#174749" d="M24 36h1" />
+<path stroke="#fff7ff" d="M25 36h1M24 37h1" />
+<path stroke="#9f173c" d="M26 36h1M26 37h1" />
+<path stroke="#474547" d="M38 36h1" />
+<path stroke="#ae0e39" d="M44 36h1M44 37h1M41 49h1M44 49h1" />
+<path stroke="#0f95b1" d="M45 36h1" />
+<path stroke="#c82853" d="M19 37h1" />
+<path stroke="#608384" d="M25 37h1" />
+<path stroke="#100c08" d="M27 37h1" />
+<path stroke="#a51d42" d="M33 37h1M36 39h1M39 43h1" />
+<path stroke="#ff618c" d="M34 37h1" />
+<path stroke="#181418" d="M45 37h1M20 39h2M22 40h1M22 41h1M38 45h1" />
+<path stroke="#4f5154" d="M21 38h1" />
+<path stroke="#5bc8cc" d="M24 38h1" />
+<path stroke="#44797b" d="M25 38h1" />
+<path stroke="#df3f6a" d="M35 38h1" />
+<path stroke="#313131" d="M38 38h1M38 39h1" />
+<path stroke="#413f41" d="M39 38h1" />
+<path stroke="#71f2f4" d="M24 39h1M23 41h1" />
+<path stroke="#081810" d="M25 39h1" />
+<path stroke="#53cbcf" d="M23 40h1" />
+<path stroke="#79f2f5" d="M24 40h1M24 41h1M23 42h1" />
+<path stroke="#aa3e5b" d="M33 43h1" />
+<path stroke="#9c1438" d="M31 44h1M31 48h1" />
+<path stroke="#b56379" d="M39 44h1" />
+<path stroke="#1096b2" d="M31 45h1M30 48h1" />
+<path stroke="#3e3b3e" d="M43 45h1" />
+<path stroke="#0a90ac" d="M44 47h1" />
+<path stroke="#a82044" d="M42 49h2" />
+</svg>
+#+end_src
+
+** styles
+*** primary
+**** syvl.css
+:PROPERTIES:
+:header-args:css+: :noweb-ref syvl.css
+:END:
+
+Adapted from the following:
+- [[https://github.com/jessekelly881/Rethink][rethink]]
+- [[https://github.com/gongzhitaao/orgcss][orgcss]]
+- [[https://gitlab.com/OlMon/org-themes][org-themes]]
+
+~Note:~ More settings can be found [[https://orgmode.org/manual/CSS-support.html][here]].
+
+#+begin_src text :tangle (meq/tangle-path) :exports none
+<<syvl.css>>
+#+end_src
+
+#+begin_src css
+/* @import url('https://fonts.googleapis.com/css?family=Source+Code+Pro:200,300,400'); */
+
+:root {
+    --font-size-1: 2rem;
+    --font-size-2: 1.5rem;
+    --font-size-3: 1.25rem;
+    --font-size-4: 1rem;
+    --font-size-small: 0.5rem;
+    --font-size-xsmall: 0.25rem;
+    --margins: 5rem;
+    --smaller-margins: 2.5rem;
+    --padding: 1rem;
+    --header-padding: 0.25rem;
+    --background-color: #222222;
+    --dracula-orange: #ffb86c;
+    --exo-ui-red: #ff5156;
+    --joker-purple: #be80ff;
+    --acid-green: #DFFF00;
+}
+
+.header {
+    text-align: center;
+    background: var(--background-color);
+    font-size: var(--font-size-3);
+    border-bottom: 1px solid var(--dracula-orange);
+    padding-bottom: var(--padding);
+}
+
+/* More information [[https://developer.mozilla.org/en-US/docs/Web/CSS/:not][here]]: */
+.header>a:not(:last-child)::after {
+    content: " |";
+}
+
+.header > a:link {
+    color: var(--joker-purple);
+    display: inline;
+    text-decoration: none;
+}
+
+html,
+body {
+    background-color: var(--background-color);
+    font-family: "Courier New", monospace;
+    font-weight: 100;
+    color: var(--joker-purple);
+}
+
+@media only screen and (min-width: 750px) /* Large screens */
+{
+    html,
+    body {
+        margin-left: var(--margins);
+        margin-right: var(--margins);
+    }
+}
+
+@media only screen and (max-width: 750px) /* Small screens */
+{
+    html,
+    body {
+        margin-left: var(--smaller-margins);
+        margin-right: var(--smaller-margins);
+    }
+}
+
+::selection {
+    background-color: var(--dracula-orange);
+    color: var(--background-color);
+}
+
+h1 {
+    font-size: var(--font-size-1);
+}
+
+h2 {
+    font-size: var(--font-size-2);
+}
+
+h1>.subtitle,
+h3,
+h4,
+h5 {
+    font-size: var(--font-size-3);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    color: var(--dracula-orange);
+}
+
+h2,
+h3,
+h4,
+h5,
+h6 {
+    border-bottom: 1px solid var(--joker-purple);
+    width: fit-content;
+    padding-bottom: var(--header-padding);
+}
+
+#table-of-contents {
+    padding-bottom: var(--padding);
+    border-bottom: 1px solid var(--dracula-orange);
+}
+
+#table-of-contents ul,
+#table-of-contents li {
+    list-style-type: none;
+    margin-top: var(--header-padding);
+    margin-bottom: var(--header-padding);
+}
+
+#table-of-contents .tag {
+    float: right;
+}
+
+#table-of-contents a:link {
+    text-decoration: none;
+    color: var(--joker-purple);
+}
+
+#table-of-contents a:hover {
+    color: var(--exo-ui-red);
+}
+
+img {
+    max-width: 100%;
+}
+
+blockquote {
+    border-left: 0.2rem solid var(--dracula-orange);
+    padding-left: 1rem;
+    font-style: italic;
+}
+
+/* Adapted from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
+blockquote>p {
+    color: var(--exo-ui-red);
+}
+
+p,
+pre,
+ol,
+ul,
+table,
+code {
+    color: var(--dracula-orange);
+}
+
+.done,
+.priority,
+.tag,
+.todo,
+code {
+    color: var(--background-color);
+    position: relative;
+    bottom: .1rem;
+    font-size: 80%;
+}
+
+.done,
+.priority,
+.todo,
+code {
+    font-weight: 400;
+    background-clip: padding-box;
+    font-family: "Courier New", monospace;
+    font-weight: bold;
+    line-height: 1
+}
+
+.done,
+.priority,
+.tag>span,
+.todo,
+code {
+    border-radius: 3px;
+    padding-top: .1rem;
+    padding-left: .3rem;
+    padding-right: .3rem;
+    line-height: 1;
+}
+
+.priority,
+.tag>span,
+.todo,
+code {
+    background-image: linear-gradient(160deg, var(--dracula-orange), var(--exo-ui-red));
+}
+
+td > code {
+    background-image: linear-gradient(160deg, var(--dracula-orange), var(--joker-purple));
+}
+
+/* ~.on>code~ refers to a checkbox's checked state; ~.off>code~ refers to the opposite. */
+.on>code,
+.done {
+    background-image: linear-gradient(160deg, var(--dracula-orange), var(--joker-purple));
+}
+
+.tag {
+    top: .1rem;
+    display: block;
+    float: right;
+    font-weight: 550;
+}
+
+.tag>span {
+    text-transform: uppercase;
+}
+
+table,
+#table-of-contents {
+    margin-bottom: var(--padding);
+}
+
+/* Even Table Row */
+
+tr:nth-child(even) {
+    background-color: #2f1e2e;
+}
+
+.org-org-meta-line,
+.org-keyword {
+    color: var(--dracula-orange);
+}
+
+a:link,
+a:hover,
+a:visited,
+a:visited:hover {
+    text-decoration: none;
+}
+
+a:link {
+    color: var(--acid-green);
+}
+
+a:visited {
+    color: var(--joker-purple);
+}
+
+/* Adapted from [[https://stackoverflow.com/users/3246606/harry-the-mad-lurker][Harry The Mad Lurker's]] answer [[https://stackoverflow.com/a/21977877/10827766][here]]: */
+a:hover,
+a:visited:hover {
+    color: var(--exo-ui-red);
+}
+
+/* Adapted from [[https://css-tricks.com/forums/topic/need-help-to-override-font-color-for-blockquote/#post-99908][here]], and [[https://stackoverflow.com/users/3444240/potashin][potashin's]] answer [[https://stackoverflow.com/a/23631478/10827766][here]]: */
+#postamble :not(:last-child)::after {
+    content: " |";
+}
+
+#postamble>p {
+    display: inline;
+}
+
+#postamble {
+    text-align: center;
+    width: 100%;
+    font-size: var(--font-size-4)
+}
+
+.status {
+    padding: var(--padding);
+    border-top: 1px solid var(--dracula-orange);
+    text-align: center;
+}
+
+.outline-text-2,
+.outline-text-3,
+.outline-text-4 {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.underline {
+    text-decoration: var(--exo-ui-red) wavy underline;
+}
+
+del {
+    text-decoration: var(--joker-purple) wavy line-through;
+}
+#+end_src
+
+*** highlight
+
+Alpha levels for hex colors can be set using the guide [[https://www.digitalocean.com/community/tutorials/css-hex-code-colors-alpha-values][here]];
+alpha hex codes can be found on [[https://stackoverflow.com/users/1048340/jared-rummler][Jared Rummler's]] answer [[https://stackoverflow.com/a/25170174][here]].
+
+Regular expressions adapted from [[https://stackoverflow.com/users/4465/levik][levik's]] answer [[https://stackoverflow.com/a/159140][here]].
+
+Peach gradient colorscheme can be found [[https://every-single-one-of-the-things.tumblr.com/post/186683107707/send-me-a-peach-part-of-a-collab-with][here]]:
+
+| Color        | HEX     |
+|--------------+---------|
+| Tulip        | #F48191 |
+| Dark Salmon  | #EF9188 |
+| Tumbleweed   | #EDA58B |
+| Peach-Orange | #F2BB9B |
+| Apricot      | #FBCCB2 |
+
+**** gradient-dark.min.css
+
+#+begin_src css :tangle (meq/tangle-path)
+pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{border-radius:0.2rem;background-color:#652487;background-image:linear-gradient(160deg,#F48191,#EF9188,#EDA58B,#F2BB9B,#FBCCB2);color:#222222}.hljs-subtr{color:#e7e4eb}.hljs-comment,.hljs-doctag,.hljs-meta,.hljs-quote{color:#af8dd9}.hljs-attr,.hljs-regexp,.hljs-selector-id,.hljs-selector-tag,.hljs-tag,.hljs-template-tag{color:#aefbff}.hljs-bullet,.hljs-params,.hljs-selector-class{color:#f19fff}.hljs-keyword,.hljs-meta .hljs-keyword,.hljs-section,.hljs-symbol,.hljs-type{color:#17fc95}.hljs-addition,.hljs-link,.hljs-number{color:#c5fe00}.hljs-string{color:#38c0ff}.hljs-addition,.hljs-attribute{color:#e7ff9f}.hljs-template-variable,.hljs-variable{color:#e447ff}.hljs-built_in,.hljs-class,.hljs-formula,.hljs-function,.hljs-name,.hljs-title{color:#ffc800}.hljs-deletion,.hljs-literal,.hljs-selector-pseudo{color:#ff9e44}.hljs-emphasis,.hljs-quote{font-style:italic}.hljs-keyword,.hljs-params,.hljs-section,.hljs-selector-class,.hljs-selector-id,.hljs-selector-tag,.hljs-strong,.hljs-template-tag{font-weight:700}
+#+end_src
+
+* patches
+** bcachefs-module.patch
+
+#+begin_src diff :tangle (meq/tangle-path)
+diff --git a/nixos/modules/tasks/filesystems/bcachefs.nix b/nixos/modules/tasks/filesystems/bcachefs.nix
+index 5fda24adb97..897ddf03927 100644
+--- a/nixos/modules/tasks/filesystems/bcachefs.nix
++++ b/nixos/modules/tasks/filesystems/bcachefs.nix
+@@ -45,7 +45,7 @@ in
+       system.fsPackages = [ pkgs.bcachefs-tools ];
+ 
+       # use kernel package with bcachefs support until it's in mainline
+-      boot.kernelPackages = pkgs.linuxPackages_testing_bcachefs;
++      # boot.kernelPackages = pkgs.linuxPackages_testing_bcachefs;
+     }
+ 
+     (mkIf ((elem "bcachefs" config.boot.initrd.supportedFilesystems) || (bootFs != {})) {
+#+end_src
+
+** licenses.patch
+
+#+begin_src diff :tangle (meq/tangle-path)
+diff --git a/lib/licenses.nix b/lib/licenses.nix
+index 4fa6d6abc7a..198b570e0ae 100644
+--- a/lib/licenses.nix
++++ b/lib/licenses.nix
+@@ -690,6 +690,11 @@ in mkLicense lset) ({
+     fullName = "OpenSSL License";
+   };
+ 
++  oreo = {
++    fullName = "Oreo Public License";
++    free = true;
++  };
++
+   osl2 = {
+     spdxId = "OSL-2.0";
+     fullName = "Open Software License 2.0";
+#+end_src
+
+** python.patch
+
+#+begin_src diff :tangle (meq/tangle-path)
+diff --git a/pkgs/top-level/aliases.nix b/pkgs/top-level/aliases.nix
+index 7b9c55ee702..4c86533cad5 100644
+--- a/pkgs/top-level/aliases.nix
++++ b/pkgs/top-level/aliases.nix
+@@ -1154,10 +1154,10 @@ mapAliases ({
+   pyrex095 = throw "pyrex has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-12
+   pyrex096 = throw "pyrex has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-12
+   pyrit = throw "pyrit has been removed from nixpkgs as the project is still stuck on python2"; # Added 2022-01-01
+-  python = python2; # Added 2022-01-11
++  python = python3; # Added 2022-01-11
+   python-swiftclient = swiftclient; # Added 2021-09-09
+   python2nix = throw "python2nix has been removed as it is outdated. Use e.g. nixpkgs-pytools instead"; # Added 2021-03-08
+-  pythonFull = python2Full; # Added 2022-01-11
++  pythonFull = python3Full; # Added 2022-01-11
+   pythonPackages = python.pkgs; # Added 2022-01-11
+ 
+   ### Q ###
+diff --git a/pkgs/top-level/all-packages.nix b/pkgs/top-level/all-packages.nix
+index 1803508bdd4..da416ccaea6 100644
+--- a/pkgs/top-level/all-packages.nix
++++ b/pkgs/top-level/all-packages.nix
+@@ -14502,7 +14502,7 @@ with pkgs;
+   # available as `pythonPackages.tkinter` and can be used as any other Python package.
+   # When switching these sets, please update docs at ../../doc/languages-frameworks/python.md
+   python2 = python27;
+-  python3 = python39;
++  python3 = python310;
+ 
+   # pythonPackages further below, but assigned here because they need to be in sync
+   python2Packages = dontRecurseIntoAttrs python27Packages;
+#+end_src
+
+** hy.patch
+
+#+begin_src diff :tangle (meq/tangle-path)
+diff --git a/pkgs/development/python-modules/hy/default.nix b/pkgs/development/python-modules/hy/default.nix
+index a962f868..a84a95ac 100644
+--- a/pkgs/development/python-modules/hy/default.nix
++++ b/pkgs/development/python-modules/hy/default.nix
+@@ -16,18 +16,22 @@
+ 
+ buildPythonPackage rec {
+   pname = "hy";
+-  version = "1.0a4";
++  version = "0.24.0";
+   format = "setuptools";
+ 
+   disabled = pythonOlder "3.7";
+ 
+   src = fetchFromGitHub {
+-    owner = "hylang";
+-    repo = pname;
+-    rev = version;
+-    sha256 = "sha256-MBzp3jqBg/kH233wcgYYHc+Yg9GuOaBsXIfjFDihD1E=";
++      owner = "hylang";
++      repo = pname;
++      rev = version;
++      sha256 = "1s458ymd9g3s8k2ccc300jr4w66c7q3vhmhs9z3d3a4qg0xdhs9y";
+   };
+ 
++  postPatch = ''substituteInPlace setup.py --replace "\"funcparserlib ~= 1.0\"," ""'';
++
++  disabledTestPaths = [ "tests/test_bin.py" ];
++
+   # https://github.com/hylang/hy/blob/1.0a4/get_version.py#L9-L10
+   HY_VERSION = version;
+#+end_src
+
+* setup-var.pl
+
+Adapted from [[https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/system/etc/setup-etc.pl][here]]:
+
+#+begin_src perl :tangle (meq/tangle-path)
+use strict;
+use File::Find;
+use File::Copy;
+use File::Path;
+use File::Basename;
+use File::Slurp;
+
+my $var = $ARGV[0] or die;
+my $static = "/var/static";
+
+sub atomicSymlink {
+    my ($source, $target) = @_;
+    my $tmp = "$target.tmp";
+    unlink $tmp;
+    symlink $source, $tmp or return 0;
+    rename $tmp, $target or return 0;
+    return 1;
+}
+
+
+# Atomically update /var/static to point at the var files of the
+# current configuration.
+atomicSymlink $var, $static or die;
+
+# Returns 1 if the argument points to the files in /var/static.  That
+# means either argument is a symlink to a file in /var/static or a
+# directory with all children being static.
+sub isStatic {
+    my $path = shift;
+
+    if (-l $path) {
+        my $target = readlink $path;
+        return substr($target, 0, length "/var/static/") eq "/var/static/";
+    }
+
+    if (-d $path) {
+        opendir DIR, "$path" or return 0;
+        my @names = readdir DIR or die;
+        closedir DIR;
+
+        foreach my $name (@names) {
+            next if $name eq "." || $name eq "..";
+            unless (isStatic("$path/$name")) {
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+# Remove dangling symlinks that point to /var/static.  These are
+# configuration files that existed in a previous configuration but not
+# in the current one.  For efficiency, don't look under /var/nixos
+# (where all the NixOS sources live).
+sub cleanup {
+    if ($File::Find::name eq "/var/nixos") {
+        $File::Find::prune = 1;
+        return;
+    }
+    if (-l $_) {
+        my $target = readlink $_;
+        if (substr($target, 0, length $static) eq $static) {
+            my $x = "/var/static/" . substr($File::Find::name, length "/var/");
+            unless (-l $x) {
+                print STDERR "removing obsolete symlink ‘$File::Find::name’...\n";
+                unlink "$_";
+            }
+        }
+    }
+}
+
+find(\&cleanup, "/var");
+
+
+# Use /var/.clean to keep track of copied files.
+my @oldCopied = read_file("/var/.clean", chomp => 1, err_mode => 'quiet');
+open CLEAN, ">>/var/.clean";
+
+
+# For every file in the var tree, create a corresponding symlink in
+# /var to /var/static.  The indirection through /var/static is to make
+# switching to a new configuration somewhat more atomic.
+my %created;
+my @copied;
+
+sub link {
+    my $fn = substr $File::Find::name, length($var) + 1 or next;
+    my $target = "/var/$fn";
+    File::Path::make_path(dirname $target);
+    $created{$fn} = 1;
+
+    # Rename doesn't work if target is directory.
+    if (-l $_ && -d $target) {
+        if (isStatic $target) {
+            rmtree $target or warn;
+        } else {
+            warn "$target directory contains user files. Symlinking may fail.";
+        }
+    }
+
+    if (-e "$_.mode") {
+        my $mode = read_file("$_.mode"); chomp $mode;
+        if ($mode eq "direct-symlink") {
+            atomicSymlink readlink("$static/$fn"), $target or warn;
+        } else {
+            my $uid = read_file("$_.uid"); chomp $uid;
+            my $gid = read_file("$_.gid"); chomp $gid;
+            copy "$static/$fn", "$target.tmp" or warn;
+            $uid = getpwnam $uid unless $uid =~ /^\+/;
+            $gid = getgrnam $gid unless $gid =~ /^\+/;
+            chown int($uid), int($gid), "$target.tmp" or warn;
+            chmod oct($mode), "$target.tmp" or warn;
+            rename "$target.tmp", $target or warn;
+        }
+        push @copied, $fn;
+        print CLEAN "$fn\n";
+    } elsif (-l "$_") {
+        atomicSymlink "$static/$fn", $target or warn;
+    }
+}
+
+find(\&link, $var);
+
+
+# Delete files that were copied in a previous version but not in the
+# current.
+foreach my $fn (@oldCopied) {
+    if (!defined $created{$fn}) {
+        $fn = "/var/$fn";
+        print STDERR "removing obsolete file ‘$fn’...\n";
+        unlink "$fn";
+    }
+}
+
+
+# Rewrite /var/.clean.
+close CLEAN;
+write_file("/var/.clean", map { "$_\n" } @copied);
+
+# Create /var/NIXOS tag if not exists.
+# When /var is not on a persistent filesystem, it will be wiped after reboot,
+# so we need to check and re-create it during activation.
+open TAG, ">>/var/NIXOS";
+close TAG;
+#+end_src
+
+* makefile
+
+~Note:~ Deprecated
+
+Adapted from the following places:
+- https://www.systutorials.com/how-to-get-the-full-path-and-directory-of-a-makefile-itself/
+- https://t-ravis.com/post/nix/nix-make/
+- [[https://stackoverflow.com/a/50754044/10827766][this answer]] by [[https://stackoverflow.com/users/1296044/arielf][arielf]]
+- [[https://stackoverflow.com/a/29098246/10827766][this answer]] by [[https://stackoverflow.com/users/939557/madscientist][MadScientist]]
+- https://gist.github.com/weshouman/f44f330227972073371e1baa510c0d37
+- [[https://unix.stackexchange.com/a/394491/270053][this answer]] by [[https://unix.stackexchange.com/users/148009/romanperekhrest][RomanPerekhrest]]
+- [[https://stackoverflow.com/a/13945900/10827766][this answer]] by [[https://stackoverflow.com/users/77345/eric-melski][Eric Melski]]
+- [[https://stackoverflow.com/a/44416055/10827766][this answer]] by [[https://stackoverflow.com/users/412080/maxim-egorushkin][Maxim Egorushkin]]
+
+~Note:~ To export an environment variable for a single, multi-command command, use [[https://stackoverflow.com/a/10856211/10827766][this answer]] by [[https://stackoverflow.com/users/476371/0xc0000022l][0xC0000022L]].
+
+#+name: makefile
+#+begin_src makefile
+.RECIPEPREFIX := |
+.DEFAULT_GOAL := tangle
+.ONESHELL:
+
+mkfilePath := $(abspath $(lastword $(MAKEFILE_LIST)))
+mkfileDir := $(dir $(mkfilePath))
+realfileDir := $(realpath $(mkfileDir))
+
+preFiles := $(mkfileDir)/nix.org $(mkfileDir)/flake.org $(mkfileDir)/tests.org $(mkfileDir)/README.org
+
+removeTangleBackups := find $(mkfileDir) -name '.\#*.org*' -print | xargs rm &> /dev/null || :
+
+define fallbackCommand
+$(removeTangleBackups)
+$1
+if [ $$? -ne 0 ]; then
+    org-tangle -f $2 > /dev/null
+    $1
+fi
+endef
+
+define preFallback
+$(call fallbackCommand,$1,$(preFiles))
+endef
+
+define nixShell
+nix-shell -E '(import $(realfileDir)).devShells.$${builtins.currentSystem}.makefile-$1' --show-trace --run
+endef
+
+define quickShell
+nix-shell -E 'with (import $(realfileDir)).pkgs.$${builtins.currentSystem}; with lib; mkShell { buildInputs = flatten [ $1 ]; }' --show-trace
+endef
+
+projectName := $(subst ",,$(shell $(call preFallback,nix eval --show-trace --impure --expr '(import $(realfileDir)).pname')))
+ifndef projectName
+$(error Sorry; unable to get the name of the project)
+endif
+
+type := $(subst ",,$(shell $(call preFallback,nix eval --show-trace --impure --expr '(import $(realfileDir)).type')))
+ifndef type
+$(error Sorry; unable to get the type of project)
+endif
+
+files := $(preFiles) $(mkfileDir)/$(projectName)
+
+define fallback
+$(call fallbackCommand,$1,$(files))
+endef
+
+addCommand := git -C $(mkfileDir) add .
+updateCommand := $(call fallback,nix flake update --show-trace $(realfileDir))
+
+define tangleCommand
+$(removeTangleBackups)
+$(call nixShell,general) "org-tangle -f $1"
+if [ $$? -ne 0 ]; then
+    org-tangle -f $1
+fi
+$(addCommand)
+endef
+
+define wildcardValue
+$(shell echo $1 | cut -d "-" -f2-)
+endef
+
+add:
+|$(addCommand)
+
+commit: | add
+|git -C $(mkfileDir) commit --allow-empty-message -am ""
+
+push: | commit
+|git -C $(mkfileDir) push
+
+update: | add
+ifeq ($(projectName), bundle)
+|$(shell $(call fallback,nix eval --impure --expr 'with (import $(realfileDir)); with pkgs.$${builtins.currentSystem}.lib; "nix flake lock $(realfileDir) --update-input $${concatStringsSep " --update-input " (filter (input: ! ((elem input [ "nixos-master" "nixos-unstable" ]) || (hasSuffix "-small" input))) (attrNames inputs))}"' | tr -d '"'))
+else
+|$(updateCommand)
+endif
+
+update-%: updateInput := nix flake lock $(realfileDir) --show-trace --update-input
+update-%: | add
+|$(eval input := $(call wildcardValue,$@))
+|if [ "$(input)" == "bundle" ] && [ "$(projectName)" != "bundle" ]; then
+|    $(call fallback,$(updateInput) $(input))
+|elif [ "$(input)" == "all" ]; then
+|    $(updateCommand)
+|else
+|    $(call fallback,$(updateInput) $(input))
+|fi
+
+pre-tangle: | bundle-up
+|$(removeTangleBackups)
+
+tangle: | pre-tangle
+|$(call tangleCommand,$(files))
+
+tangle-%: | pre-tangle
+|$(eval file := $(mkfileDir)/$(call wildcardValue,$@).org)
+|$(call tangleCommand,$(file))
+
+tu: | tangle update
+
+tu-%: | tangle update-% ;
+
+develop: | tu
+|nix develop --show-trace "$(realfileDir)#makefile-$(type)"
+
+shell: | tu
+|$(call quickShell,$(pkgs))
+
+shell-%: | tu
+|$(call quickShell,(with $(call wildcardValue,$@); [ $(pkgs) ]))
+
+develop-%: | tu
+|nix develop --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
+
+repl: | tu
+|$(call nixShell,$(type)) "$(type)"
+
+build: | tu
+|nix build --show-trace "$(realfileDir)"
+
+build-%: | tu
+|nix build --show-trace "$(realfileDir)#$(call wildcardValue,$@)"
+
+run: | tu
+|cd $(mkfileDir)
+|$(call nixShell,$(type)) "$(command)"
+
+run-%: | tu
+|nix run --show-trace "$(realfileDir)#$(call wildcardValue,$@)" -- $(args)
+
+rund: | run-default
+
+define touch-test-command
+cd $(mkfileDir)
+$(call nixShell,$(type)) "touch $1 && $(type) $1"
+endef
+
+touch-test: | tu
+|$(call touch-test-command,$(file))
+
+touch-test-%: | tu
+|$(eval file := $(mkfileDir)/$(call wildcardValue,$@))
+|$(call touch-test-command,$(file))
+
+quick: | tangle push
+
+super: | tu push
+
+super-%: | tu-% push ;
+#+end_src
+
+* .envrc
+
+#+name: envrc
+#+begin_src shell :tangle (meq/tangle-path)
+nix flake lock --update-input valiant
+use nix
+#+end_src
+
+* .gitignore
+
+#+name: gitignore
+#+begin_src gitignore :tangle (meq/tangle-multipath "templates/general/.gitignore" "templates/emacs/.gitignore" "templates/python-app/.gitignore" "templates/python-package/.gitignore")
+**/__pycache__
+**/_build
+**/.#*
+**/.cask
+**/.coverage
+**/.DS_Store
+**/.mypy_cache
+**/.pytest_cache
+**/.vscode
+**/.zfs/snapshot
+**/*-autoloads.el
+**/*-pkg.el
+**/*.!sync
+**/*.bts
+**/*.direnv
+**/*.egg-info
+**/*.elc
+**/*.envrc:*
+**/*.swp
+**/*.sync
+**/*.tmp
+**/*~
+**/#*#
+**/build
+**/deprecated
+**/dist
+**/result
+**/result-*
+**/unfinished
+/_gsdata_
+/.boar
+/.git
+/.hg
+/etc/nixos/configuration.nix
+/etc/nixos/hardware-configuration.nix
+temp
+#+end_src
+
+* templates
+** general
+*** index.org
+
+#+begin_src org :tangle (meq/tangle-multipath "templates/emacs/index.org" "templates/python-app/index.org" "templates/python-package/index.org")
+,#+setupfile: ./README.org
+#+end_src
+
+*** nix.org
+
+#+name: 97220a9c-af77-4056-b7f8-00e11819e210
+#+begin_src emacs-lisp :var type="" isApp="" group="general"
+(format "* .envrc
+
+,#+begin_src shell :tangle (meq/tangle-path)
+<<envrc>>
+,#+end_src
+
+,* shell.nix
+
+Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
+
+,#+begin_src nix :tangle (meq/tangle-path)
+<<shell.nix(elisp='t)>>
+,#+end_src
+
+,* default.nix
+
+Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
+
+,#+begin_src nix :tangle (meq/tangle-path)
+<<default.nix(elisp='t)>>
+,#+end_src
+
+,* flake.nix
+
+,#+begin_src nix :tangle (meq/tangle-path)
+{
+    nixConfig = {
+        <<generate-nix-conf(flake='t, elisp='t)>>
+    };
+
+    # TODO: Change this!
+    description = \"\";
+
+    inputs = rec {
+        bundle = {
+          url = %s;
+          type = \"git\";
+          submodules = true;
+        };
+        valiant.follows = \"bundle/valiant\";
+        nixpkgs.follows = \"bundle/nixpkgs\";
+%s
+        flake-utils.url = github:numtide/flake-utils;
+        flake-compat = {
+            url = \"github:edolstra/flake-compat\";
+            flake = false;
+        };
+    };
+    outputs = inputs@{ self, flake-utils, ... }: with builtins; with inputs.bundle.lib; with flake-utils.lib; inputs.bundle.mkOutputs.%s {
+        inherit inputs self;
+%s
+        # TODO: Change this!
+        pname = \"\";
+%s
+        # TODO: Change this!
+        callPackage = %s
+    } { };
+}
+,#+end_src" (format "%sinput-path-exists(path=\"./bundle\", url=\"https://github/sylvorg/bundle\", submodule='t)>>" "<<")
+            (cond ((string= group "python")
+                    (format "\n        pyPkg-oreo.url = %sinput-path-exists(path=\"../oreo\", url=\"github:syvlorg/oreo\")%s;\n"
+                      "<<"
+                      ">>"))
+                ((string= group "emacs")
+                    (format "\n        ePkg-meq.url = %sinput-path-exists(path=\"../meq\", url=\"github:syvlorg/meq\")%s;\n"
+                        "<<"
+                        ">>"))
+                (t ""))
+            group
+            (if (string= type "") "" (format "        type = \"%s\";\n" type))
+            (if (string= isApp "") "" (format "\n        isApp = %s;\n" isApp))
+            (cond ((string= group "python") "{ callPackage, oreo }: callPackage (iron.mkPythonPackage {
+            inherit self;
+            package = rec {
+
+                # TODO: Change this!
+                owner = \"\";
+
+                src = ./.;
+                postPatch = ''
+                    substituteInPlace pyproject.toml --replace \"oreo = { git = \\\"https://github.com/syvlorg/oreo.git\\\", branch = \\\"main\\\" }\" \"\"
+                    substituteInPlace setup.py --replace \"'oreo @ git+https://github.com/syvlorg/oreo.git@main'\" \"\" || :
+                '';
+
+                # TODO: Change this!
+                meta.description = \"\";
+
+            };
+        })) {};")
+                ((string= group "emacs") "{ emacs }: iron.mkEmacsPackage {
+                package = rec {
+            src = ./.;
+            meta = {
+
+              # TODO: Change this!
+              description = \"\";
+
+            };
+        };")
+                (t "{ pname }: {  };"))
+)
+#+end_src
+
+#+begin_src text :tangle (meq/tangle-path)
+<<97220a9c-af77-4056-b7f8-00e11819e210()>>
+#+end_src
+
+** emacs
+*** nix.org
+
+#+begin_src text :tangle (meq/tangle-path)
+<<97220a9c-af77-4056-b7f8-00e11819e210(type="emacs-nox", group="emacs")>>
+#+end_src
+
+** python-app
+*** makefile
+
+~Note:~ Deprecated
+
+Adapted from [[https://stackoverflow.com/users/428803/joshua][Joshua's]] answer [[https://stackoverflow.com/a/4210080/10827766][here]],
+[[https://superuser.com/users/48602/notinlist][Notinlist's]] answer [[https://superuser.com/a/566199/1154755][here]],
+and [[https://www.cyberciti.biz/faq/how-to-show-recursive-directory-listing-on-linux-or-unix/][here]]:
+
+#+name: 8524a302-71f9-4752-9fbf-675d99285846
+#+begin_src makefile
+<<makefile>>
+
+poetry2setup: | tu
+|cd $(mkfileDir)
+|$(call nixShell,$(type)) "poetry2setup > $(mkfileDir)/setup.py"
+
+touch-tests:
+|-find $(mkfileDir)/tests -print | grep -v __pycache__ | xargs touch
+
+tut: | tu touch-tests
+
+define pytest
+$(call nixShell,$(type)) "pytest $1 --suppress-no-test-exit-code $(mkfileDir)"
+endef
+
+test: | tut
+|$(call pytest)
+
+test-native: | tut
+|$(call pytest,--tb=native)
+
+test-%: | tut
+|$(call pytest,-m $(call wildcardValue,$@))
+
+super: | test push
+#+end_src
+
+*** changethis
+**** __init__.org
+
+#+begin_src org :tangle (meq/tangle-path)
+,#+property: header-args:py+ :shebang "#!/usr/bin/env python3"
+<<58ec738d-82a0-492c-95da-c7b5211864e7>>
+
+,** Click Application
+,*** Imports
+
+,#+begin_src py
+from addict import Dict
+,#+end_src
+
+,*** Main
+
+,#+begin_src py
+if __name__ == "__main__":
+    main(obj=Dict())
+,#+end_src
+#+end_src
+
+**** changethis.org
+
+#+begin_src org :tangle (meq/tangle-path)
+<<a29d4c8d-f422-4bf9-8ec7-7774d935e7de>>
+
+,* Application Imports
+
+,#+begin_src hy
+(import click)
+,#+end_src
+
+,* Click
+
+
+#+end_src
+
+*** pyproject.toml
+
+#+begin_src conf :tangle (meq/tangle-multipath "templates/python-package/pyproject.toml")
+[tool.poetry]
+
+# Change this!
+name = ""
+
+version = "1.0.0.0"
+
+# Change this!
+description = ""
+
+authors = ["sylvorg <jeet.ray@syvl.org>"]
+license = "OREO"
+
+# Change this!
+include = [
+	"[...]/**/*.py",
+	"[...]/**/*.hy",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+oreo = { git = "https://github.com/syvlorg/oreo.git", branch = "main" }
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.0"
+poetry = "*"
+poetry2setup = "*"
+pytest-hy = { git = "https://github.com/syvlorg/pytest-hy.git", branch = "master" }
+pytest-randomly = "*"
+pytest-parametrized = "*"
+pytest-sugar = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = [
+	"--strict-markers",
+]
+markers = [
+
+]
+#+end_src
+
+*** nix.org
+
+#+begin_src text :tangle (meq/tangle-path)
+<<97220a9c-af77-4056-b7f8-00e11819e210(type="hy", group="python", isApp="true")>>
+#+end_src
+
+** python-package
+*** changethis
+**** __init__.org
+
+#+name: 58ec738d-82a0-492c-95da-c7b5211864e7
+#+begin_src org :tangle (meq/tangle-path)
+,#+property: header-args:py+ :tangle yes
+
+,* Rich Traceback
+
+,#+begin_src py
+import rich.traceback as RichTraceback
+RichTraceback.install(show_locals = True)
+,#+end_src
+
+,* Imports
+
+,#+begin_src py
+import hy
+,#+end_src
+
+# TODO: Change this!
+,** Everything From [...]
+
+Adapted from [[https://github.com/hylang/hyrule/blob/master/hyrule/__init__.py][here]],
+with help from [[https://stackoverflow.com/users/1451346/kodiologist][Kodiologist's]] comment
+[[https://stackoverflow.com/questions/73030667/init-py-for-hy-modules-with-relative-imports#comment128994796_73030667][here]]:
+
+# TODO: Change this!
+,#+begin_src py
+hy.macros.require('[...].[...]',
+    # The Python equivalent of `(require [...].[...] *)`
+    None, assignments = 'ALL', prefix = '')
+hy.macros.require_reader('[...].[...]', None, assignments = 'ALL')
+from [...].[...] import *
+,#+end_src
+#+end_src
+
+**** changethis.org
+
+#+name: a29d4c8d-f422-4bf9-8ec7-7774d935e7de
+#+begin_src org :tangle (meq/tangle-path)
+,#+property: header-args:hy+ :tangle yes
+
+,* Rich Traceback
+
+,#+begin_src hy
+(import rich.traceback)
+(.install rich.traceback :show-locals True)
+,#+end_src
+
+,* Imports
+
+,#+begin_src hy
+,#+end_src
+
+,* Eval and Compile
+
+,#+begin_src hy
+(eval-and-compile (import os hy))
+,#+end_src
+
+,** From
+
+,#+begin_src hy
+(import rich [print])
+(import rich.pretty [pprint])
+,#+end_src
+
+,*** Coconut
+
+[[https://coconut.readthedocs.io/en/latest/index.html][Coconut]]:
+
+,#+begin_src hy
+(try (import coconut *)
+     (except [ImportError] None))
+,#+end_src
+
+,*** Toolz
+
+[[https://github.com/pytoolz/toolz][Toolz]] and [[https://github.com/pytoolz/cytoolz/][CyToolz]]:
+
+,#+begin_src hy
+(try (import cytoolz [first])
+     (except [ImportError]
+             (import toolz [first])))
+,#+end_src
+
+,* Requires
+
+,#+begin_src hy
+(require hyrule [-> assoc unless])
+,#+end_src
+#+end_src
+
+*** nix.org
+
+#+begin_src text :tangle (meq/tangle-path)
+<<97220a9c-af77-4056-b7f8-00e11819e210(type="hy", group="python")>>
+#+end_src
+
+* default.nix
+
+Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
+
+#+name: default.nix
+#+begin_src emacs-lisp :var elisp='nil
+(format-spec "with builtins;
+if (builtins ? getFlake) then
+  (getFlake (toString ./.))
+else
+  (import fetchTarball (let
+    lockExists = pathExists ./flake.lock;
+    lock = if lockExists then
+      (fromJSON (readFile ./flake.lock))
+    else {
+      nodes.flake-compat.locked.rev = %qmaster%q;
+    };
+  in {
+    url =
+      %qhttps://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz%q;
+    ${if lockExists then %qsha256%q else null} =
+      lock.nodes.flake-compat.locked.narHash;
+  }) { src = ./.; }).defaultNix" `((?q . ,(if elisp "\\\"" "\""))))
+#+end_src
+
+#+begin_src nix :tangle (meq/tangle-path)
+<<default.nix()>>
+#+end_src
+
+* shell.nix
+
+#+name: shell.nix
+#+begin_src emacs-lisp :var elisp='nil
+(format-spec "with builtins;
+let
+  this-flake = import ./.;
+  flake =
+    this-flake.inputs.valiant or this-flake.inputs.bundle.inputs.valiant or (if (builtins
+      ? getFlake) then
+      (getFlake %qgithub:syvlorg/valiant%q)
+    else
+      (import fetchTarball (let
+        lockExists = pathExists ./flake.lock;
+        lock = if lockExists then
+          (fromJSON (readFile ./flake.lock))
+        else {
+          nodes.valiant.locked.rev = %qmain%q;
+        };
+      in {
+        url =
+          %qhttps://github.com/syvlorg/valiant/archive/${lock.nodes.valiant.locked.rev}.tar.gz%q;
+        ${if lockExists then %qsha256%q else null} =
+          lock.nodes.valiant.locked.narHash;
+      }) { src = ./.; }).defaultNix);
+  inherit (flake.${currentSystem}) pkgs;
+in with pkgs;
+mkShell rec {
+  buildInputs = [ valiant ];
+  nativeBuildInputs = buildInputs;
+}" `((?q . ,(if elisp "\\\"" "\""))))
+#+end_src
+
+#+begin_src nix :tangle (meq/tangle-path)
+<<shell.nix()>>
+#+end_src
+
+* .gitignore
+
+#+begin_src gitignore
+**/*.*~
+**/*.direnv
+**/*.envrc:*
+node_modules/
+package-lock.json
+package.json
+#+end_src
+
+* bin
+** org-export
+
+Adapted from [[https://github.com/hlissner/doom-emacs/blob/master/bin/org-tangle][here]]:
+
+#+begin_src emacs-lisp :tangle (meq/tangle-path) :shebang "#!/usr/bin/env sh"
+":"; exec emacs --quick --script "$0" -- "$@" # -*- mode: emacs-lisp; lexical-binding: t; -*-
+;;; bin/org-export
+
+;; Exports blocks from org files. Debug/info messages are directed to stderr and
+;; can be ignored.
+;;
+;;   -a/--all
+;;     Export all blocks by default (unless it has :exports none set or a
+;;     :noexport: tag)
+;;   -t/--tag TAG
+;;      --and TAG
+;;      --or TAG
+;;     Only include blocks in trees that have these tags. Combine multiple --and
+;;     and --or's, or just use --tag (implicit --and).
+;;   -p/--print
+;;     Prints exported code to stdout instead of to files
+;;
+;; Usage: org-export some-file.org another.org
+;; Examples:
+;;   org-export -l sh modules/some/module/README.org > install_module.sh
+;;   org-export -l sh modules/lang/go/README.org | sh
+;;   org-export --and tagA --and tagB my/literate/config.org
+
+(require 'cl-lib)
+(require 'ox)
+(require 'ox-html)
+(load-file (concat (file-name-directory (or load-file-name buffer-file-name)) "org-export-functions.el"))
+
+(setq debug-on-error t)
+
+(defun usage ()
+  (with-temp-buffer
+    (insert (format "%s %s [OPTIONS] [TARGETS...]\n"
+                    "[1mUsage:[0m"
+                    (file-name-nondirectory load-file-name))
+            "\n"
+            "A command line interface for tangling org-mode files. TARGETS can be\n"
+            "files or folders (which are searched for org files recursively).\n"
+            "\n"
+            "This is useful for literate configs that rely on command line\n"
+            "workflows to build it.\n"
+            "\n"
+            "[1mExample:[0m\n"
+            "  org-export some-file.org\n"
+            "  org-export literate/config/\n"
+            "  org-export -p -l sh scripts.org > do_something.sh\n"
+            "  org-export -p -l python -t tagA -t tagB file.org | python\n"
+            "\n"
+            "[1mOptions:[0m\n"
+            "  -a --all\t\tExport all blocks by default\n"
+            "  -p --print\t\tPrint exported output to stdout than to files\n"
+            "  -t --tag TAG\n"
+            "     --and TAG\n"
+            "     --or TAG\n"
+            "    Lets you export org blocks by tag. You may have more than one\n"
+            "    of these options.\n")
+    (princ (buffer-string))))
+
+(defun *org-babel-export (fn &rest args)
+  "Don't write exported blocks to files, print them to stdout."
+  (cl-letf (((symbol-function 'write-region)
+             (lambda (start end filename &optional append visit lockname mustbenew)
+               (princ (buffer-string)))))
+    (apply fn args)))
+
+(defvar all-blocks nil)
+(defvar and-tags nil)
+(defvar or-tags nil)
+(defvar initial-args argv)
+(defvar expanded-args (mapcar #'f-expand argv))
+(defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
+(defvar force (or (member "-f" initial-args) (member "--force" initial-args)))
+(defvar bundle-path nil)
+(defvar use-nix-path nil)
+(let (srcs and-tags or-tags)
+  (pop argv)
+  (while argv
+    (let ((arg (pop argv)))
+      (pcase arg
+        ((or "-h" "--help")
+         (usage)
+         (error ""))
+        ((or "-f" "--force")
+         nil)
+        ((or "-b" "--bundle-path")
+         (setq bundle-path (pop argv)))
+        ((or "-n" "--use-nix-path")
+         (setq use-nix-path t))
+        ((or "-d" "--debug")
+         nil)
+        ((or "-a" "--all")
+         (setq all-blocks t))
+        ((or "-p" "--print")
+         (advice-add #'org-html-export-to-html :around #'*org-babel-export))
+        ((or "-t" "--tag" "--and")
+         (push (pop argv) and-tags))
+        ("--or"
+         (push (pop argv) or-tags))
+        ((guard (file-directory-p arg))
+         (setq srcs
+               (append (directory-files-recursively arg "\\.org$")
+                       srcs)))
+        ((guard (file-exists-p arg))
+         (push arg srcs))
+        (_ (if force
+              (message "Skipping unknown option or file: %s" arg)
+              (error "Unknown option or file: %s" arg))))))
+
+  (dolist (file srcs)
+    (let* ((file (f-expand (substitute-in-file-name file)))
+           (backup (make-temp-file (file-name-base file) nil ".backup.org"))
+           (post (eval `(lambda nil (ignore-errors (copy-file ,backup ,file t))
+                                    (ignore-errors (delete-file ,backup))))))
+      (add-hook 'kill-emacs-hook post)
+      (message (format "\n\nNow exporting %s:\n" file))
+      (unwind-protect
+          ;; Prevent slow hooks from interfering
+          (let (org-mode-hook org-confirm-babel-evaluate make-backup-files)
+               (copy-file file backup t)
+               (with-current-buffer (find-file-noselect file)
+               (org-html-export-to-html)))
+        (funcall post))))
+  (kill-emacs 0))
+#+end_src
+
+** org-export-functions.el
+:PROPERTIES:
+:header-args:emacs-lisp+: :noweb-ref 11788ba8-f3e9-4122-8cb4-d4c18d4f031d
+:END:
+
+Adapted from [[https://github.com/bzg/org-mode/blob/main/lisp/ox-html.el#L3471][here]], and inspired by [[https://stackoverflow.com/users/569280/ebpa][ebpa's]] answer [[https://stackoverflow.com/a/37404938][here]]:
+
+#+begin_src text :tangle (meq/tangle-path) :exports none
+<<11788ba8-f3e9-4122-8cb4-d4c18d4f031d>>
+#+end_src
+
+#+name: 777bbfd5-1d72-49ff-89d6-b3e7e8fc7609
+#+begin_src emacs-lisp
+(setq org-functions-directory (file-name-directory (or load-file-name buffer-file-name))
+      windows (member system-type '(windows-nt ms-dos)))
+(defun meq/oefd (&rest args) (apply #'concat org-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
+#+end_src
+
+~Note:~ ~org-tangle-functions.el~ is required due to [[https://github.com/bzg/org-mode/blob/d2f4d4b457a9fe7a7dbcfbd2d71c723ffa8c2726/lisp/ob-core.el#L625][this]].
+
+#+begin_src emacs-lisp
+(load-file (meq/oefd "org-tangle-functions.el"))
+(unless (require 'htmlize nil t)
+    (add-to-list 'load-path (meq/oefd "htmlize"))
+    (require 'htmlize))
+#+end_src
+
+~Note:~ From [[https://narkive.com/69IaWEJV:2.1599.178][here]]:
+
+#+begin_quote
+The value of the variable is saved to the file when emacs exits and when org-id-find is called and cannot find the id (I think),
+or you eval ~(org-id-locations-save)~ explicitly.
+#+end_quote
+
+#+begin_src emacs-lisp
+(defun meq/org-html-src-block (src-block _contents info)
+  "Transcode a SRC-BLOCK element from Org to HTML.
+CONTENTS holds the contents of the item.  INFO is a plist holding
+contextual information."
+  (if (org-export-read-attribute :attr_html src-block :textarea)
+      (org-html--textarea-block src-block)
+    (let* ((lang (org-element-property :language src-block))
+           (lang (cond ((member lang '("emacs-lisp")) "lisp")
+                       ((member lang '("shell" "zsh" "bash")) "sh")
+                       ((member lang '("text")) "plaintext")
+                       (t lang)))
+           (code (org-html-format-code src-block info))
+           (label (let ((lbl (org-html--reference src-block info t)))
+                    (if lbl (format " id=\"%s\"" lbl) "")))
+           (klipsify  (and  (plist-get info :html-klipsify-src)
+                            (member lang '("javascript" "js"
+                                           "ruby" "scheme" "clojure" "php" "html")))))
+      (if (not lang) (format "<pre class=\"example\"%s>\n%s</pre>" label code)
+        (format "<div class=\"org-src-container\">\n%s%s\n</div>"
+                ;; Build caption.
+                (let ((caption (org-export-get-caption src-block)))
+                  (if (not caption) ""
+                    (let ((listing-number
+                           (format
+                            "<span class=\"listing-number\">%s </span>"
+                            (format
+                             (org-html--translate "Listing %d:" info)
+                             (org-export-get-ordinal
+                              src-block info nil #'org-html--has-caption-p)))))
+                      (format "<label class=\"org-src-name\">%s%s</label>"
+                              listing-number
+                              (org-trim (org-export-data caption info))))))
+                ;; Contents.
+                (if klipsify
+                    (format "<pre><code class=\"src src-%s\"%s%s>%s</code></pre>"
+                            lang
+                            label
+                            (if (string= lang "html")
+                                " data-editor-type=\"html\""
+                              "")
+                            code)
+                  (format "<pre><code class=\"language-%s match-braces rainbow-braces\"%s>%s</code></pre>"
+                          lang label code)))))))
+        (advice-add #'org-html-src-block :override #'meq/org-html-src-block)
+#+end_src
+
+Adapted from [[https://github.com/bzg/org-mode/blob/main/lisp/ox-html.el#L2701][here]], and inspired by [[https://stackoverflow.com/users/569280/ebpa][ebpa's]] answer [[https://stackoverflow.com/a/37404938][here]]:
+
+#+begin_src emacs-lisp
+(defun meq/org-html-inline-src-block (inline-src-block _contents info)
+  "Transcode an INLINE-SRC-BLOCK element from Org to HTML.
+CONTENTS holds the contents of the item.  INFO is a plist holding
+contextual information."
+  (let* ((lang (org-element-property :language inline-src-block))
+         (code (org-html-fontify-code
+                (org-element-property :value inline-src-block)
+                lang))
+         (label
+          (let ((lbl (org-html--reference inline-src-block info t)))
+            (if (not lbl) "" (format " id=\"%s\"" lbl)))))
+    (format "<code class=\"language-%s match-braces rainbow-braces\"%s>%s</code>" lang label code)))
+(advice-add #'org-html-inline-src-block :override #'meq/org-html-inline-src-block)
+#+end_src
+
+Adapted from [[https://github.com/bzg/org-mode/blob/main/lisp/ox-html.el#L2676][here]]:
+
+#+begin_src emacs-lisp
+(defun meq/org-html-format-headline-default-function
+    (todo _todo-type priority text tags info)
+  "Default format function for a headline.
+See `org-html-format-headline-function' for details."
+  (let ((todo (org-html--todo todo info))
+        (priority (org-html--priority priority info))
+        (tags (org-html--tags tags info)))
+    (concat todo (and todo " ")
+            priority (and priority " ")
+            text
+            (and tags "&#xa0;") tags)))
+(advice-add #'org-html-format-headline-default-function :override #'meq/org-html-format-headline-default-function)
+#+end_src
+
+** org-tangle
+
+Adapted from [[https://github.com/doomemacs/doomemacs/blob/master/bin/org-tangle][here]]:
+
+#+begin_src emacs-lisp :tangle (meq/tangle-path) :shebang "#!/usr/bin/env sh"
+":"; exec emacs --quick --script "$0" -- "$@" # -*- mode: emacs-lisp; lexical-binding: t; -*-
+;;; bin/org-tangle
+
+;; Tangles source blocks from org files. Also expands #+INCLUDE directives,
+;; unlike vanilla `ob-tangle'. Debug/info messages are directed to stderr and
+;; can be ignored.
+;;
+;;   -l/--lang LANG
+;;     Only include blocks in the specified language (e.g. emacs-lisp).
+;;   -a/--all
+;;     Tangle all blocks by default (unless it has :tangle nil set or a
+;;     :notangle: tag)
+;;   -t/--tag TAG
+;;      --and TAG
+;;      --or TAG
+;;     Only include blocks in trees that have these tags. Combine multiple --and
+;;     and --or's, or just use --tag (implicit --and).
+;;   -p/--print
+;;     Prints tangled code to stdout instead of to files
+;;
+;; Usage: org-tangle [[-l|--lang] LANG] some-file.org another.org
+;; Examples:
+;;   org-tangle -l sh modules/some/module/README.org > install_module.sh
+;;   org-tangle -l sh modules/lang/go/README.org | sh
+;;   org-tangle --and tagA --and tagB my/literate/config.org
+
+(require 'cl-lib)
+(require 'ox)
+(require 'ob-tangle)
+(load-file (concat (file-name-directory (or load-file-name buffer-file-name)) "org-tangle-functions.el"))
+
+(defun usage ()
+  (with-temp-buffer
+    (insert (format "%s %s [OPTIONS] [TARGETS...]\n"
+                    "[1mUsage:[0m"
+                    (file-name-nondirectory load-file-name))
+            "\n"
+            "A command line interface for tangling org-mode files. TARGETS can be\n"
+            "files or folders (which are searched for org files recursively).\n"
+            "\n"
+            "This is useful for literate configs that rely on command line\n"
+            "workflows to build it.\n"
+            "\n"
+            "[1mExample:[0m\n"
+            "  org-tangle some-file.org\n"
+            "  org-tangle literate/config/\n"
+            "  org-tangle -p -l sh scripts.org > do_something.sh\n"
+            "  org-tangle -p -l python -t tagA -t tagB file.org | python\n"
+            "\n"
+            "[1mOptions:[0m\n"
+            "  -a --all\t\tTangle all blocks by default\n"
+            "  -l --lang LANG\tOnly tangle blocks written in LANG\n"
+            "  -p --print\t\tPrint tangled output to stdout than to files\n"
+            "  -t --tag TAG\n"
+            "     --and TAG\n"
+            "     --or TAG\n"
+            "    Lets you tangle org blocks by tag. You may have more than one\n"
+            "    of these options.\n")
+    (princ (buffer-string))))
+
+(defun *org-babel-tangle (fn &rest args)
+  "Don't write tangled blocks to files, print them to stdout."
+  (cl-letf (((symbol-function 'write-region)
+             (lambda (start end filename &optional append visit lockname mustbenew)
+               (princ (buffer-string)))))
+    (apply fn args)))
+
+(defun *org-babel-tangle-collect-blocks (&optional language tangle-file)
+  "Like `org-babel-tangle-collect-blocks', but will ignore blocks that are in
+trees with the :notangle: tag."
+  (let ((counter 0) last-heading-pos blocks)
+    (org-babel-map-src-blocks (buffer-file-name)
+      (let ((current-heading-pos
+             (org-with-wide-buffer
+              (org-with-limited-levels (outline-previous-heading)))))
+        (if (eq last-heading-pos current-heading-pos) (cl-incf counter)
+          (setq counter 1)
+          (setq last-heading-pos current-heading-pos)))
+      (unless (org-in-commented-heading-p)
+        (require 'org)
+        (let* ((tags (org-get-tags-at))
+               (info (org-babel-get-src-block-info 'light))
+               (src-lang (nth 0 info))
+               (src-tfile (cdr (assq :tangle (nth 2 info)))))
+          (cond ((member "notangle" tags))
+
+                ((and (or or-tags and-tags)
+                      (or (not and-tags)
+                          (let ((a (cl-intersection and-tags tags :test #'string=))
+                                (b and-tags))
+                            (not (or (cl-set-difference a b :test #'equal)
+                                     (cl-set-difference b a :test #'equal)))))
+                      (or (not or-tags)
+                          (cl-intersection or-tags tags :test #'string=))
+                      t))
+
+                ((or (not (or all-blocks src-tfile))
+                     (string= src-tfile "no")  ; tangle blocks by default
+                     (and tangle-file (not (equal tangle-file src-tfile)))
+                     (and language (not (string= language src-lang)))))
+
+                ;; Add the spec for this block to blocks under its language.
+                ((let ((by-lang (assoc src-lang blocks))
+                       (block (org-babel-tangle-single-block counter)))
+                   (if by-lang
+                       (setcdr by-lang (cons block (cdr by-lang)))
+                     (push (cons src-lang (list block)) blocks))))))))
+    ;; Ensure blocks are in the correct order.
+    (mapcar (lambda (b) (cons (car b) (nreverse (cdr b)))) blocks)))
+;; (advice-add #'org-babel-tangle-collect-blocks
+;;             :override #'*org-babel-tangle-collect-blocks)
+
+(defvar all-blocks nil)
+(defvar and-tags nil)
+(defvar or-tags nil)
+(defvar initial-args argv)
+(defvar expanded-args (mapcar #'f-expand argv))
+(defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
+(defvar force (or (member "-f" initial-args) (member "--force" initial-args)))
+(defvar bundle-path nil)
+(defvar use-nix-path nil)
+(let (lang srcs and-tags or-tags)
+  (pop argv)
+  (while argv
+    (let ((arg (pop argv)))
+      (pcase arg
+        ((or "-h" "--help")
+         (usage)
+         (error ""))
+        ((or "-f" "--force")
+         nil)
+        ((or "-b" "--bundle-path")
+         (setq bundle-path (pop argv)))
+        ((or "-n" "--use-nix-path")
+         (setq use-nix-path t))
+        ((or "-d" "--debug")
+         nil)
+        ((or "-a" "--all")
+         (setq all-blocks t))
+        ((or "-l" "--lang")
+         (setq lang (pop argv)))
+        ((or "-p" "--print")
+         (advice-add #'org-babel-tangle :around #'*org-babel-tangle))
+        ((or "-t" "--tag" "--and")
+         (push (pop argv) and-tags))
+        ("--or"
+         (push (pop argv) or-tags))
+        ((guard (string-match-p "^--lang=" arg))
+         (setq lang (cadr (split-string arg "=" t t))))
+        ((guard (file-directory-p arg))
+         (setq srcs
+               (append (directory-files-recursively arg "\\.org$")
+                       srcs)))
+        ((guard (file-exists-p arg))
+         (push arg srcs))
+        (_ (if force
+              (message "Skipping unknown option or file: %s" arg)
+              (error "Unknown option or file: %s" arg))))))
+
+  (dolist (file srcs)
+    (let* ((file (f-expand (substitute-in-file-name file)))
+           (backup (make-temp-file (file-name-base file) nil ".backup.org"))
+           (post (eval `(lambda nil (ignore-errors (copy-file ,backup ,file t))
+                                    (ignore-errors (delete-file ,backup))))))
+      (add-hook 'kill-emacs-hook post)
+      (message (format "\n\nNow tangling %s:\n" file))
+      (unwind-protect
+          ;; Prevent slow hooks from interfering
+          (let (org-mode-hook org-confirm-babel-evaluate make-backup-files)
+            ;; We do the ol' switcheroo because `org-babel-tangle' writes
+            ;; changes to the current file, which would be imposing on the user.
+            (copy-file file backup t)
+            (with-current-buffer (find-file-noselect file)
+              ;; Tangling doesn't expand #+INCLUDE directives, so we do it
+              ;; ourselves, since includes are so useful for literate configs!
+              (org-export-expand-include-keyword)
+              (org-babel-tangle nil nil lang)))
+        (funcall post))))
+
+  (kill-emacs 0))
+#+end_src
+
+** org-tangle-functions.el
+:PROPERTIES:
+:header-args:emacs-lisp+: :noweb-ref c2b376ba-f828-4ab9-8379-234a382c279e
+:END:
+
+#+begin_src text :tangle (meq/tangle-path) :exports none
+<<c2b376ba-f828-4ab9-8379-234a382c279e>>
+#+end_src
+
+The tangle functions are adapted from [[https://emacs.stackexchange.com/a/29884/31428][this answer on the emacs Stack Exchange]], written by [[https://emacs.stackexchange.com/users/2710/andrew-swann][Andrew Swann]]:
+
+#+begin_src emacs-lisp
+<<777bbfd5-1d72-49ff-89d6-b3e7e8fc7609>>
+(mapc (lambda (file) (unless (require file nil t) (load-file (meq/oefd (symbol-name file) (concat (symbol-name file) ".el"))))) '(
+    uuidgen
+    a
+    dash
+    s
+))
+#+end_src
+
+Must be last; [[https://github.com/rejeep/f.el][f.el]] requires [[https://github.com/magnars/dash.el][dash.el]] and [[https://github.com/magnars/s.el][s.el]]
+
+#+begin_src emacs-lisp
+(mapc (lambda (file) (unless (require file nil t) (load-file (meq/oefd "f" (concat (symbol-name file) ".el"))))) '(
+    f-shortdoc
+    f
+))
+#+end_src
+
+Note: the source code for several dependent functions are linked below:
+- ~org-babel-noweb-p:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L2775
+- ~org-babel-expand-noweb-references:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L2785
+- ~org-babel-get-src-block-info:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L623
+- ~org-babel-params-from-properties:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L1476
+- ~org-babel-parse-header-arguments:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L1584
+- ~org-babel-read:~ https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L3014
+
+And just in case, [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-tangle.el#L198][org-babel-tangle]].
+
+Adapted from [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-core.el#L823][org-babel-expand-src-block]] and
+[[https://lists.gnu.org/archive/html/emacs-orgmode/2018-12/msg00048.html#:~:text=You%20can%20avoid%20the%20error%20if%20you%20additionally%20let%2Dbind%20%0Aorg%2Dbabel%2Dcurrent%2Dsrc%2Dblock%2Dlocation%20to%20the%20location%20of%20datum%3A][here]];
+[[https://emacs.stackexchange.com/users/468/david-ongaro][David Ongaro's]] answer [[https://emacs.stackexchange.com/a/29132/31428][here]] is also useful, but doesn't expand ~noweb~ coderefs:
+
+#+begin_src emacs-lisp
+(defun meq/org-babel-expand-src-block (&optional light datum info params)
+  "Expand the current source code block. Expand according to the source code block's header arguments."
+  (let* ((info (or info (org-babel-get-src-block-info t datum)))
+         (lang (nth 0 info))
+         (params (setf (nth 2 info)
+                    (sort (org-babel-merge-params (nth 2 info) params) (lambda (el1 el2) (string< (symbol-name (car el1)) (symbol-name (car el2)))))))
+         (params (setf (nth 2 info)
+                    (if light params (mapcar (lambda (param) (cons (car param) (org-babel-read (cdr param))))
+                                        (-remove (lambda (param) (member (car param) '(:tangle))) params)))))
+         (body (setf (nth 1 info) (if (org-babel-noweb-p params :eval) (org-babel-expand-noweb-references info) (nth 1 info))))
+         (expand-cmd (intern (concat "org-babel-expand-body:" lang)))
+         (assignments-cmd (intern (concat "org-babel-variable-assignments:" lang)))
+         (expanded (if (fboundp expand-cmd)
+                    (funcall expand-cmd body params)
+                    (org-babel-expand-body:generic body params (and (fboundp assignments-cmd) (funcall assignments-cmd params)))))
+         (expanded (if (a-has-key? params :shebang)
+                    (concat (a-get params :shebang) "\n" expanded)
+                    expanded)))
+    expanded))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun meq/org-babel-expand (path &optional return-path light no-check body info parent-buffer datum params)
+    (let* ((exists (and path (f-exists? path)))
+            (body (if exists (s-trim (f-read path)) body))
+            (args (list light datum info params))
+            (path-or-body (if return-path path (apply #'meq/org-babel-expand-src-block args))))
+        (if (and (not no-check) body)
+            (if exists
+#+end_src
+
+DO NOT CHANGE THIS TO ~path-or-body~! The expanded source block must always be returned here:
+
+#+begin_src emacs-lisp
+                (if (string= body (if return-path (apply #'meq/org-babel-expand-src-block args) path-or-body))
+#+end_src
+
+#+begin_src emacs-lisp
+                    (if return-path "no")
+                    path-or-body)
+                path-or-body)
+            path-or-body)))
+#+end_src
+
+Adapted from [[https://emacs.stackexchange.com/users/5385/mutbuerger][mutbuerger's]] comment
+[[https://emacs.stackexchange.com/questions/29131/get-contents-of-a-named-source-block#comment44697_29131][here]] and
+[[https://emacs.stackexchange.com/users/12504/alex-stragies][Alex Stragies's]] answer [[https://emacs.stackexchange.com/a/68298/31428][here]];
+the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emacs/blob/master/lisp/org/ob-lob.el#L82][here]]:
+
+#+begin_src emacs-lisp
+(defun meq/get-block (name &optional light parent-buffer datum params)
+    (let* (path return-path no-check body)
+        (meq/org-babel-expand path return-path light no-check body (org-babel-lob--src-info name) parent-buffer datum params)))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun meq/get-header nil (nth 4 (org-heading-components)))
+(defun meq/get-theme-from-header nil (s-chop-suffix "-theme.el" (meq/get-header)))
+
+(defun meq/tangle-multi-inner (light dont-check-car &rest paths)
+    (let* ((paths (remove "no" paths)))
+      (mapc (lambda (path) (let* ((path (f-expand (substitute-in-file-name path)))
+                                  (parent (f-parent path))
+                                  (body (meq/org-babel-expand path nil light)))
+                              (when body
+                                    (unless (f-exists? parent) (f-mkdir-full-path parent))
+                                    (f-write (if (string-suffix-p "\n" body) body (concat body "\n")) 'utf-8 path)))) (cdr paths))
+      (meq/org-babel-expand (f-expand (substitute-in-file-name (car paths))) t light dont-check-car)))
+
+(defun meq/tangle-path (&optional light)
+    (meq/org-babel-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) (meq/get-header))) t light))
+(defun meq/tangle-multipath (&rest paths) (apply #'meq/tangle-multi-inner nil 'dont-check-car (add-to-list 'paths (meq/tangle-path))))
+(defun meq/tangle-multipath-light (&rest paths) (apply #'meq/tangle-multi-inner 'light 'dont-check-car (add-to-list 'paths (meq/tangle-path t))))
+(defun meq/tangle-multi (&rest paths) (apply #'meq/tangle-multi-inner nil nil paths))
+(defun meq/tangle-multi-light (&rest paths) (apply #'meq/tangle-multi-inner 'light nil paths))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun link-or-file (lf return-link &optional substitute is-link) (interactive)
+    (when (and lf (not (s-blank? lf)))
+
+        ;; TODO: Is `return-link' is causing this to happen?
+        ;;       Or maybe `is-link'?
+
+        ;; ========================================
+        ;; Current Setup File: ../bundle/README.org
+        ;; ========================================
+
+        (if (and (not is-link) (f-exists? (setq expanded-lf (f-expand (if substitute (substitute-in-file-name lf) lf)))))
+            expanded-lf
+            (if return-link
+                lf
+                (let* ((curl-README (shell-command-to-string (format "curl -fsSL %s 2> /dev/null" lf))))
+                    (unless (s-blank? curl-README)
+                        (let* ((temp (make-temp-file (uuidgen-5 (uuidgen-4) (uuidgen-4)))))
+                            (f-write curl-README 'utf-8 temp)
+                            temp)))))))
+(defvar bundle-path nil)
+(defvar use-nix-path nil)
+(defvar nix-path nil)
+(defun join-and-expand (&rest paths) (f-expand (apply #'f-join paths)))
+(defun get-README (&optional return-link setupfile lobfile) (interactive)
+    (let* ((README (f-join "bundle" "README.org"))
+            ;; This gets the directory of the file being tangled or exported,
+            ;; so that the `bundle-README' condition can check if it's a bundle README.
+            (tangled-fd (f-expand (s-chop-prefix "/" (org-format-outline-path (org-get-outline-path)))))
+
+            (userrepo (f-expand "<<userrepo>>"))
+            (user-README (join-and-expand userrepo README))
+            (usernamerepo (f-expand "/home/<<username>>/<<username>>"))
+            (username-README (join-and-expand usernamerepo README)))
+        (or (link-or-file bundle-path return-link)
+            (link-or-file (getenv "BUNDLE_README") return-link t)
+            (link-or-file setupfile return-link)
+            (link-or-file lobfile return-link)
+            (let* ((bundle-README (join-and-expand tangled-fd "README.org")))
+                (cond
+                  ((f-exists? README) (concat "./" README))
+                  ((and (f-exists? bundle-README) (equal (last (f-split bundle-README) 2) '("bundle" "README.org"))) bundle-README)
+                  ((and (f-ancestor-of? userrepo tangled-fd) (f-exists? user-README)) user-README)
+                  ((and (f-ancestor-of? usernamerepo tangled-fd) (f-exists? username-README)) username-README)))
+            (when use-nix-path (link-or-file nix-path return-link))
+            (let* ((flake-bundle (s-trim (shell-command-to-string "<<get-bundle-path(elisp='t)>>"))))
+                (cond
+                  (f-present? (unless (s-blank? flake-bundle) (join-and-expand flake-bundle "README.org")))
+                  (f-present? (f-expand README))
+                  (f-present? (join-and-expand "~" README))
+                  (f-present? user-README)
+                  (f-present? username-README)
+                  (f-present? (join-and-expand "/" README))))
+            (link-or-file nix-path return-link)
+            (link-or-file "https://raw.githubusercontent.com/sylvorg/bundle/main/README.org" return-link t))))
+
+(defvar current-lob-file nil)
+(defvar current-setup-file nil)
+
+(defun org-babel-pre-tangle-hooks (&optional html) (interactive)
+    (setq org-elements (let* (
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/109169/netawater][netawater's]] answer [[https://stackoverflow.com/a/17310307/10827766][here]]:
+
+#+begin_src emacs-lisp
+            (headlines (org-element-map
+                        (org-element-parse-buffer 'headline)
+                        'headline
+                        (lambda (headline) (downcase (org-element-property :title headline)))))
+#+end_src
+
+Adapted from [[https://kitchingroup.cheme.cmu.edu/blog/2013/05/05/Getting-keyword-options-in-org-files/][here]]:
+
+#+begin_src emacs-lisp
+            (keywords (org-element-map
+                        (org-element-parse-buffer 'element)
+                        'keyword
+                        (lambda (keyword) (cons (downcase (org-element-property :key keyword)) (org-element-property :value keyword))))))
+#+end_src
+
+#+begin_src emacs-lisp
+        (unless (or (a-has-key? keywords "nosetupfile") (a-has-key? keywords "nosetuplobfile") (member "no setupfile" headlines))
+              (setq current-setup-file (get-README 'return-link (when (a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))))
+              (when debug (let* ((m (format "Current Setup File: %s" current-setup-file))
+                                  (l (length m))
+                                  (b (make-string l ?=)))
+                            (message "\n\n%s\n%s\n%s\n\n" b m b)))
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+              (when (member current-setup-file expanded-args) (global-auto-revert-mode 1))
+#+end_src
+
+#+begin_src emacs-lisp
+              (goto-char 0)
+              (insert (format "#+setupfile: %s\n\n" current-setup-file))
+              (goto-char 0)
+              (org-ctrl-c-ctrl-c))
+        (a-list :keywords keywords :headlines headlines)))
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/3258545/amd][amd's]] answer [[https://stackoverflow.com/a/27158715/10827766][here]] (no longer used):
+
+#+begin_src emacs-lisp :noweb-ref no
+    (require 'org-id)
+    (setq org-id-locations-file (meq/oefd ".org-id-locations")
+          org-id-files (list load-file-name
+                             buffer-file-name
+                             (meq/oefd "README.org"))
+          org-id-link-to-org-use-id t)
+    (org-id-update-id-locations)
+#+end_src
+
+#+begin_src emacs-lisp
+    (setq org-src-preserve-indentation t)
+    (let* ((headlines (a-get org-elements :headlines))
+            (keywords (a-get org-elements :keywords)))
+        (unless (or (a-has-key? keywords "nolobfile") (a-has-key? keywords "nosetuplobfile") (member "no lobfile" headlines))
+          (let* ((file (get-README nil nil (cond ((a-has-key? keywords "setuplobfile") (a-get keywords "setuplobfile"))
+                                            ((a-has-key? keywords "lobfile") (a-get keywords "lobfile"))))))
+            (when file
+              (setq current-lob-file file)
+              (when debug (let* ((m (format "Current LOB File: %s" current-lob-file))
+                                  (l (length m))
+                                  (b (make-string l ?=)))
+                            (message "\n\n%s\n%s\n%s\n\n" b m b)))
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+              (when (member current-lob-file expanded-args) (global-auto-revert-mode 1))
+#+end_src
+
+#+begin_src emacs-lisp
+              (org-babel-lob-ingest current-lob-file))))))
+
+(defun org-babel-post-tangle-hooks nil (interactive)
+#+end_src
+
+Adapted from [[https://stackoverflow.com/users/6148/trey-jackson][Trey Jackson's]] answer [[https://stackoverflow.com/a/2284921/10827766][here]]:
+
+#+begin_src emacs-lisp
+  (when (or (member current-setup-file expanded-args) (member current-lob-file expanded-args)) (global-auto-revert-mode -1))
+#+end_src
+
+#+begin_src emacs-lisp
+)
+
+(mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-pre-tangle-hooks)) '(org-babel-pre-tangle-hook org-export-before-processing-hook))
+(mapc (lambda (hook) (interactive) (add-hook hook 'org-babel-post-tangle-hooks)) '(org-babel-post-tangle-hook org-export-after-processing-hook))
+#+end_src
+
+** org-interpreter
+:PROPERTIES:
+:header-args:emacs-lisp+: :noweb-ref 101ff611-520c-4c0b-ad0c-01937a1250e5
+:END:
+
+#+begin_src text :tangle (meq/tangle-path) :shebang "#!/usr/bin/env sh" :exports none
+<<101ff611-520c-4c0b-ad0c-01937a1250e5>>
+#+end_src
+
+Inspired by [[https://www.reddit.com/r/emacs/comments/t0yy91/comment/hycx6o2/?utm_source=share&utm_medium=web2x&context=3][this comment on reddit]].
+
+~Note:~ For ~hy / hylang~ blocks, for print statements to work, you need to use ~:results silent output~,
+as noted [[https://www.reddit.com/r/emacs/comments/t0yy91/comment/hyfkfhi/?utm_source=share&utm_medium=web2x&context=3][here]].
+The two print statements you need to know are:
+
+#+begin_src hy
+(print "Hello, world!")
+#+end_src
+
+And:
+
+#+begin_src hy
+(import sys)
+(.write sys.stdout "Hello, world!")
+#+end_src
+
+The former prints the output with a visible newline / carriage return, while the latter does not.
+
+#+begin_src emacs-lisp
+":"; exec emacs --quick --script "$0" -- "$@" # -*- mode: emacs-lisp; lexical-binding: t; -*-
+(pop argv)
+
+(require 'org-element)
+
+(defun require-lang (lang)
+    (defvar bootstrap-version)
+    (let ((bootstrap-file
+        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+        (with-current-buffer
+            (url-retrieve-synchronously
+            "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+            'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+    (straight-use-package 'use-package)
+    (setq straight-use-package-by-default t)
+    (pcase (downcase lang)
+        ((or "hy" "hylang") (use-package ob-hy :demand t :straight '(ob-hy :type git :host github :repo "allison-casey/ob-hy") :init (setq org-babel-hy-command "/usr/bin/env hy")))))
+
+(defun message-advice (func &rest args) (interactive)
+    (let* ((*message (apply #'format args)))
+        (unless (or (string-prefix-p "executing" *message)
+                    (string-prefix-p "Code block" *message))
+            (apply func args))))
+(advice-add #'message :around #'message-advice)
+
+(defun org-babel-eval-error-notify-advice (exit-code stderr)
+  "Open a buffer to display STDERR and a message with the value of EXIT-CODE."
+  (let ((buf (get-buffer-create org-babel-error-buffer-name)))
+    (with-current-buffer buf
+      (goto-char (point-max))
+      (save-excursion (insert stderr))
+      (message (buffer-string)))
+    (display-buffer buf))
+  (message "Babel evaluation exited with code %S" exit-code))
+(advice-add #'org-babel-eval-error-notify :override #'org-babel-eval-error-notify-advice)
+
+(let ((org-confirm-babel-evaluate)
+        (lang-list '()))
+    (with-temp-buffer
+        (while argv
+            (let ((arg (pop argv)))
+                (pcase arg
+                    ((or "-l" "--languages")
+                        (while (and (> (length argv) 1) (not (string-prefix-p "-" (car argv))))
+                            (add-to-list 'lang-list (pop argv) t)))
+                    (_ (setq file arg)))))
+        (insert-file-contents file)
+        (mapc 'require-lang lang-list)
+#+end_src
+
+Source [[https://github.com/bzg/org-mode/blob/main/lisp/ob-core.el#L1258][here]]:
+
+#+begin_src emacs-lisp
+        (org-babel-execute-buffer)))
+#+end_src
+
+* Addendum
+
+These are just a few blocks I use regularly in my ~org~ files, whether in ~noweb~, naming, or otherwise:
+
+#+name: username
+#+begin_src text
+shadowrylander
+#+end_src
+
+#+name: userlink
+#+begin_src emacs-lisp
+"https://github.com/<<username>>/<<username>>.git"
+#+end_src
+
+#+name: userhome
+#+begin_src text
+/home/<<username>>
+#+end_src
+
+#+name: reponame
+#+begin_src text
+aiern
+#+end_src
+
+#+name: userrepo
+#+begin_src text
+<<userhome>>/<<reponame>>
+#+end_src
+
+#+name: email
+#+begin_src text
+titaniumfiles@outlook.com
+#+end_src
+
+#+name: hostname
+#+begin_src emacs-lisp
+(system-name)
+#+end_src
+
+#+name: users
+#+begin_src json
+{
+    "primary": "<<username>>",
+    "secondary": "frost",
+    "nightingale": "curtis"
+}
+#+end_src
+
+#+name: homes
+#+begin_src json
+{
+    "primary": "<<userhome>>",
+    "secondary": "/home/frost",
+    "nightingale": "/home/curtis"
+}
+#+end_src
+
+Adapted from [[https://unix.stackexchange.com/users/37512/timo-tijhof][Timo Tijhof's]] answer [[https://unix.stackexchange.com/a/81699/270053][here]]:
+
+#+begin_src shell
+dig @ns1.google.com TXT o-o.myaddr.l.google.com +short -4 | tr -d '"' 2> /dev/null || \
+dig @resolver3.opendns.com myip.opendns.com +short -4 2> /dev/null || \
+dig @resolver4.opendns.com myip.opendns.com +short -4 2> /dev/null || \
+dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short -4 2> /dev/null
+#+end_src
+
+#+name: extip
+#+begin_src emacs-lisp
+(shell-command-to-string (concat "dig @ns1.google.com TXT o-o.myaddr.l.google.com +short -4 | tr -d '\"' 2> /dev/null || "
+                                 "dig @resolver3.opendns.com myip.opendns.com +short -4 2> /dev/null || "
+                                 "dig @resolver4.opendns.com myip.opendns.com +short -4 2> /dev/null || "
+                                 "dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short -4 2> /dev/null"))
+#+end_src
+
+#+name: current-file
+#+begin_src emacs-lisp
+(file-name-nondirectory buffer-file-name)
+#+end_src
+
+#+name: ssh-pubkey-id-rsa-bak
+#+begin_src text
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDlwBJ7E2qeqw9kMW19indbeLdnEKs/Yrhn9HE0c/gZDzvXYBPQYyf5xr9I9kYxWcHlqp7XEI0LVT4DCA/mgemQtM8ulc1mxwekKtk64uWRi5wLi1E17NWKJfXWRn8XZejwi0iJa0twwVE8m8G2AuFOCSa86sYD3x5X5W+7spAuNET7kl0DLueUHu1u31c7HE1ciV2tIn/f60/bbgEJm9MPcRVZkRxkp+bouaZ1cjWRYDhvyJS30DRhBYtIIort2XVAshQs2Y58oKeCDnjt0gxotfqqWlt4nTQzKtbSN2M6/M+clFQBdT1oUJqpTUJbVxK8+xSEOJcBubupTj0USpmftDf/3WMoMwq+hNEc9C0EN1BYtKk68QWhAz8NROvnx7h6y3UKejhQOg0ueNZggmeNJLbebEs46QmA92khO8zc2pfBRsEa5yP0IgdvWpruTZ1QwjqhGQqGnCw3Oli1PK+5zgT2vXy5yHl3f3duPq8h+LOc+lSBbi2jjkC0gwTQDDDNyzFZ+U9xF7fCmL3V8DCEeO/4HqVxmLJir2TVEDo/3Ug/Q22Yp7P2EZrI2pikZIyBJc5aZJO3d7nGoDB/1BJp9Qm82wvyEpjiOnxHsL4osUqrf401XbiwNqpFkVUoRZkwGraJnrlsYkdHS2Mrrny9sr+PtgZhTjqIuW8z6iVIfQ== titaniumfiles@outlook.com
+#+end_src
+
+#+name: ssh-pubkey-id-ed25519-bak
+#+begin_src text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO8NzKV52dRBAir8ARoFJX/xQDVCNup6xe1ddX1YVXSO sylvorg@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-jeet-ray-ecdsa
+#+begin_src text
+ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGsRy6rLDzmLNISdWahFLGDo+ZZLbndj6k8Q8MUQum/mPAzy8lsAQz/0XiicJz7LlM74tWGDYSJG1Ay2Iyc/ew4= jeet.ray@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-jeet-ray-ed25519
+#+begin_src text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICor+WXoAypnk5rkgTljAN6kk8olvKWqtnmGWVuQu8z9 jeet.ray@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-jeet-ray-rsa
+#+begin_src text
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCs4zqEt/Fkjw0LVQTwJXlovmnqqGWC4UOVPvoLDvo0JD6WeVBDi4cFPX2mpNJYmYJsBLDXeUq5XrQ1ST3BkfVdspsragnD7O92tTEf3/VHfIC1L165pnB08FXQrtIjyLL7Ry4dloUGBYKLnHOtnXlpefKMQzRYUacc7Tr1o2wv+XRoDW9h+qDqJz1O61N68JFLgJWD3/nUkm8siTg1OLvqO9ATp+UgP/Lb08E6HfqYOiD8H+1ZJjz78mo5oZatknvgy8uJJPqEX7/aRM61YA9TG+tw/sf6wlrDtUQUik8Y4k1DLmkhE15wcgq/HF2Rqka/acA9GxA5smNGyjs6CS+H jeet.ray@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-shadowrylander-ecdsa
+#+begin_src text
+ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBNlVuY9reRuMloYvecJHHsOYkAPDyQwELOI3kfibslIKI5hY+o1jx5yVyAUomHynP6wulm5aziNc5kWdsRE9BE8= shadowrylander@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-shadowrylander-ed25519
+#+begin_src text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINZ2FCMbnetAnDZ63Wzct+O3MYhtO9+BedATbtiHI9BT shadowrylander@syvl.org
+#+end_src
+
+#+name: ssh-pubkey-shadowrylander-rsa
+#+begin_src text
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP8ifT/3d6L2MzZPoTh0bUjQUXuPKfPP8Tp03E5En2x+iKhv+J/U0z0xk7IdPZ4qEO+ZWI5xWbwVkDdnRnJ/5HgA0/ZwmO5Zpj3llSr4dJMUVSSyO23fFIL2WqOpHyQDeexJWMxbU5SmIi+c855VwewCbGDcPnmDo0XgR/u4LRF2pwYGNGFtJ2/GICEIob/2w0ICwi7TMUEkDbUFcP5web81OzsNu80M60VaNl870uT1rwBeKuW7CXFtImYytZ0mOc5LC6d7ugkFS1zAbLOWjt3PJ8Op2MH9ncBj5jCsIlA/OqI72jKwEPOl8evYqWeEOzlVxA7/AkRj7haQqFE8r/ shadowrylander@syvl.org
+#+end_src
+
+#+name: primary-distro
+#+begin_src text
+nixos
+#+end_src
+
+Adapted from [[https://github.com/divnix/digga/blob/main/examples/devos/flake.nix#L4][here]];
+note that ~substituters~, ~extra-substituters~, and related options [[https://github.com/NixOS/nix/issues/6672#issuecomment-1251573660][do not seem to work]] with ~flakes~:
+
+#+name: generate-nix-conf
+#+begin_src emacs-lisp :var delim="" comment="" quoted='nil flake='nil elisp='nil
+(format-spec "%caccept-flake-config = true%d
+auto-optimise-store = true%d
+builders-use-substitutes = true%d
+cores = 0%d
+extra-experimental-features = %qnix-command flakes impure-derivations recursive-nix%q%d
+fallback = true%d
+flake-registry = https://raw.githubusercontent.com/syvlorg/flake-registry/master/flake-registry.json%d
+keep-derivations = true%d
+keep-outputs = true%d
+max-free = 1073741824%d
+min-free = 262144000%d
+show-trace = true%d
+trusted-public-keys = %lcache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=%q %qnix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=%q %qnickel.cachix.org-1:ABoCOGpTJbAum7U6c+04VbjvLxG9f0gJP5kYihRRdQs=%q %qsylvorg.cachix.org-1:xd1jb7cDkzX+D+Wqt6TemzkJH9u9esXEFu1yaR9p8H8=%r%d
+trusted-substituters = %lhttps://cache.nixos.org/%q %qhttps://nix-community.cachix.org%q %qhttps://nickel.cachix.org%q %qhttps://sylvorg.cachix.org%r%d
+warn-dirty = false%d" `(
+  (?c . ,(if flake "# Adapted From: https://github.com/divnix/digga/blob/main/examples/devos/flake.nix#L4\n" ""))
+  (?l . ,(if flake (format "[ %s" (if elisp "\\\"" "\"")) ""))
+  (?r . ,(if flake (format "%s ]" (if elisp "\\\"" "\"")) ""))
+  (?d . ,(if flake ";" delim))
+  (?q . ,(if (or flake quoted)
+             (if elisp "\\\"" "\"") ""))))
+#+end_src
+
+#+name: get-bundle-path
+#+begin_src emacs-lisp :var elisp='nil
+(format-spec "nix eval --impure --expr %q((builtins.getFlake or import) (toString ./.)).inputs.bundle.outPath%q | tr -d '%q' 2> /dev/null"
+  `((?q . ,(if elisp "\\\"" "\""))))
+#+end_src
+
+#+name: input-path-exists
+#+begin_src emacs-lisp :var path="" url="" submodule='nil
+(let* ((path (f-expand path)))
+    (if (and (f-exists? path) (not (f-empty? path)))
+        (concat (if submodule "" "git+") "file://" path)
+        (progn (message "Sorry; path \"%s\" does not exist!" path) url)))
+#+end_src
+
+# Adapted From: https://www.reddit.com/r/emacs/comments/4o9f0e/anyone_have_disabled_parts_of_their_config_being/d4apjey?utm_source=share&utm_medium=web2x&context=3
+
+#+name: hash-deprecated
+#+begin_src emacs-lisp :var name=""
+(md5 (concat (replace-regexp-in-string "/" "" (
+    org-format-outline-path (org-get-outline-path))) (
+        nth 4 (org-heading-components)) name))
+#+end_src
+
+#+name: hash
+#+begin_src emacs-lisp
+(format-time-string "%Y%m%d%H%M%S%N")
+#+end_src
+
+#+name: uuidgen
+#+begin_src emacs-lisp
+(uuidgen-5 (uuidgen-4) (uuidgen-4))
+#+end_src

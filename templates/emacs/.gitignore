@@ -2,6 +2,7 @@
 **/_build
 **/.#*
 **/.cask
+**/.coverage
 **/.DS_Store
 **/.mypy_cache
 **/.pytest_cache

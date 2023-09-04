@@ -1,7 +1,10 @@
-(setq org-export-functions-directory (file-name-directory (or load-file-name buffer-file-name))
+(setq org-functions-directory (file-name-directory (or load-file-name buffer-file-name))
       windows (member system-type '(windows-nt ms-dos)))
-(defun meq/oefd (&rest args) (apply #'concat org-export-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
+(defun meq/oefd (&rest args) (apply #'concat org-functions-directory (mapcar #'(lambda (arg) (concat (if windows "\\" "/") arg)) args)))
 (load-file (meq/oefd "org-tangle-functions.el"))
+(unless (require 'htmlize nil t)
+    (add-to-list 'load-path (meq/oefd "htmlize"))
+    (require 'htmlize))
 (defun meq/org-html-src-block (src-block _contents info)
   "Transcode a SRC-BLOCK element from Org to HTML.
 CONTENTS holds the contents of the item.  INFO is a plist holding

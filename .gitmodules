@@ -1,0 +1,19 @@
+[submodule "bin/uuidgen"]
+	path = bin/uuidgen
+	url = https://github.com/syvlorg/uuidgen-el.git
+[submodule "bin/a"]
+	path = bin/a
+	url = https://github.com/plexus/a.el.git
+[submodule "bin/s"]
+	path = bin/s
+	url = https://github.com/magnars/s.el.git
+[submodule "bin/dash"]
+	path = bin/dash
+	url = https://github.com/magnars/dash.el.git
+[submodule "bin/f"]
+	path = bin/f
+	url = https://github.com/syvlorg/f.el.git
+	branch = f-presence
+[submodule "bin/htmlize"]
+	path = bin/htmlize
+	url = https://github.com/hniksic/emacs-htmlize

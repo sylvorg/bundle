@@ -25,7 +25,7 @@ oreo = { git = "https://github.com/syvlorg/oreo.git", branch = "main" }
 pytest = "^3.0"
 poetry = "*"
 poetry2setup = "*"
-pytest-hy = { git = "https://github.com/syvlorg/pytest-hy.git", branch = "maaster" }
+pytest-hy = { git = "https://github.com/syvlorg/pytest-hy.git", branch = "master" }
 pytest-randomly = "*"
 pytest-parametrized = "*"
 pytest-sugar = "*"

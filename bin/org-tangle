@@ -118,8 +118,8 @@ trees with the :notangle: tag."
 (defvar expanded-args (mapcar #'f-expand argv))
 (defvar debug (or (member "-d" initial-args) (member "--debug" initial-args)))
 (defvar force (or (member "-f" initial-args) (member "--force" initial-args)))
-(defvar settings-path nil)
-(defvar titan-settings nil)
+(defvar bundle-path nil)
+(defvar use-nix-path nil)
 (let (lang srcs and-tags or-tags)
   (pop argv)
   (while argv
@@ -130,10 +130,10 @@ trees with the :notangle: tag."
          (error ""))
         ((or "-f" "--force")
          nil)
-        ((or "-s" "--settings-path")
-         (setq settings-path (pop argv)))
-        ((or "-T" "--titan-settings")
-         (setq titan-settings (pop argv)))
+        ((or "-b" "--bundle-path")
+         (setq bundle-path (pop argv)))
+        ((or "-n" "--use-nix-path")
+         (setq use-nix-path t))
         ((or "-d" "--debug")
          nil)
         ((or "-a" "--all")
@@ -159,8 +159,12 @@ trees with the :notangle: tag."
               (error "Unknown option or file: %s" arg))))))
 
   (dolist (file srcs)
-		(message (format "\n\nNow tangling %s:\n" file))
-    (let ((backup (make-temp-file (file-name-base file) nil ".backup.org")))
+    (let* ((file (f-expand (substitute-in-file-name file)))
+           (backup (make-temp-file (file-name-base file) nil ".backup.org"))
+           (post (eval `(lambda nil (ignore-errors (copy-file ,backup ,file t))
+                                    (ignore-errors (delete-file ,backup))))))
+      (add-hook 'kill-emacs-hook post)
+      (message (format "\n\nNow tangling %s:\n" file))
       (unwind-protect
           ;; Prevent slow hooks from interfering
           (let (org-mode-hook org-confirm-babel-evaluate make-backup-files)
@@ -170,8 +174,8 @@ trees with the :notangle: tag."
             (with-current-buffer (find-file-noselect file)
               ;; Tangling doesn't expand #+INCLUDE directives, so we do it
               ;; ourselves, since includes are so useful for literate configs!
-              ;; (org-export-expand-include-keyword)
+              (org-export-expand-include-keyword)
               (org-babel-tangle nil nil lang)))
-        (ignore-errors (copy-file backup file t))
-        (ignore-errors (delete-file backup)))))
+        (funcall post))))
+
   (kill-emacs 0))
