@@ -1464,8 +1464,8 @@
         "sh": "sh"
       },
       "locked": {
-        "lastModified": 1693880561,
-        "narHash": "sha256-QTuF4pwPngCl8IeTwS1DUqdAGCs2eHuWlVXzEToJqgg=",
+        "lastModified": 1693886953,
+        "narHash": "sha256-s0w4fvtphOoG1Eo+uPzxw/R6bMmYWP7hKqnNYBp24q8=",
         "submodules": true,
         "type": "git",
         "url": "file:///home/shadowrylander/shadowrylander/sylveon/syvlorg/valiant"
