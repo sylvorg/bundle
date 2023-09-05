@@ -49,7 +49,7 @@
 
     valiant = {
       url =
-        "https://github.com/syvlorg/titan.git";
+        "https://github.com/syvlorg/valiant.git";
       type = "git";
       submodules = true;
     };
