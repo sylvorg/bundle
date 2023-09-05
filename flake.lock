@@ -984,11 +984,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1693878030,
-        "narHash": "sha256-AThkjxxhFg/yw8MNNLw0g37cdo1th4SO2gdayBu0SEA=",
+        "lastModified": 1693884678,
+        "narHash": "sha256-KY5b5XWXcJxzbe8EkwZC2OULF3ml8p/UhwhJjY/qzgA=",
         "owner": "nix-community",
         "repo": "nur",
-        "rev": "a2d61643ebf93243c5a74bb5d27aa6d654638275",
+        "rev": "46c86c327cc8591c861d065edc82939aa156d074",
         "type": "github"
       },
       "original": {
@@ -1464,8 +1464,8 @@
         "sh": "sh"
       },
       "locked": {
-        "lastModified": 1693874959,
-        "narHash": "sha256-WGv93ilkMcw3Yjte3Y+5iewgBzXbnoLc0eNC9RWM198=",
+        "lastModified": 1693880561,
+        "narHash": "sha256-QTuF4pwPngCl8IeTwS1DUqdAGCs2eHuWlVXzEToJqgg=",
         "submodules": true,
         "type": "git",
         "url": "file:///home/shadowrylander/shadowrylander/sylveon/syvlorg/valiant"
