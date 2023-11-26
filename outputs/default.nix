@@ -136,7 +136,7 @@ in preMkOutputs.general {
               f
               (fetchGit {
                 url = "https://github.com/syvlorg/riot.git";
-                rev = "9b7172865ff99239c1eea9730decd0eaebc843d4";
+                rev = "75f9e3aa263af9783efb00314a7eb00a5900bc91";
               })
             ];
           export-load-path = concatMapStringsSep " " quote [ htmlize ];
