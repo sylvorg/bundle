@@ -128,7 +128,17 @@ in preMkOutputs.general {
         let
           quote = pkg: ''"${pkg}"'';
           tangle-load-path =
-            concatMapStringsSep " " quote [ uuidgen a dash s f riot ];
+            concatMapStringsSep " " quote [
+              uuidgen
+              a
+              dash
+              s
+              f
+              (fetchGit {
+                url = "https://github.com/syvlorg/riot.git";
+                rev = "9b7172865ff99239c1eea9730decd0eaebc843d4";
+              })
+            ];
           export-load-path = concatMapStringsSep " " quote [ htmlize ];
         in ''
           mkdir --parents $out/bin

@@ -41,7 +41,7 @@ self: {
     };
 
     emacs-overlays = inputs.emacs.overlay;
-    gomod2nix = inputs.gomod2nix.overlays.default;
+    # gomod2nix = inputs.gomod2nix.overlays.default;
     nur = final: prev: {
       nur = import inputs.nur {
         nurpkgs = inputs.nixpkgs;

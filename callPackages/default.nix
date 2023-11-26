@@ -260,14 +260,14 @@ in {
         hello;
 
     # Adapted From: https://github.com/nix-community/gomod2nix#usage
-    saku = pname:
-      { buildGoApplication }:
-      buildGoApplication rec {
-        inherit pname;
-        inherit (Inputs.${pname}) version;
-        src = inputs.${pname};
-        modules = "${toString ./.}/go/${pname}/gomod2nix.toml";
-      };
+    # saku = pname:
+    #   { buildGoApplication }:
+    #   buildGoApplication rec {
+    #     inherit pname;
+    #     inherit (Inputs.${pname}) version;
+    #     src = inputs.${pname};
+    #     modules = "${toString ./.}/go/${pname}/gomod2nix.toml";
+    #   };
   };
 
   # Generated using `node2nix': https://github.com/svanderburg/node2nix#deploying-a-collection-of-npm-packages-from-the-npm-registry
