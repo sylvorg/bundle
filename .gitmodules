@@ -17,3 +17,6 @@
 [submodule "bin/htmlize"]
 	path = bin/htmlize
 	url = https://github.com/hniksic/emacs-htmlize
+[submodule "bin/riot"]
+	path = bin/riot
+	url = https://github.com/syvlorg/riot

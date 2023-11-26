@@ -108,6 +108,15 @@
       url = "github:hniksic/emacs-htmlize";
       flake = false;
     };
+
+    # ... this one's okay though; it's not being used as a package here.
+    riot = {
+      url = "github:syvlorg/riot";
+      inputs.bundle.follows = "";
+      inputs.valiant.follows = "valiant";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-mode.url = "github:syvlorg/nix-mode";
     ob-hy = {
       url = "github:allison-casey/ob-hy";

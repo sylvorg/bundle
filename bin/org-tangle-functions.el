@@ -10,6 +10,7 @@
 (mapc (lambda (file) (unless (require file nil t) (load-file (meq/oefd "f" (concat (symbol-name file) ".el"))))) '(
     f-shortdoc
     f
+    riot
 ))
 (defun meq/org-babel-expand-src-block (&optional light datum info params)
   "Expand the current source code block. Expand according to the source code block's header arguments."

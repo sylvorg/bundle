@@ -109,7 +109,8 @@ in preMkOutputs.general {
   nixosModule = self.defaultNixosModule;
   mkOutputs = inputs.valiant.mkOutputs.base self.overlays self.pname lib
     (import ../languages inputs lib);
-  callPackage = { stdenvNoCC, runCommandLocal, libuuid }:
+  callPackage = packages@{ stdenv, runCommandLocal, makeWrapper, libuuid
+    , emacs-nox, pandoc }:
     let
       orgs = listToAttrs
         (map (o: nameValuePair "$src/bin/org-${o}" "$out/bin/org-${o}") [
@@ -117,40 +118,42 @@ in preMkOutputs.general {
           "export"
           "interpreter"
         ]);
-    in stdenvNoCC.mkDerivation rec {
+    in stdenv.mkDerivation rec {
       inherit (self) pname;
       version = "1.0.0.0";
-      src = ./.;
+      src = ./..;
       phases = [ "installPhase" ];
+      buildInputs = [ makeWrapper ];
       installPhase = with inputs;
         let
           quote = pkg: ''"${pkg}"'';
           tangle-load-path =
-            concatMapStringsSep " " quote [ uuidgen a dash s f ];
+            concatMapStringsSep " " quote [ uuidgen a dash s f riot ];
           export-load-path = concatMapStringsSep " " quote [ htmlize ];
         in ''
           mkdir --parents $out/bin
           cp $src/README.org $out/bin/README.ORG
-          ${concatStringsSep "\n"
-          (mapAttrsToList (n: v: "cp ${n} ${v}; chmod +x ${v}") orgs)}
+          ${concatStringsSep "\n" (mapAttrsToList
+            (n: v: "cp ${n} ${v}; chmod +x ${v}; patchShebangs ${v}") orgs)}
           echo '(setq load-path `(,@load-path ${tangle-load-path}))' > $out/bin/org-tangle-functions.el
           cat $src/bin/org-tangle-functions.el >> $out/bin/org-tangle-functions.el
           echo '(setq load-path `(,@load-path ${export-load-path}))' > $out/bin/org-export-functions.el
           cat $src/bin/org-export-functions.el >> $out/bin/org-export-functions.el
-          substituteInPlace $out/bin/org-tangle-functions.el --replace "(link-or-file nix-path return-link)" "(link-or-file \"$out/bin/README.ORG\" return-link)"
+          substituteInPlace $out/bin/org-tangle-functions.el --replace "(link-or-file nix-path return-link)" "(link-or-file \"$out/bin/README.org\" return-link)"
           substituteInPlace $out/bin/org-tangle --replace "(load-file (concat (file-name-directory (or load-file-name buffer-file-name)) \"org-tangle-functions.el\"))" "(load-file \"$out/bin/org-tangle-functions.el\")"
           substituteInPlace $out/bin/org-export --replace "(load-file (concat (file-name-directory (or load-file-name buffer-file-name)) \"org-export-functions.el\"))" "(load-file \"$out/bin/org-export-functions.el\")"
+          ${concatMapStringsSep "\n" (o: "wrapProgram ${o} $makeWrapperArgs")
+          (attrValues orgs)}
         '';
       meta.mainProgram = "org-tangle";
-      postInstall = ''
-        ${concatMapStringsSep "\n" (o: "wrapProgram ${o} $makeWrapperArgs")
-        (attrValues orgs)}
-      '';
-
-      # Emacs is simply too big to build every single time, and I can't seem to get it from the cache either.
-      # makeWrapperArgs = toList "--set PATH ${makeBinPath [
-      #     (if (elem stdenv.targetPlatform.system (attrNames inputs.nixpkgs.legacyPackages)) then inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.emacs-nox else emacs-nox)
-      # ]}";
+      makeWrapperArgs = toList "--set PATH ${
+          makeBinPath (map (pkg:
+            if (elem stdenv.targetPlatform.system
+              (attrNames inputs.nixpkgs.legacyPackages)) then
+              inputs.nixpkgs.legacyPackages.${stdenv.targetPlatform.system}.${pkg}
+            else
+              packages.${pkg}) [ "emacs-nox" "pandoc" ])
+        }";
     };
 } {
   inherit lib;

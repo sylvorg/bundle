@@ -127,7 +127,7 @@ trees with the :notangle: tag."
       (pcase arg
         ((or "-h" "--help")
          (usage)
-         (error ""))
+         (kill-emacs))
         ((or "-f" "--force")
          nil)
         ((or "-b" "--bundle-path")
