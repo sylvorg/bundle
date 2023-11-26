@@ -1264,11 +1264,11 @@
     "riot": {
       "flake": false,
       "locked": {
-        "lastModified": 1700991907,
-        "narHash": "sha256-blY0fciF1l1ZKvFkdANvfxiiJEpLL8Gfm/2oAUQOZZc=",
+        "lastModified": 1700992167,
+        "narHash": "sha256-igFi8PR49e2Lp7eO/qvQW+D056P6qsXGRpY1UaeHrrc=",
         "owner": "syvlorg",
         "repo": "riot",
-        "rev": "5afe7026b5ae30b63cd54391a4868be7969c87c3",
+        "rev": "9b7172865ff99239c1eea9730decd0eaebc843d4",
         "type": "github"
       },
       "original": {
