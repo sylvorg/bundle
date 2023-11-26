@@ -112,9 +112,10 @@
     # ... this one's okay though; it's not being used as a package here.
     riot = {
       url = "github:syvlorg/riot";
-      inputs.bundle.follows = "";
-      inputs.valiant.follows = "valiant";
-      inputs.nixpkgs.follows = "nixpkgs";
+      flake = false;
+      # inputs.bundle.follows = "";
+      # inputs.valiant.follows = "valiant";
+      # inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nix-mode.url = "github:syvlorg/nix-mode";
