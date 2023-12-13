@@ -1339,7 +1339,14 @@ Adapted from [[https://github.com/edolstra/flake-compat#usage][here]]:
                       "<<"
                       ">>"))
                 ((string= group "emacs")
-                    (format "\n    ePkg-meq.url = %sinput-path-exists(path=\"../meq\", url=\"github:syvlorg/meq\")%s;\n"
+                    (format "\n    ePkg-meq = {
+      url = %sinput-path-exists(path=\"../meq\", url=\"github:syvlorg/meq\")%s;\n
+      inputs.bundle.follows = "bundle";
+      inputs.valiant.follows = "valiant";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.flake-compat.follows = "flake-compat";
+    };"
                         "<<"
                         ">>"))
                 (t ""))
@@ -2167,6 +2174,13 @@ Must be last; [[https://github.com/rejeep/f.el][f.el]] requires [[https://github
 (mapc (lambda (file) (unless (require file nil t) (load-file (meq/oefd "f" (concat (symbol-name file) ".el"))))) '(
     f-shortdoc
     f
+))
+#+end_src
+
+And now the rest of the packages:
+
+#+begin_src emacs-lisp
+(mapc (lambda (file) (unless (require file nil t) (load-file (meq/oefd (symbol-name file) (concat (symbol-name file) ".el"))))) '(
     riot
 ))
 #+end_src
@@ -2246,6 +2260,7 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
 (defun meq/get-theme-from-header nil (s-chop-suffix "-theme.el" (meq/get-header)))
 
 (defun meq/tangle-multi-inner (light dont-check-car &rest paths)
+    (message "%s" paths)
     (let* ((paths (remove "no" paths)))
       (mapc (lambda (path) (let* ((path (f-expand (substitute-in-file-name path)))
                                   (parent (f-parent path))
@@ -2255,12 +2270,33 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
                                     (f-write (if (string-suffix-p "\n" body) body (concat body "\n")) 'utf-8 path)))) (cdr paths))
       (meq/org-babel-expand (f-expand (substitute-in-file-name (car paths))) t light dont-check-car)))
 
+(defun meq/path-file (path) (f-join path (meq/get-header)))
 (defun meq/tangle-path (&optional light)
-    (meq/org-babel-expand (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) (meq/get-header))) t light))
+    (meq/org-babel-expand
+        (s-chop-prefix "/" (f-join (org-format-outline-path (org-get-outline-path)) (meq/get-header)))
+        'return-path light))
 (defun meq/tangle-multipath (&rest paths) (apply #'meq/tangle-multi-inner nil 'dont-check-car (add-to-list 'paths (meq/tangle-path))))
 (defun meq/tangle-multipath-light (&rest paths) (apply #'meq/tangle-multi-inner 'light 'dont-check-car (add-to-list 'paths (meq/tangle-path t))))
+(defun meq/tangle-file-multipath (&rest paths)
+    (let ((paths (mapcar #'meq/path-file paths)))
+        (apply
+            #'meq/tangle-multi-inner
+            nil
+            'dont-check-car
+            (add-to-list 'paths (meq/tangle-path)))))
+(defun meq/tangle-file-multipath-light (&rest paths)
+    (let ((paths (mapcar #'meq/path-file paths)))
+        (apply
+            #'meq/tangle-multi-inner
+            'light
+            'dont-check-car
+            (add-to-list 'paths (meq/tangle-path 'light)))))
 (defun meq/tangle-multi (&rest paths) (apply #'meq/tangle-multi-inner nil nil paths))
 (defun meq/tangle-multi-light (&rest paths) (apply #'meq/tangle-multi-inner 'light nil paths))
+(defun meq/tangle-file-multi (&rest paths)
+    (apply #'meq/tangle-multi-inner nil nil (mapcar #'meq/path-file paths)))
+(defun meq/tangle-file-multi-light (&rest paths)
+    (apply #'meq/tangle-multi-inner 'light nil (mapcar #'meq/path-file paths)))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -2301,7 +2337,7 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
             (link-or-file (getenv "BUNDLE_README") return-link t)
             (link-or-file setupfile return-link)
             (link-or-file lobfile return-link)
-            (let* ((bundle-README (join-and-expand tangled-fd "README.org")))
+            (let* ((bundle-README (join-and-expand tangled-fd "README.ORG")))
                 (cond
                   ((f-exists? README) (concat "./" README))
                   ((and (f-exists? bundle-README) (equal (last (f-split bundle-README) 2) '("bundle" "README.org"))) bundle-README)
@@ -2310,12 +2346,12 @@ the code for ~org-babel-lob--src-info~ is [[https://github.com/emacs-mirror/emac
             (when use-nix-path (link-or-file nix-path return-link))
             (let* ((flake-bundle (s-trim (shell-command-to-string "<<get-bundle-path(elisp='t)>>"))))
                 (cond
-                  (f-present? (unless (s-blank? flake-bundle) (join-and-expand flake-bundle "README.org")))
-                  (f-present? (f-expand README))
-                  (f-present? (join-and-expand "~" README))
-                  (f-present? user-README)
-                  (f-present? username-README)
-                  (f-present? (join-and-expand "/" README))))
+                  ((f-present? (unless (s-blank? flake-bundle) (join-and-expand flake-bundle "README.org"))))
+                  ((f-present? (f-expand README)))
+                  ((f-present? (join-and-expand "~" README)))
+                  ((f-present? user-README))
+                  ((f-present? username-README))
+                  ((f-present? (join-and-expand "/" README)))))
             (link-or-file nix-path return-link)
             (link-or-file "https://raw.githubusercontent.com/sylvorg/bundle/main/README.org" return-link t))))
 
@@ -2515,7 +2551,7 @@ These are just a few blocks I use regularly in my ~org~ files, whether in ~noweb
 
 #+name: username
 #+begin_src text
-shadowrylander
+sylvorg
 #+end_src
 
 #+name: userlink
@@ -2586,6 +2622,21 @@ dig @ns1-1.akamaitech.net ANY whoami.akamai.net +short -4 2> /dev/null
 #+name: current-file
 #+begin_src emacs-lisp
 (file-name-nondirectory buffer-file-name)
+#+end_src
+
+#+name: age-pubkey-jeet-ray
+#+begin_src text
+age137rleywjdkw7xj2aznfjnh0vf2zlcgmav0pfzgyee5hjd9v3v5ps22qr9x
+#+end_src
+
+#+name: age-pubkey-jeet-ray-yubikey-slot-1
+#+begin_src text
+age1yubikey1q22qkx8636cd0ryacyz9t0f27lg5ezd9fr98zccpqlehxwcw9dxwgg5at4p
+#+end_src
+
+#+name: age-pubkey-jeet-ray-ed25519
+#+begin_src text
+age1dmc4aw6sgwdf2e89ej9fya9vzq7ysdynw84wr35d6fca62vngc8ssgg3cu
 #+end_src
 
 #+name: ssh-pubkey-id-rsa-bak
